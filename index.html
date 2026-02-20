@@ -36,10 +36,13 @@ audio{width:100%;margin-top:10px}
 <header>
 <div><b>🎧 Ntudioka Community</b></div>
 <div>
+<input id="email" type="email">
+<input id="password" type="password">
 <button onclick="login()">Login</button>
 <button onclick="signup()">Sign up</button>
 <button onclick="logout()">Logout</button>
 </div>
+<button onclick="adminLogin()">Admin Login</button>
 
 </header>
 <!--image upload and display in feed-->
@@ -50,12 +53,24 @@ audio{width:100%;margin-top:10px}
 <div id="podcasts"></div>
 </section>
 
-<div id="playerBar" style="position:fixed;bottom:0;left:0;width:15%;background:#222;color:white;padding: 2px;px">
-<button onclick="player.pause()">⏸</button>
-<button onclick="player.play()">▶</button>
-<button onclick="playTrack(current+1)">⏭</button>
-<span id="nowPlaying"></span>
+<div id="podcastPlayer">
+  <audio id="audio" controls></audio>
+
+  <div>
+    <button onclick="prevPodcast()">⏮</button>
+    <button onclick="nextPodcast()">⏭</button>
+    <button onclick="toggleRepeat()">🔁 <span id="repeatMode">Off</span></button>
+  </div>
+
+  <ul id="podcastList"></ul>
 </div>
+
+</div>
+<ul id="podcastList">
+  <li onclick="playPodcast(0)">Podcast Episode 1</li>
+  <li onclick="playPodcast(1)">Podcast Episode 2</li>
+  <li onclick="playPodcast(2)">Podcast Episode 3</li>
+</ul>
 
 <section>
 <h2>🔴 Live Broadcast</h2>
@@ -120,11 +135,24 @@ const db=firebase.firestore();
 const auth=firebase.auth();
 
 /* LOGIN */
+
+const auth = firebase.auth();
+
 function signup(){
- const email=prompt("Email");
- const pass=prompt("Password");
- auth.createUserWithEmailAndPassword(email,pass);
+  const email = document.getElementById("email").value;
+  const pass  = document.getElementById("password").value;
+
+  auth.createUserWithEmailAndPassword(email, pass)
+  .then(user=>{
+    alert("Signup successful");
+    console.log(user);
+  })
+  .catch(err=>{
+    alert(err.message);
+    console.error(err);
+  });
 }
+
 
 function login(){
  const email=prompt("Email");
@@ -438,6 +466,156 @@ document.getElementById("userSelect").onchange=loadDM;
   const analytics = getAnalytics(app);
   const db = firebase.firestore();
   const auth = firebase.auth();
+</script>
+<script>
+function adminLogin(){
+
+  const user = prompt("Enter admin username:");
+  const pass = prompt("Enter admin password:");
+
+  if(user==="admin" && pass==="admin123"){
+      window.location.href="ntuonline.html";
+  }else{
+      alert("Incorrect admin login");
+  }
+}
+</script>
+<script>
+
+const playlist = [
+  "https://firebasestorage.googleapis.com/your-file-url",
+  "https://firebasestorage.googleapis.com/your-file-url",
+  "https://firebasestorage.googleapis.com/your-file-url"
+];
+
+let current = 0;
+let repeatMode = 0; 
+// 0 = off, 1 = repeat all, 2 = repeat one
+
+const audio = document.getElementById("audio");
+
+function playPodcast(index){
+  current = index;
+  audio.src = playlist[current];
+  audio.play();
+}
+
+function nextPodcast(){
+
+  if(repeatMode === 2){
+    audio.currentTime = 0;
+    audio.play();
+    return;
+  }
+
+  current++;
+
+  if(current >= playlist.length){
+    if(repeatMode === 1){
+      current = 0;
+    }else{
+      return;
+    }
+  }
+
+  playPodcast(current);
+}
+
+function prevPodcast(){
+  current--;
+  if(current < 0) current = 0;
+  playPodcast(current);
+}
+
+function toggleRepeat(){
+  repeatMode++;
+  if(repeatMode > 2) repeatMode = 0;
+
+  const labels = ["Off","All","One"];
+  document.getElementById("repeatMode").innerText = labels[repeatMode];
+}
+
+audio.addEventListener("ended", nextPodcast);
+
+</script>
+<script>
+
+const db = firebase.firestore();
+const audio = document.getElementById("audio");
+
+let playlist = [];
+let current = 0;
+let repeatMode = 0;
+
+async function loadPodcasts(){
+
+  const snap = await db.collection("podcasts")
+                       .orderBy("created","desc")
+                       .get();
+
+  playlist = [];
+
+  const list = document.getElementById("podcastList");
+  list.innerHTML = "";
+
+  snap.forEach((doc,i)=>{
+    const data = doc.data();
+
+    playlist.push(data.audioUrl);
+
+    const li = document.createElement("li");
+    li.innerText = data.title;
+    li.onclick = ()=>playPodcast(i);
+
+    list.appendChild(li);
+  });
+}
+
+function playPodcast(index){
+  current = index;
+  audio.src = playlist[current];
+  audio.play();
+}
+
+function nextPodcast(){
+
+  if(repeatMode === 2){
+    audio.currentTime = 0;
+    audio.play();
+    return;
+  }
+
+  current++;
+
+  if(current >= playlist.length){
+    if(repeatMode === 1){
+      current = 0;
+    }else{
+      return;
+    }
+  }
+
+  playPodcast(current);
+}
+
+function prevPodcast(){
+  current--;
+  if(current < 0) current = 0;
+  playPodcast(current);
+}
+
+function toggleRepeat(){
+  repeatMode++;
+  if(repeatMode > 2) repeatMode = 0;
+
+  const labels = ["Off","All","One"];
+  document.getElementById("repeatMode").innerText = labels[repeatMode];
+}
+
+audio.addEventListener("ended", nextPodcast);
+
+loadPodcasts();
+
 </script>
 </body>
 </html>
