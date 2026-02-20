@@ -29,6 +29,10 @@ button{padding:10px 20px;margin-top:10px;border:none;border-radius:20px;backgrou
 <button onclick="login()">Login as Admin</button>
 </div>
 
+<input type="file" id="podcastFile">
+<input type="text" id="podcastTitle" placeholder="Podcast title">
+<button onclick="uploadPodcast()">Upload Podcast</button>
+
 <div class="card">
 <h2>🔴 Set Live Broadcast</h2>
 <input id="liveId" placeholder="YouTube Video ID">
@@ -73,6 +77,33 @@ const email=prompt("Admin email");
 const pass=prompt("Password");
 auth.signInWithEmailAndPassword(email,pass);
 }
+
+<script>
+
+async function uploadPodcast(){
+
+  const file = document.getElementById("podcastFile").files[0];
+  const title = document.getElementById("podcastTitle").value;
+
+  if(!file) return alert("Select audio file");
+
+  const ref = firebase.storage().ref("podcasts/" + file.name);
+
+  await ref.put(file);
+
+  const url = await ref.getDownloadURL();
+
+  await firebase.firestore().collection("podcasts").add({
+    title: title,
+    audioUrl: url,
+    created: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  alert("Podcast uploaded!");
+}
+
+</script>
+
 
 async function setLive(){
 const id=document.getElementById("liveId").value;
