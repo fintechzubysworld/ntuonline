@@ -99,10 +99,9 @@ async function uploadPodcast(){
 
   alert("Podcast uploaded!");
 }
+</script>
 
-
-
-
+<script>
 async function setLive(){
 const id=document.getElementById("liveId").value;
 await db.collection("live").doc("current").set({videoId:id});
