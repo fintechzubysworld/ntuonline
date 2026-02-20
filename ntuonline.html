@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ntudioka Admin</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
+
+<style>
+body{background:#0e0f17;color:white;font-family:sans-serif;padding:30px}
+input,textarea{width:100%;padding:10px;margin-top:10px;border-radius:10px}
+button{padding:10px 20px;margin-top:10px;border:none;border-radius:20px;background:#00e5ff}
+.card{background:#1a1e2f;padding:20px;border-radius:20px;margin-bottom:20px}
+</style>
+</head>
+
+<body>
+
+<h1>⚡ Ntudioka Admin</h1>
+
+<div class="card">
+<h2>Login</h2>
+<button onclick="login()">Login as Admin</button>
+</div>
+
+<div class="card">
+<h2>🔴 Set Live Broadcast</h2>
+<input id="liveId" placeholder="YouTube Video ID">
+<button onclick="setLive()">Publish Live</button>
+</div>
+
+<div class="card">
+<h2>📅 Create Event</h2>
+<input id="eventTitle" placeholder="Event title">
+<button onclick="postEvent()">Publish Event</button>
+</div>
+
+<div class="card">
+<h2>🔗 Add Community Link</h2>
+<input id="linkLabel" placeholder="Button label">
+<input id="linkURL" placeholder="URL">
+<button onclick="addLink()">Add</button>
+</div>
+
+<!--video upload interface-->
+<section>
+<h2>🎥 Upload Video</h2>
+<input type="file" id="videoFile" accept="video/*">
+<button onclick="uploadVideo()">Upload</button>
+</section>
+
+
+<script>
+
+const firebaseConfig={
+apiKey:"YOUR_KEY",
+authDomain:"YOUR_PROJECT.firebaseapp.com",
+projectId:"YOUR_PROJECT"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+const auth=firebase.auth();
+
+function login(){
+const email=prompt("Admin email");
+const pass=prompt("Password");
+auth.signInWithEmailAndPassword(email,pass);
+}
+
+async function setLive(){
+const id=document.getElementById("liveId").value;
+await db.collection("live").doc("current").set({videoId:id});
+alert("Live broadcast published");
+}
+
+
+async function postEvent(){
+const title=document.getElementById("eventTitle").value;
+await db.collection("posts").add({
+text:"📅 EVENT: "+title,
+time:Date.now(),
+admin:true
+});
+alert("Event posted");
+}
+
+async function addLink(){
+const label=document.getElementById("linkLabel").value;
+const url=document.getElementById("linkURL").value;
+await db.collection("links").add({label,url});
+alert("Link added");
+}
+//video upload function
+async function uploadVideo(){
+ const file=document.getElementById("videoFile").files[0];
+ const user=auth.currentUser;
+ if(!file)return;
+
+ const ref=storage.ref("videos/"+Date.now()+"_"+file.name);
+ await ref.put(file);
+ const url=await ref.getDownloadURL();
+
+ await db.collection("posts").add({
+   video:url,
+   uid:user.uid,
+   email:user.email,
+   time:Date.now()
+ });
+}
+</script>
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+    authDomain: "ntudioka-online-c29d8.firebaseapp.com",
+    projectId: "ntudioka-online-c29d8",
+    storageBucket: "ntudioka-online-c29d8.firebasestorage.app",
+    messagingSenderId: "1015621578149",
+    appId: "1:1015621578149:web:c755b458e505fd32928c4c",
+    measurementId: "G-JPVKYQRKEB"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+</script>
+</body>
+</html>
