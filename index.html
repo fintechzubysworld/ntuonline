@@ -82,6 +82,22 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const storage = firebase.storage();
 
+  <script>
+auth.onAuthStateChanged(async user=>{
+  if(!user){
+    alert("Login required");
+    location.href="index.html";
+    return;
+  }
+
+  const doc = await db.collection("roles").doc(user.uid).get();
+
+  if(!doc.exists || doc.data().role !== "admin"){
+    alert("Access denied. Not an admin.");
+    location.href="index.html";
+  }
+});
+</script>
 /////////////////////////////
 // ✅ AUTH SYSTEM
 /////////////////////////////
@@ -203,3 +219,4 @@ db.collection("posts").orderBy("time","desc")
 </script>
 </body>
 </html>
+
