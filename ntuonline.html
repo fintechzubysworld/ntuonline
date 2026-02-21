@@ -21,27 +21,27 @@ button{padding:10px 18px;margin-top:10px;border:none;border-radius:15px;backgrou
 
 <h1>⚡ Ntudioka Admin Dashboard</h1>
 
-<div class="card">
+<div class="card adminOnly" style="display:none">
 <h3>Login</h3>
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
 </div>
 
-<div class="card">
+<div class="card adminOnly" style="display:none">
 <h3>🎙 Upload Podcast</h3>
 <input type="file" id="podFile" accept="audio/*">
 <input id="podTitle" placeholder="Podcast title">
 <button onclick="uploadPodcast()">Upload</button>
 </div>
 
-<div class="card">
+<div class="card adminOnly" style="display:none">
 <h3>🎥 Upload Video Post</h3>
 <input type="file" id="videoFile" accept="video/*">
 <button onclick="uploadVideo()">Upload Video</button>
 </div>
 
-<div class="card">
+<div class="card adminOnly" style="display:none">
 <h3>🔴 Publish Live Stream</h3>
 <input id="liveId" placeholder="YouTube Video ID">
 <button onclick="setLive()">Go Live</button>
@@ -172,4 +172,5 @@ async function setLive(){
 </script>
 </body>
 </html>
+
 
