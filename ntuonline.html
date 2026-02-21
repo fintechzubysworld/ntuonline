@@ -73,7 +73,6 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const storage = firebase.storage();
 
-  <script>
 auth.onAuthStateChanged(async user=>{
   if(!user){
     alert("Login required");
@@ -88,7 +87,7 @@ auth.onAuthStateChanged(async user=>{
     location.href="index.html";
   }
 });
-</script>
+
 
 /////////////////////////////
 // 🔐 LOGIN
@@ -112,10 +111,9 @@ async function uploadPodcast(){
   const file=document.getElementById("podcastFile").files[0];
   const title=document.getElementById("podcastTitle").value;
 
-  if(!file) return alert("Select audio file");
+  if(!file || !title) return alert("Complete fields");
 
   const ref=storage.ref("podcasts/"+Date.now()+"_"+file.name);
-
   await ref.put(file);
 
   const url=await ref.getDownloadURL();
@@ -123,10 +121,10 @@ async function uploadPodcast(){
   await db.collection("podcasts").add({
     title:title,
     audioUrl:url,
-    created:Date.now()
+    created:firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  alert("Podcast uploaded successfully");
+  alert("Podcast uploaded");
 }
 
 /////////////////////////////
@@ -134,11 +132,15 @@ async function uploadPodcast(){
 /////////////////////////////
 
 async function setLive(){
- const id=document.getElementById("liveId").value;
- await db.collection("live").doc("current").set({videoId:id});
- alert("Live broadcast published");
-}
+  const id=document.getElementById("liveId").value;
 
+  await db.collection("live").doc("current").set({
+    videoId:id,
+    time:firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  alert("Live stream published");
+}
 /////////////////////////////
 // 📅 EVENT
 /////////////////////////////
@@ -173,31 +175,42 @@ async function addLink(){
 
 async function uploadVideo(){
 
- const file=document.getElementById("videoFile").files[0];
- const user=auth.currentUser;
+  const file=document.getElementById("videoFile").files[0];
+  if(!file) return alert("Select video");
 
- if(!file) return alert("Select video file");
- if(!user) return alert("Login first");
+  const ref=storage.ref("videos/"+Date.now()+"_"+file.name);
+  await ref.put(file);
 
- const ref=storage.ref("videos/"+Date.now()+"_"+file.name);
+  const url=await ref.getDownloadURL();
 
- await ref.put(file);
- const url=await ref.getDownloadURL();
+  await db.collection("posts").add({
+    video:url,
+    admin:true,
+    time:firebase.firestore.FieldValue.serverTimestamp()
+  });
 
- await db.collection("posts").add({
-   video:url,
-   uid:user.uid,
-   email:user.email,
-   time:Date.now()
- });
+  alert("Video uploaded");
+}
+async function loadStats(){
 
- alert("Video uploaded");
+ const users=await db.collection("users").get();
+ const posts=await db.collection("posts").get();
+ const podcasts=await db.collection("podcasts").get();
+
+ document.getElementById("stats").innerHTML=
+ `
+ 👥 Users: ${users.size}<br>
+ 📝 Posts: ${posts.size}<br>
+ 🎙 Podcasts: ${podcasts.size}<br>
+ `;
 }
 
+loadStats();
 </script>
 
 </body>
 </html>
+
 
 
 
