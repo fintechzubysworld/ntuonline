@@ -7,18 +7,11 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-<!-- Firebase -->
+<!-- ✅ ONLY THESE FIREBASE SCRIPTS -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
-
-
-
 
 <style>
 body{font-family:sans-serif;background:#faf5ea;margin:0}
@@ -28,6 +21,7 @@ section{max-width:900px;margin:30px auto;padding:15px}
 textarea,input{width:100%;padding:10px;margin-top:10px;border-radius:10px;border:1px solid #ccc}
 button{padding:10px 20px;border:none;border-radius:20px;background:#ff9800;color:white;margin-top:10px}
 audio{width:100%;margin-top:10px}
+li{cursor:pointer;margin:6px 0}
 </style>
 </head>
 
@@ -36,585 +30,175 @@ audio{width:100%;margin-top:10px}
 <header>
 <div><b>🎧 Ntudioka Community</b></div>
 <div>
-<input id="email" type="email">
-<input id="password" type="password">
-<button onclick="login()">Login</button>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
 <button onclick="signup()">Sign up</button>
+<button onclick="login()">Login</button>
 <button onclick="logout()">Logout</button>
+<button onclick="adminLogin()">Admin</button>
 </div>
-<button onclick="adminLogin()">Admin Login</button>
-
 </header>
-<!--image upload and display in feed-->
-<img src="${photo}" width="40" style="border-radius:50%">
 
+<!-- 🎙 PODCAST PLAYER -->
 <section>
 <h2>🎙 Podcasts</h2>
-<div id="podcasts"></div>
-</section>
 
-<div id="podcastPlayer">
-  <audio id="audio" controls></audio>
+<audio id="audio" controls></audio>
 
-  <div>
-    <button onclick="prevPodcast()">⏮</button>
-    <button onclick="nextPodcast()">⏭</button>
-    <button onclick="toggleRepeat()">🔁 <span id="repeatMode">Off</span></button>
-  </div>
-
-  <ul id="podcastList"></ul>
+<div>
+<button onclick="prevPodcast()">⏮</button>
+<button onclick="nextPodcast()">⏭</button>
 </div>
 
-</div>
-<ul id="podcastList">
-  <li onclick="playPodcast(0)">Podcast Episode 1</li>
-  <li onclick="playPodcast(1)">Podcast Episode 2</li>
-  <li onclick="playPodcast(2)">Podcast Episode 3</li>
-</ul>
-
-<section>
-<h2>🔴 Live Broadcast</h2>
-<div id="liveBox"></div>
+<ul id="podcastList"></ul>
 </section>
 
+<!-- 🌍 COMMUNITY FEED -->
 <section>
 <h2>🌍 Community Feed</h2>
-<video controls width="100%" src="${p.video}"></video>
 <textarea id="goodwillInput" placeholder="Write goodwill message..."></textarea>
 <button onclick="postGoodwill()">Post</button>
 <div id="feed"></div>
 </section>
 
-<section>
-<h2>🎵 My Playlist</h2>
-<div id="playlist"></div>
-</section>
-
-<section>
-<h2>🔗 Community Links</h2>
-<div id="links"></div>
-</section>
-
-<section>
-<h2>👤 My Profile</h2>
-<input id="photoUpload" type="file">
-<button onclick="uploadPhoto()">Upload Photo</button>
-<img id="myPhoto" width="120">
-</section>
-
-<!--Chat and messaging-->
-<section>
-<h2>💬 Community Chat</h2>
-<div id="chatBox" style="height:250px;overflow:auto;background:white;padding:10px"></div>
-<input id="chatInput" placeholder="Type message...">
-<button onclick="sendChat()">Send</button>
-</section>
-
-<!--private messaging-->
-<section>
-<h2>📨 Direct Messages</h2>
-
-<select id="userSelect"></select>
-<div id="dmBox" style="height:250px;overflow:auto;background:white;padding:10px"></div>
-
-<input id="dmInput" placeholder="Type private message">
-<button onclick="sendDM()">Send</button>
-</section>
-
-
 <script>
-/* FIREBASE CONFIG — INSERT YOURS */
-const firebaseConfig={
-apiKey:"YOUR_KEY",
-authDomain:"YOUR_PROJECT.firebaseapp.com",
-projectId:"YOUR_PROJECT"
+
+/////////////////////////////
+// ✅ FIREBASE CONFIG (ONLY ONE)
+/////////////////////////////
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+  authDomain: "ntudioka-online-c29d8.firebaseapp.com",
+  projectId: "ntudioka-online-c29d8",
+  storageBucket: "ntudioka-online-c29d8.appspot.com",
+  messagingSenderId: "1015621578149",
+  appId: "1:1015621578149:web:c755b458e505fd32928c4c"
 };
 
 firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
-const auth=firebase.auth();
 
-/* LOGIN */
-
+const db = firebase.firestore();
 const auth = firebase.auth();
+const storage = firebase.storage();
+
+/////////////////////////////
+// ✅ AUTH SYSTEM
+/////////////////////////////
 
 function signup(){
-  const email = document.getElementById("email").value;
-  const pass  = document.getElementById("password").value;
+  const email=document.getElementById("email").value;
+  const pass=document.getElementById("password").value;
 
-  auth.createUserWithEmailAndPassword(email, pass)
-  .then(user=>{
-    alert("Signup successful");
-    console.log(user);
-  })
-  .catch(err=>{
-    alert(err.message);
-    console.error(err);
-  });
+  auth.createUserWithEmailAndPassword(email,pass)
+  .then(()=>alert("Signup successful"))
+  .catch(e=>alert(e.message));
 }
 
-
 function login(){
- const email=prompt("Email");
- const pass=prompt("Password");
- auth.signInWithEmailAndPassword(email,pass);
+  const email=document.getElementById("email").value;
+  const pass=document.getElementById("password").value;
+
+  auth.signInWithEmailAndPassword(email,pass)
+  .then(()=>alert("Logged in"))
+  .catch(e=>alert(e.message));
 }
 
 function logout(){
- auth.signOut();
+  auth.signOut();
 }
 
-/* LOAD PODCASTS FROM DRIVE */
-const FOLDER_ID="1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2";
-const API_KEY="AIzaSyD91n0Uv-It5GUtfrXyNRXWs8o1eTWiHAo";
+/////////////////////////////
+// ✅ ADMIN BUTTON
+/////////////////////////////
 
-let queue=[];
-let current=0;
-const player=new Audio();
+function adminLogin(){
+ const user=prompt("Admin username");
+ const pass=prompt("Admin password");
 
-function playTrack(i){
-document.getElementById("nowPlaying").innerText=queue[i].name;
- current=i;
- player.src=`https://drive.google.com/uc?export=download&id=${queue[i].id}`;
- player.play();
-}
-
-player.onended=()=>{
- if(current+1<queue.length){
-   playTrack(current+1);
+ if(user==="admin" && pass==="admin123"){
+   location.href="ntuonline.html";
+ }else{
+   alert("Wrong admin login");
  }
-};
-
-async function loadPodcasts() {
-const url=`https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents&key=${API_KEY}&fields=files(id,name)`;
-const r=await fetch(url);
-const data=await r.json();
-
-queue=data.files;
-
-const div=document.getElementById("podcasts");
-div.innerHTML="";
-
-queue.forEach((f,i)=>{
-div.innerHTML+=`
-<div class="post">
-<b>${f.name}</b>
-<button onclick="playTrack(${i})">▶ Play</button>
-<button onclick="addToPlaylist('${f.id}','${f.name}')">➕ Playlist</button>
-</div>`;
-});
-}
-loadPodcasts();
-
-
-/* PLAYLIST */
-async function addToPlaylist(id,title){
-const user=auth.currentUser;
-if(!user)return alert("Login required");
-await db.collection("playlists").add({
-uid:user.uid,
-title,id
-});
 }
 
-auth.onAuthStateChanged(user=>{
-if(!user)return;
-db.collection("playlists").where("uid","==",user.uid)
+/////////////////////////////
+// ✅ PODCAST PLAYER (FIREBASE CONNECTED)
+/////////////////////////////
+
+let playlist=[];
+let current=0;
+const audio=document.getElementById("audio");
+
+db.collection("podcasts").orderBy("created","desc")
 .onSnapshot(s=>{
-const div=document.getElementById("playlist");
-div.innerHTML="";
-s.forEach(d=>{
-const p=d.data();
-div.innerHTML+=`<div>${p.title}</div>`;
-});
-});
+ const list=document.getElementById("podcastList");
+ list.innerHTML="";
+ playlist=[];
+
+ s.forEach((doc,i)=>{
+   const p=doc.data();
+   playlist.push(p.audioUrl);
+
+   const li=document.createElement("li");
+   li.innerText="▶ "+p.title;
+   li.onclick=()=>playPodcast(i);
+   list.appendChild(li);
+ });
 });
 
-/* LIVE VIDEO */
-db.collection("live").doc("current")
-.onSnapshot(doc=>{
-if(!doc.exists)return;
-const v=doc.data().videoId;
-document.getElementById("liveBox").innerHTML=
-`<iframe width="100%" height="350"
-src="https://www.youtube.com/embed/${v}" allowfullscreen></iframe>`;
-});
+function playPodcast(i){
+ current=i;
+ audio.src=playlist[i];
+ audio.play();
+}
 
-/* POST */
+function nextPodcast(){
+ if(current+1<playlist.length){
+   playPodcast(current+1);
+ }
+}
+
+function prevPodcast(){
+ if(current>0){
+   playPodcast(current-1);
+ }
+}
+
+audio.onended=nextPodcast;
+
+/////////////////////////////
+// ✅ FEED SYSTEM
+/////////////////////////////
+
 async function postGoodwill(){
  const txt=document.getElementById("goodwillInput").value;
  const user=auth.currentUser;
- if(!user) return alert("Login required");
+ if(!user)return alert("Login required");
 
  await db.collection("posts").add({
    text:txt,
-   uid:user.uid,
    email:user.email,
-   type:"goodwill",
    time:Date.now()
  });
 
  document.getElementById("goodwillInput").value="";
 }
 
-/* FEED */
 db.collection("posts").orderBy("time","desc")
-.onSnapshot(snap=>{
-  const feed=document.getElementById("feed");
-  feed.innerHTML="";
-  snap.forEach(doc=>{
-    const p=doc.data();
-    feed.innerHTML+=`
-      <div class="post">
-        <b>${p.email}</b>
-        <p>${p.text}</p>
-        <button onclick="react('${doc.id}','👍')">👍</button>
-        <button onclick="react('${doc.id}','❤️')">❤️</button>
-        <button onclick="openComments('${doc.id}')">💬</button>
-        <div id="comments-${doc.id}"></div>
-      </div>
-    `;
-  });
-});
-
-/* REACTIONS */
-async function react(postId,emoji){
- const user=auth.currentUser;
- await db.collection("reactions").doc(postId+"_"+user.uid).set({
-   postId,
-   uid:user.uid,
-   emoji
- });
-}
-
-/* COMMENT */
-async function addComment(postId){
- const user=auth.currentUser;
- const txt=prompt("Write comment");
- await db.collection("comments").add({
-   postId,
-   uid:user.uid,
-   text:txt,
-   time:Date.now()
- });
-}
-
-//send private messages
-async function sendDM(){
- const user=auth.currentUser;
- const to=document.getElementById("userSelect").value;
- const text=document.getElementById("dmInput").value;
- if(!text)return;
-
- await db.collection("messages").add({
-   from:user.uid,
-   to,
-   text,
-   time:Date.now()
- });
-
- document.getElementById("dmInput").value="";
-}
-
-/* LINKS */
-db.collection("links").onSnapshot(s=>{
-const div=document.getElementById("links");
-div.innerHTML="";
-s.forEach(d=>{
-const l=d.data();
-div.innerHTML+=`<a href="${l.url}" target="_blank">${l.label}</a><br>`;
-});
-});
-
-</script>
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
-    authDomain: "ntudioka-online-c29d8.firebaseapp.com",
-    projectId: "ntudioka-online-c29d8",
-    storageBucket: "ntudioka-online-c29d8.firebasestorage.app",
-    messagingSenderId: "1015621578149",
-    appId: "1:1015621578149:web:c755b458e505fd32928c4c",
-    measurementId: "G-JPVKYQRKEB"
-  };
-const messaging=firebase.messaging();
-
-async function enableNotifications(){
- const permission=await Notification.requestPermission();
- if(permission!=="granted")return;
-
- const token=await messaging.getToken({
-   vapidKey:"YOUR_VAPID_KEY"
- });
-
- const user=auth.currentUser;
- if(user){
-   await db.collection("users").doc(user.uid).set({token},{merge:true});
- }
-}
-//notifications to users via email
-exports.notifyNewPost = functions.firestore
-.document("posts/{id}")
-.onCreate(async (snap,ctx)=>{
-  const users=await admin.firestore().collection("users").get();
-
-  users.forEach(u=>{
-    sendEmail(u.data().email,"New post","A new post was published");
-  });
-});
-
-//saving profile photos to Firebase Storage
-const storage=firebase.storage();
-
-async function uploadPhoto(){
- const file=document.getElementById("photoUpload").files[0];
- const user=auth.currentUser;
- if(!file||!user)return;
-
- const ref=storage.ref("profiles/"+user.uid);
- await ref.put(file);
- const url=await ref.getDownloadURL();
-
- await db.collection("users").doc(user.uid).set({
-   photo:url,
-   email:user.email
- },{merge:true});
-
- document.getElementById("myPhoto").src=url;
-}
-
-//show profile photo in feed
-const u=await db.collection("users").doc(p.uid).get();
-const photo=u.data()?.photo || "";
-
-//messaging and chat
-async function sendChat(){
- const user=auth.currentUser;
- const txt=document.getElementById("chatInput").value;
- if(!txt||!user)return;
-
- await db.collection("chat").add({
-   uid:user.uid,
-   email:user.email,
-   text:txt,
-   time:Date.now()
- });
-
- document.getElementById("chatInput").value="";
-}
-
-//live chat update
-db.collection("chat").orderBy("time")
 .onSnapshot(s=>{
- const box=document.getElementById("chatBox");
- box.innerHTML="";
- s.forEach(d=>{
-   const m=d.data();
-   box.innerHTML+=`<p><b>${m.email}:</b> ${m.text}</p>`;
- });
- box.scrollTop=box.scrollHeight;
-});
-
-//load users for private messaging
-auth.onAuthStateChanged(user=>{
- if(!user)return;
- db.collection("users").onSnapshot(s=>{
-   const sel=document.getElementById("userSelect");
-   sel.innerHTML="";
-   s.forEach(d=>{
-     if(d.id!==user.uid){
-       sel.innerHTML+=`<option value="${d.id}">${d.data().email}</option>`;
-     }
-   });
+ const feed=document.getElementById("feed");
+ feed.innerHTML="";
+ s.forEach(doc=>{
+   const p=doc.data();
+   feed.innerHTML+=`
+   <div class="post">
+   <b>${p.email||"Admin"}</b>
+   <p>${p.text||""}</p>
+   </div>`;
  });
 });
-
-//listen for private messages
-function loadDM(){
- const user=auth.currentUser;
- const to=document.getElementById("userSelect").value;
-
- db.collection("messages")
- .orderBy("time")
- .onSnapshot(s=>{
-   const box=document.getElementById("dmBox");
-   box.innerHTML="";
-   s.forEach(d=>{
-     const m=d.data();
-     if(
-        (m.from===user.uid && m.to===to) ||
-        (m.from===to && m.to===user.uid)
-     ){
-       box.innerHTML+=`<p>${m.text}</p>`;
-     }
-   });
- });
-}
-
-document.getElementById("userSelect").onchange=loadDM;
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const db = firebase.firestore();
-  const auth = firebase.auth();
-</script>
-<script>
-function adminLogin(){
-
-  const user = prompt("Enter admin username:");
-  const pass = prompt("Enter admin password:");
-
-  if(user==="admin" && pass==="admin123"){
-      window.location.href="ntuonline.html";
-  }else{
-      alert("Incorrect admin login");
-  }
-}
-</script>
-<script>
-
-const playlist = [
-  "https://firebasestorage.googleapis.com/your-file-url",
-  "https://firebasestorage.googleapis.com/your-file-url",
-  "https://firebasestorage.googleapis.com/your-file-url"
-];
-
-let current = 0;
-let repeatMode = 0; 
-// 0 = off, 1 = repeat all, 2 = repeat one
-
-const audio = document.getElementById("audio");
-
-function playPodcast(index){
-  current = index;
-  audio.src = playlist[current];
-  audio.play();
-}
-
-function nextPodcast(){
-
-  if(repeatMode === 2){
-    audio.currentTime = 0;
-    audio.play();
-    return;
-  }
-
-  current++;
-
-  if(current >= playlist.length){
-    if(repeatMode === 1){
-      current = 0;
-    }else{
-      return;
-    }
-  }
-
-  playPodcast(current);
-}
-
-function prevPodcast(){
-  current--;
-  if(current < 0) current = 0;
-  playPodcast(current);
-}
-
-function toggleRepeat(){
-  repeatMode++;
-  if(repeatMode > 2) repeatMode = 0;
-
-  const labels = ["Off","All","One"];
-  document.getElementById("repeatMode").innerText = labels[repeatMode];
-}
-
-audio.addEventListener("ended", nextPodcast);
-
-</script>
-<script>
-
-const db = firebase.firestore();
-const audio = document.getElementById("audio");
-
-let playlist = [];
-let current = 0;
-let repeatMode = 0;
-
-async function loadPodcasts(){
-
-  const snap = await db.collection("podcasts")
-                       .orderBy("created","desc")
-                       .get();
-
-  playlist = [];
-
-  const list = document.getElementById("podcastList");
-  list.innerHTML = "";
-
-  snap.forEach((doc,i)=>{
-    const data = doc.data();
-
-    playlist.push(data.audioUrl);
-
-    const li = document.createElement("li");
-    li.innerText = data.title;
-    li.onclick = ()=>playPodcast(i);
-
-    list.appendChild(li);
-  });
-}
-
-function playPodcast(index){
-  current = index;
-  audio.src = playlist[current];
-  audio.play();
-}
-
-function nextPodcast(){
-
-  if(repeatMode === 2){
-    audio.currentTime = 0;
-    audio.play();
-    return;
-  }
-
-  current++;
-
-  if(current >= playlist.length){
-    if(repeatMode === 1){
-      current = 0;
-    }else{
-      return;
-    }
-  }
-
-  playPodcast(current);
-}
-
-function prevPodcast(){
-  current--;
-  if(current < 0) current = 0;
-  playPodcast(current);
-}
-
-function toggleRepeat(){
-  repeatMode++;
-  if(repeatMode > 2) repeatMode = 0;
-
-  const labels = ["Off","All","One"];
-  document.getElementById("repeatMode").innerText = labels[repeatMode];
-}
-
-audio.addEventListener("ended", nextPodcast);
-
-loadPodcasts();
 
 </script>
 </body>
