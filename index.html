@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ntudioka Community</title>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-<!-- ✅ ONLY THESE FIREBASE SCRIPTS -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
@@ -15,13 +12,13 @@
 
 <style>
 body{font-family:sans-serif;background:#faf5ea;margin:0}
-header{background:#ffb300;padding:15px;color:white;display:flex;justify-content:space-between}
-section{max-width:900px;margin:30px auto;padding:15px}
-.post{background:white;border-radius:20px;padding:20px;margin-top:15px}
-textarea,input{width:100%;padding:10px;margin-top:10px;border-radius:10px;border:1px solid #ccc}
-button{padding:10px 20px;border:none;border-radius:20px;background:#ff9800;color:white;margin-top:10px}
-audio{width:100%;margin-top:10px}
+header{background:#ff9800;padding:15px;color:white;display:flex;justify-content:space-between}
+section{max-width:900px;margin:25px auto;padding:15px}
+.post{background:white;border-radius:15px;padding:15px;margin-top:15px}
+button{padding:8px 15px;border:none;border-radius:15px;background:#ff9800;color:white;margin-top:8px}
+input,textarea{width:100%;padding:8px;margin-top:6px;border-radius:10px;border:1px solid #ccc}
 li{cursor:pointer;margin:6px 0}
+audio{width:100%;margin-top:10px}
 </style>
 </head>
 
@@ -35,38 +32,32 @@ li{cursor:pointer;margin:6px 0}
 <button onclick="signup()">Sign up</button>
 <button onclick="login()">Login</button>
 <button onclick="logout()">Logout</button>
-<button onclick="adminLogin()">Admin</button>
+<button onclick="location.href='ntuonline.html'">Admin</button>
 </div>
 </header>
 
-<!-- 🎙 PODCAST PLAYER -->
+<!-- PODCAST PLAYER -->
 <section>
 <h2>🎙 Podcasts</h2>
-
 <audio id="audio" controls></audio>
-
-<div>
-<button onclick="prevPodcast()">⏮</button>
-<button onclick="nextPodcast()">⏭</button>
-</div>
-
 <ul id="podcastList"></ul>
 </section>
 
-<!-- 🌍 COMMUNITY FEED -->
+<!-- LIVE STREAM -->
+<section>
+<h2>🔴 Live Broadcast</h2>
+<div id="liveBox"></div>
+</section>
+
+<!-- COMMUNITY FEED -->
 <section>
 <h2>🌍 Community Feed</h2>
-<textarea id="goodwillInput" placeholder="Write goodwill message..."></textarea>
-<button onclick="postGoodwill()">Post</button>
+<textarea id="postInput" placeholder="Write message..."></textarea>
+<button onclick="postMessage()">Post</button>
 <div id="feed"></div>
 </section>
 
 <script>
-
-/////////////////////////////
-// ✅ FIREBASE CONFIG (ONLY ONE)
-/////////////////////////////
-
 const firebaseConfig = {
   apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
   authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -77,144 +68,87 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+const auth=firebase.auth();
+const storage=firebase.storage();
 
-const db = firebase.firestore();
-const auth = firebase.auth();
-const storage = firebase.storage();
-</script>
-<script> 
-
-</script>
-<script>  
-/////////////////////////////
-// ✅ AUTH SYSTEM
-/////////////////////////////
+//////////////// AUTH //////////////////
 
 function signup(){
-  const email=document.getElementById("email").value;
-  const pass=document.getElementById("password").value;
-
-  auth.createUserWithEmailAndPassword(email,pass)
-  .then(()=>alert("Signup successful"))
-  .catch(e=>alert(e.message));
+  const e=email.value,p=password.value;
+  auth.createUserWithEmailAndPassword(e,p)
+  .then(()=>db.collection("users").doc(auth.currentUser.uid).set({email:e}))
+  .catch(err=>alert(err.message));
 }
 
 function login(){
-  const email=document.getElementById("email").value;
-  const pass=document.getElementById("password").value;
-
-  auth.signInWithEmailAndPassword(email,pass)
-  .then(()=>alert("Logged in"))
+  auth.signInWithEmailAndPassword(email.value,password.value)
   .catch(e=>alert(e.message));
 }
 
-function logout(){
-  auth.signOut();
-}
+function logout(){ auth.signOut(); }
 
-/////////////////////////////
-// ✅ ADMIN BUTTON
-/////////////////////////////
+//////////////// PODCAST PLAYER //////////////////
 
-function adminLogin(){
-auth.onAuthStateChanged(async user=>{
-  if(!user){
-    alert("Login required");
-    location.href="index.html";
-    return;
-  }
-
-  const doc = await db.collection("roles").doc(user.uid).get();
-
-  if(!doc.exists || doc.data().role !== "admin"){
-    alert("Access denied. Not an admin.");
-    location.href="index.html";
-  }
-});
-
-/////////////////////////////
-// ✅ PODCAST PLAYER (FIREBASE CONNECTED)
-/////////////////////////////
-
-let playlist=[];
-let current=0;
+let playlist=[],current=0;
 const audio=document.getElementById("audio");
 
 db.collection("podcasts").orderBy("created","desc")
 .onSnapshot(s=>{
- const list=document.getElementById("podcastList");
- list.innerHTML="";
- playlist=[];
-
- s.forEach((doc,i)=>{
-   const p=doc.data();
-   playlist.push(p.audioUrl);
-
-   const li=document.createElement("li");
-   li.innerText="▶ "+p.title;
-   li.onclick=()=>playPodcast(i);
-   list.appendChild(li);
- });
+  playlist=[];
+  podcastList.innerHTML="";
+  s.forEach((doc,i)=>{
+    const p=doc.data();
+    playlist.push(p.audioUrl);
+    const li=document.createElement("li");
+    li.innerText="▶ "+p.title;
+    li.onclick=()=>{current=i;play();};
+    podcastList.appendChild(li);
+  });
 });
 
-function playPodcast(i){
- current=i;
- audio.src=playlist[i];
- audio.play();
-}
+function play(){ audio.src=playlist[current]; audio.play(); }
+audio.onended=()=>{ if(current+1<playlist.length){current++;play();} };
 
-function nextPodcast(){
- if(current+1<playlist.length){
-   playPodcast(current+1);
+//////////////// LIVE STREAM //////////////////
+
+db.collection("live").doc("current")
+.onSnapshot(d=>{
+ if(d.exists){
+   liveBox.innerHTML=
+   `<iframe width="100%" height="350"
+   src="https://www.youtube.com/embed/${d.data().videoId}"
+   allowfullscreen></iframe>`;
  }
-}
+});
 
-function prevPodcast(){
- if(current>0){
-   playPodcast(current-1);
- }
-}
+//////////////// COMMUNITY FEED //////////////////
 
-audio.onended=nextPodcast;
-
-/////////////////////////////
-// ✅ FEED SYSTEM
-/////////////////////////////
-
-async function postGoodwill(){
- const txt=document.getElementById("goodwillInput").value;
- const user=auth.currentUser;
- if(!user)return alert("Login required");
-
- await db.collection("posts").add({
-   text:txt,
-   email:user.email,
+function postMessage(){
+ const u=auth.currentUser;
+ if(!u)return alert("Login first");
+ db.collection("posts").add({
+   text:postInput.value,
+   uid:u.uid,
+   email:u.email,
    time:Date.now()
  });
-
- document.getElementById("goodwillInput").value="";
+ postInput.value="";
 }
 
 db.collection("posts").orderBy("time","desc")
 .onSnapshot(s=>{
- const feed=document.getElementById("feed");
  feed.innerHTML="";
  s.forEach(doc=>{
-   const p=doc.data();
-   feed.innerHTML+=`
-   <div class="post">
-   <b>${p.email||"Admin"}</b>
-   <p>${p.text||""}</p>
-   </div>`;
+  const p=doc.data();
+  feed.innerHTML+=`
+  <div class="post">
+  <b>${p.email||"Admin"}</b>
+  <p>${p.text||""}</p>
+  ${p.video?`<video controls width="100%" src="${p.video}"></video>`:""}
+  </div>`;
  });
 });
-
 </script>
 </body>
 </html>
-
-
-
-
-
-
