@@ -3,381 +3,1334 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ntudioka Admin · direct upload</title>
+    <title>Ntudioka Admin · Professional Upload Engine</title>
 
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs (compat version) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 
     <style>
-        * { box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             background: #0e0f17;
-            color: white;
-            font-family: sans-serif;
-            padding: 25px;
-            max-width: 800px;
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 2rem;
+            max-width: 1200px;
             margin: 0 auto;
+            line-height: 1.6;
         }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #00e5ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            border-left: 6px solid #00e5ff;
+            padding-left: 1.5rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
         .card {
             background: #1a1e2f;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
+            padding: 1.8rem;
+            border-radius: 24px;
             border: 1px solid #2e354a;
+            box-shadow: 0 20px 35px -8px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s, border-color 0.2s;
         }
-        input, input[type="file"] {
+
+        .card:hover {
+            border-color: #00e5ff;
+            transform: translateY(-2px);
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #cbd5ff;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card h3 i {
+            color: #00e5ff;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #a0a8c0;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input, input[type="file"], textarea, select {
             width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 10px;
-            border: 1px solid #2f374e;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 2px solid #2f374e;
             background: #0d1224;
             color: white;
+            font-size: 1rem;
+            transition: all 0.2s;
+            outline: none;
         }
-        button {
-            padding: 12px 24px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 15px;
-            background: #00e5ff;
-            color: black;
-            font-weight: bold;
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #00e5ff;
+            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.2);
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            background: #1a1f35;
             cursor: pointer;
         }
-        button:hover { background: #7ef0ff; }
+
+        input[type="file"]::file-selector-button {
+            background: #00e5ff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 12px;
+            color: #0a0e1c;
+            font-weight: 600;
+            margin-right: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background: #7ef0ff;
+            transform: scale(1.05);
+        }
+
+        button {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 40px;
+            background: linear-gradient(135deg, #00e5ff, #00b8d4);
+            color: #0a0e1c;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #00e5ff;
+            width: 100%;
+            margin-top: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover:not(:disabled) {
+            background: linear-gradient(135deg, #7ef0ff, #00e5ff);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px #00e5ff;
+        }
+
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            background: #4a4f6e;
         }
-        .adminOnly { display: none; }
-        .progress-bar {
-            width: 100%;
-            height: 25px;
-            background: #2d344b;
-            border-radius: 12px;
-            margin: 10px 0;
-            overflow: hidden;
+
+        button.secondary {
+            background: transparent;
+            color: #00e5ff;
+            border: 2px solid #00e5ff;
         }
-        .progress-fill {
-            height: 100%;
-            background: #00e5ff;
-            width: 0%;
-            transition: width 0.3s;
-        }
-        .status {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 8px;
+
+        .adminOnly {
             display: none;
         }
-        .status.show { display: block; }
-        .status.success { background: #00e5ff20; color: #00e5ff; }
-        .status.error { background: #ff005520; color: #ff6b8b; }
-        .debug {
-            font-size: 12px;
-            color: #888;
-            margin-top: 5px;
+
+        /* Upload Progress */
+        .upload-progress {
+            margin: 1.2rem 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #2d344b;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00e5ff, #7c3aed);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 30px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+
+        .upload-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #97a9d6;
+        }
+
+        /* Status Messages */
+        .status-message {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 16px;
+            display: none;
+            font-weight: 500;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        .status-message.success {
+            background: rgba(0, 229, 255, 0.15);
+            border: 1px solid #00e5ff;
+            color: #00e5ff;
+        }
+
+        .status-message.error {
+            background: rgba(255, 82, 82, 0.15);
+            border: 1px solid #ff5252;
+            color: #ff5252;
+        }
+
+        .status-message.info {
+            background: rgba(124, 58, 237, 0.15);
+            border: 1px solid #7c3aed;
+            color: #b794ff;
+        }
+
+        .status-message.warning {
+            background: rgba(255, 193, 7, 0.15);
+            border: 1px solid #ffc107;
+            color: #ffc107;
+        }
+
+        /* File Info */
+        .file-info {
+            background: #0d1224;
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-left: 4px solid #00e5ff;
+            font-size: 0.9rem;
+        }
+
+        .file-info p {
+            margin: 0.3rem 0;
+            color: #a0a8c0;
+        }
+
+        .file-info span {
+            color: #00e5ff;
+            font-weight: 600;
+        }
+
+        /* Posts Preview */
+        .posts-preview {
+            margin-top: 3rem;
+            background: #1a1e2f;
+            border-radius: 24px;
+            padding: 1.8rem;
+            border: 1px solid #2e354a;
+        }
+
+        .posts-preview h2 {
+            color: #cbd5ff;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        .post-item {
+            background: #0d1224;
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #00e5ff;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+            color: #97a9d6;
+            margin-top: 0.5rem;
+        }
+
+        /* Debug Console */
+        .debug-console {
+            background: #0a0c14;
+            border-radius: 16px;
+            padding: 1rem;
+            margin-top: 2rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            border: 1px solid #2e354a;
+        }
+
+        .debug-console .log-entry {
+            color: #97a9d6;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid #1e2335;
+        }
+
+        .debug-console .log-entry.error {
+            color: #ff5252;
+        }
+
+        .debug-console .log-entry.success {
+            color: #00e5ff;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .dashboard-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<h1>⚡ Ntudioka Admin</h1>
+    <h1>⚡ Ntudioka Admin Dashboard Professional</h1>
 
-<!-- LOGIN CARD -->
-<div class="card adminOnly" id="loginCard" style="display:block">
-    <h3>🔐 Login</h3>
-    <input id="email" placeholder="Email" type="email">
-    <input id="password" type="password" placeholder="Password">
-    <button onclick="login()">Login</button>
-</div>
-
-<!-- PODCAST SECTION -->
-<div class="card adminOnly" style="display:none">
-    <h3>🎙 Upload Podcast</h3>
-    <input type="file" id="podFile" accept="audio/*">
-    <input id="podTitle" placeholder="Podcast title">
-    
-    <div class="progress-bar">
-        <div class="progress-fill" id="podcastProgress"></div>
+    <!-- LOGIN CARD -->
+    <div class="card adminOnly" id="loginCard" style="display: block;">
+        <h3><i>🔐</i> Admin Portal Access</h3>
+        <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="email" placeholder="admin@ntudioka.com" autocomplete="off">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="••••••••" autocomplete="off">
+        </div>
+        <button onclick="login()" id="loginBtn">Access Dashboard →</button>
+        <div class="status-message" id="loginStatus"></div>
+        <div style="margin-top: 1rem; font-size: 0.85rem; color: #6e7a9e; text-align: center;">
+            Requires admin role in Firestore: roles/{uid} → { role: "admin" }
+        </div>
     </div>
-    
-    <div class="status" id="podcastStatus"></div>
-    <button onclick="uploadPodcast()" id="podcastBtn">📤 Upload Podcast</button>
-    <div class="debug" id="podcastDebug"></div>
-</div>
 
-<!-- VIDEO SECTION -->
-<div class="card adminOnly" style="display:none">
-    <h3>🎥 Upload Video</h3>
-    <input type="file" id="videoFile" accept="video/*">
-    
-    <div class="progress-bar">
-        <div class="progress-fill" id="videoProgress"></div>
+    <!-- DASHBOARD GRID -->
+    <div class="dashboard-grid">
+        <!-- PODCAST UPLOAD CARD -->
+        <div class="card adminOnly" style="display: none;">
+            <h3><i>🎙️</i> Podcast Publisher</h3>
+            
+            <div class="form-group">
+                <label>Audio File (MP3, M4A, WAV)</label>
+                <input type="file" id="podFile" accept="audio/*">
+            </div>
+            
+            <div class="form-group">
+                <label>Episode Title</label>
+                <input type="text" id="podTitle" placeholder="e.g., Episode 42: The Future of Tech">
+            </div>
+            
+            <div class="form-group">
+                <label>Description (Optional)</label>
+                <textarea id="podDescription" rows="2" placeholder="Brief description of this episode..."></textarea>
+            </div>
+            
+            <!-- Upload Progress Section -->
+            <div class="upload-progress" id="podcastProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="podcastProgressFill"></div>
+                    <div class="progress-text" id="podcastProgressText">0%</div>
+                </div>
+                <div class="upload-stats">
+                    <span id="podcastSpeed"></span>
+                    <span id="podcastTimeRemaining"></span>
+                </div>
+            </div>
+            
+            <!-- File Info -->
+            <div class="file-info" id="podcastFileInfo" style="display: none;">
+                <p>📁 File: <span id="podcastFileName"></span></p>
+                <p>📊 Size: <span id="podcastFileSize"></span></p>
+                <p>📌 Type: <span id="podcastFileType"></span></p>
+            </div>
+            
+            <!-- Status Message -->
+            <div class="status-message" id="podcastStatus"></div>
+            
+            <button onclick="uploadPodcast()" id="podcastBtn">📤 Publish Podcast Episode</button>
+        </div>
+
+        <!-- VIDEO UPLOAD CARD -->
+        <div class="card adminOnly" style="display: none;">
+            <h3><i>🎥</i> Video Post Creator</h3>
+            
+            <div class="form-group">
+                <label>Video File (MP4, MOV, AVI)</label>
+                <input type="file" id="videoFile" accept="video/*">
+            </div>
+            
+            <div class="form-group">
+                <label>Video Title</label>
+                <input type="text" id="videoTitle" placeholder="e.g., Weekly Vlog #12">
+            </div>
+            
+            <div class="form-group">
+                <label>Description / Caption</label>
+                <textarea id="videoDescription" rows="2" placeholder="What's this video about?"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Category</label>
+                <select id="videoCategory">
+                    <option value="general">General</option>
+                    <option value="tutorial">Tutorial</option>
+                    <option value="vlog">Vlog</option>
+                    <option value="announcement">Announcement</option>
+                    <option value="interview">Interview</option>
+                </select>
+            </div>
+            
+            <!-- Upload Progress Section -->
+            <div class="upload-progress" id="videoProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="videoProgressFill"></div>
+                    <div class="progress-text" id="videoProgressText">0%</div>
+                </div>
+                <div class="upload-stats">
+                    <span id="videoSpeed"></span>
+                    <span id="videoTimeRemaining"></span>
+                </div>
+            </div>
+            
+            <!-- File Info -->
+            <div class="file-info" id="videoFileInfo" style="display: none;">
+                <p>📁 File: <span id="videoFileName"></span></p>
+                <p>📊 Size: <span id="videoFileSize"></span></p>
+                <p>⏱️ Duration: <span id="videoDuration">calculating...</span></p>
+            </div>
+            
+            <!-- Status Message -->
+            <div class="status-message" id="videoStatus"></div>
+            
+            <button onclick="uploadVideo()" id="videoBtn">📤 Upload & Create Video Post</button>
+        </div>
+
+        <!-- LIVE STREAM CARD -->
+        <div class="card adminOnly" style="display: none;">
+            <h3><i>🔴</i> Live Stream Manager</h3>
+            
+            <div class="form-group">
+                <label>YouTube Video ID</label>
+                <input type="text" id="liveId" placeholder="e.g., dQw4w9WgXcQ">
+            </div>
+            
+            <div class="form-group">
+                <label>Stream Title</label>
+                <input type="text" id="liveTitle" placeholder="e.g., Sunday Service Live">
+            </div>
+            
+            <div class="form-group">
+                <label>Stream Description</label>
+                <textarea id="liveDescription" rows="2" placeholder="Describe this live stream..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Schedule (Optional)</label>
+                <input type="datetime-local" id="liveSchedule">
+            </div>
+            
+            <!-- Status Message -->
+            <div class="status-message" id="liveStatus"></div>
+            
+            <button onclick="setLive()" id="liveBtn">▶️ Go Live Now</button>
+            <button class="secondary" onclick="scheduleLive()" id="scheduleBtn" style="margin-top: 0.5rem;">📅 Schedule Stream</button>
+        </div>
     </div>
-    
-    <div class="status" id="videoStatus"></div>
-    <button onclick="uploadVideo()" id="videoBtn">📤 Upload Video</button>
-    <div class="debug" id="videoDebug"></div>
-</div>
 
-<!-- LIVE SECTION -->
-<div class="card adminOnly" style="display:none">
-    <h3>🔴 Live Stream</h3>
-    <input id="liveId" placeholder="YouTube Video ID">
-    <button onclick="setLive()">▶️ Go Live</button>
-    <div class="status" id="liveStatus"></div>
-</div>
-
-<script>
-// Firebase config
-const firebaseConfig = {
-    apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
-    authDomain: "ntudioka-online-c29d8.firebaseapp.com",
-    projectId: "ntudioka-online-c29d8",
-    storageBucket: "ntudioka-online-c29d8.appspot.com",
-    messagingSenderId: "1015621578149",
-    appId: "1:1015621578149:web:c755b458e505fd32928c4c"
-};
-
-// Initialize
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
-const storage = firebase.storage();
-
-let adminConfirmed = false;
-
-// Login
-window.login = function() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    auth.signInWithEmailAndPassword(email, password)
-        .catch(err => alert('Login error: ' + err.message));
-};
-
-// Auth state
-auth.onAuthStateChanged(async user => {
-    if (!user) {
-        document.querySelectorAll('.adminOnly').forEach(el => {
-            el.style.display = el.id === 'loginCard' ? 'block' : 'none';
-        });
-        return;
-    }
-    
-    try {
-        const roleDoc = await db.collection('roles').doc(user.uid).get();
+    <!-- COMMENTS MODERATION SECTION -->
+    <div class="card adminOnly" style="display: none; margin-top: 1.5rem;">
+        <h3><i>💬</i> Comments Moderation</h3>
         
-        if (!roleDoc.exists) {
-            alert('No role document found for UID: ' + user.uid);
-            return;
-        }
+        <div class="form-group">
+            <label>Filter Comments</label>
+            <input type="text" id="commentFilter" placeholder="Search comments...">
+        </div>
         
-        if (roleDoc.data().role !== 'admin') {
-            alert('Not an admin. Role: ' + roleDoc.data().role);
-            return;
-        }
+        <div id="commentsList" style="max-height: 300px; overflow-y: auto;">
+            <!-- Comments will be loaded here -->
+            <div style="text-align: center; color: #6e7a9e; padding: 2rem;">Loading comments...</div>
+        </div>
         
-        adminConfirmed = true;
-        document.getElementById('loginCard').style.display = 'none';
-        document.querySelectorAll('.adminOnly').forEach(el => {
-            if (el.id !== 'loginCard') el.style.display = 'block';
-        });
-        
-    } catch (err) {
-        alert('Auth error: ' + err.message);
-    }
-});
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <button onclick="loadComments()" class="secondary" style="flex: 1;">🔄 Refresh Comments</button>
+            <button onclick="moderateComments()" style="flex: 1;">⚙️ Moderate Selected</button>
+        </div>
+    </div>
 
-// SIMPLIFIED PODCAST UPLOAD
-window.uploadPodcast = function() {
-    if (!adminConfirmed) {
-        alert('Please login first');
-        return;
-    }
-    
-    const file = document.getElementById('podFile').files[0];
-    const title = document.getElementById('podTitle').value;
-    const debug = document.getElementById('podcastDebug');
-    
-    debug.textContent = 'Starting upload...';
-    
-    if (!file) {
-        debug.textContent = 'No file selected';
-        return;
-    }
-    if (!title) {
-        debug.textContent = 'No title entered';
-        return;
-    }
-    
-    // Check file size
-    debug.textContent = 'File: ' + file.name + ' (' + (file.size/1024/1024).toFixed(2) + 'MB)';
-    
-    const btn = document.getElementById('podcastBtn');
-    const progress = document.getElementById('podcastProgress');
-    const status = document.getElementById('podcastStatus');
-    
-    btn.disabled = true;
-    progress.style.width = '0%';
-    status.className = 'status';
-    status.style.display = 'none';
-    
-    // Create filename
-    const fileName = 'podcasts/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    debug.textContent += '\nPath: ' + fileName;
-    
-    // Get storage reference
-    const storageRef = storage.ref(fileName);
-    
-    // Simple upload with promise
-    storageRef.put(file).then(snapshot => {
-        debug.textContent += '\nUpload complete! Getting URL...';
-        progress.style.width = '100%';
-        return snapshot.ref.getDownloadURL();
-    }).then(url => {
-        debug.textContent += '\nURL: ' + url.substring(0, 50) + '...';
-        return db.collection('podcasts').add({
-            title: title,
-            audioUrl: url,
-            created: Date.now(),
-            fileName: file.name
-        });
-    }).then(() => {
-        status.style.display = 'block';
-        status.className = 'status show success';
-        status.textContent = '✅ Upload successful!';
-        
-        // Clear form
-        document.getElementById('podFile').value = '';
-        document.getElementById('podTitle').value = '';
-        
-        setTimeout(() => {
-            status.style.display = 'none';
-            progress.style.width = '0%';
-        }, 3000);
-    }).catch(error => {
-        debug.textContent += '\n❌ Error: ' + error.message;
-        status.style.display = 'block';
-        status.className = 'status show error';
-        status.textContent = '❌ Error: ' + error.message;
-    }).finally(() => {
-        btn.disabled = false;
-    });
-};
+    <!-- RECENT POSTS PREVIEW -->
+    <div class="posts-preview adminOnly" style="display: none;">
+        <h2>📱 Recent Posts & Feeds</h2>
+        <div id="recentPosts">
+            <div style="text-align: center; color: #6e7a9e; padding: 2rem;">Loading recent posts...</div>
+        </div>
+        <button onclick="loadRecentPosts()" class="secondary" style="margin-top: 1rem;">🔄 Refresh Feed</button>
+    </div>
 
-// SIMPLIFIED VIDEO UPLOAD
-window.uploadVideo = function() {
-    if (!adminConfirmed) {
-        alert('Please login first');
-        return;
-    }
-    
-    const file = document.getElementById('videoFile').files[0];
-    const debug = document.getElementById('videoDebug');
-    
-    debug.textContent = 'Starting upload...';
-    
-    if (!file) {
-        debug.textContent = 'No file selected';
-        return;
-    }
-    
-    debug.textContent = 'File: ' + file.name + ' (' + (file.size/1024/1024).toFixed(2) + 'MB)';
-    
-    const btn = document.getElementById('videoBtn');
-    const progress = document.getElementById('videoProgress');
-    const status = document.getElementById('videoStatus');
-    
-    btn.disabled = true;
-    progress.style.width = '0%';
-    status.className = 'status';
-    status.style.display = 'none';
-    
-    // Create filename
-    const fileName = 'videos/' + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    debug.textContent += '\nPath: ' + fileName;
-    
-    // Get storage reference
-    const storageRef = storage.ref(fileName);
-    
-    // Simple upload with promise
-    storageRef.put(file).then(snapshot => {
-        debug.textContent += '\nUpload complete! Getting URL...';
-        progress.style.width = '100%';
-        return snapshot.ref.getDownloadURL();
-    }).then(url => {
-        debug.textContent += '\nURL obtained';
-        return db.collection('posts').add({
-            video: url,
-            admin: true,
-            time: Date.now(),
-            fileName: file.name
-        });
-    }).then(() => {
-        status.style.display = 'block';
-        status.className = 'status show success';
-        status.textContent = '✅ Upload successful!';
-        
-        // Clear form
-        document.getElementById('videoFile').value = '';
-        
-        setTimeout(() => {
-            status.style.display = 'none';
-            progress.style.width = '0%';
-        }, 3000);
-    }).catch(error => {
-        debug.textContent += '\n❌ Error: ' + error.message;
-        status.style.display = 'block';
-        status.className = 'status show error';
-        status.textContent = '❌ Error: ' + error.message;
-    }).finally(() => {
-        btn.disabled = false;
-    });
-};
+    <!-- DEBUG CONSOLE -->
+    <div class="debug-console adminOnly" id="debugConsole" style="display: none;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+            <span style="color: #00e5ff;">⚙️ Upload Engine Log</span>
+            <span onclick="clearDebug()" style="cursor: pointer; color: #ff5252;">🗑️ Clear</span>
+        </div>
+        <div id="debugLogs"></div>
+    </div>
 
-// Live stream
-window.setLive = function() {
-    if (!adminConfirmed) {
-        alert('Please login first');
-        return;
-    }
-    
-    const videoId = document.getElementById('liveId').value;
-    const status = document.getElementById('liveStatus');
-    
-    if (!videoId) {
-        status.style.display = 'block';
-        status.className = 'status show error';
-        status.textContent = '❌ Enter YouTube ID';
-        return;
-    }
-    
-    status.style.display = 'block';
-    status.className = 'status show';
-    status.textContent = '⏫ Setting live...';
-    
-    db.collection('live').doc('current').set({
-        videoId: videoId,
-        time: Date.now()
-    }).then(() => {
-        status.className = 'status show success';
-        status.textContent = '✅ Live set to: ' + videoId;
-        document.getElementById('liveId').value = '';
-    }).catch(err => {
-        status.className = 'status show error';
-        status.textContent = '❌ Error: ' + err.message;
-    });
-};
-</script>
+    <script>
+        // Professional Upload Engine for Ntudioka Admin
+        (function() {
+            // Firebase Configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+                authDomain: "ntudioka-online-c29d8.firebaseapp.com",
+                projectId: "ntudioka-online-c29d8",
+                storageBucket: "ntudioka-online-c29d8.appspot.com",
+                messagingSenderId: "1015621578149",
+                appId: "1:1015621578149:web:c755b458e505fd32928c4c"
+            };
 
-<div style="background:#131725; padding:16px; margin-top:30px; border:1px dashed #3a435e;">
-    ⚙️ Check browser console (F12) for errors<br>
-    ⚙️ Make sure Firebase Storage rules allow uploads
-</div>
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const auth = firebase.auth();
+            const storage = firebase.storage();
 
+            // Global state
+            let adminConfirmed = false;
+            let currentUser = null;
+            let activeUploads = new Map();
+
+            // Debug logging
+            function addDebugLog(message, type = 'info') {
+                const debugLogs = document.getElementById('debugLogs');
+                if (!debugLogs) return;
+
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${type}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                debugLogs.appendChild(logEntry);
+                debugLogs.scrollTop = debugLogs.scrollHeight;
+
+                console.log(`[${type}] ${message}`);
+            }
+
+            window.clearDebug = function() {
+                document.getElementById('debugLogs').innerHTML = '';
+            };
+
+            // Format file size
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            // Calculate estimated time
+            function calculateETA(loaded, total, speed) {
+                if (speed === 0) return 'calculating...';
+                const remaining = total - loaded;
+                const seconds = remaining / speed;
+                if (seconds < 60) return Math.round(seconds) + 's';
+                if (seconds < 3600) return Math.round(seconds / 60) + 'm';
+                return Math.round(seconds / 3600) + 'h';
+            }
+
+            // LOGIN FUNCTION
+            window.login = function() {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const status = document.getElementById('loginStatus');
+                const btn = document.getElementById('loginBtn');
+
+                if (!email || !password) {
+                    status.className = 'status-message show error';
+                    status.textContent = '❌ Please enter both email and password';
+                    return;
+                }
+
+                btn.disabled = true;
+                status.className = 'status-message show info';
+                status.textContent = '⏳ Authenticating...';
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(() => {
+                        status.className = 'status-message show success';
+                        status.textContent = '✅ Login successful, verifying admin...';
+                    })
+                    .catch(error => {
+                        btn.disabled = false;
+                        status.className = 'status-message show error';
+                        status.textContent = '❌ Login failed: ' + error.message;
+                        addDebugLog('Login error: ' + error.message, 'error');
+                    });
+            };
+
+            // AUTH STATE WATCHER
+            auth.onAuthStateChanged(async user => {
+                if (!user) {
+                    // User is logged out
+                    adminConfirmed = false;
+                    currentUser = null;
+                    document.querySelectorAll('.adminOnly').forEach(el => {
+                        if (el.id === 'loginCard') {
+                            el.style.display = 'block';
+                        } else {
+                            el.style.display = 'none';
+                        }
+                    });
+                    addDebugLog('User logged out', 'info');
+                    return;
+                }
+
+                currentUser = user;
+                addDebugLog(`User authenticated: ${user.email} (${user.uid})`, 'success');
+
+                try {
+                    // Check admin role
+                    const roleDoc = await db.collection('roles').doc(user.uid).get();
+
+                    if (!roleDoc.exists) {
+                        addDebugLog('No role document found', 'error');
+                        document.getElementById('loginStatus').className = 'status-message show error';
+                        document.getElementById('loginStatus').textContent = '❌ No role document found. Please create one.';
+                        return;
+                    }
+
+                    const roleData = roleDoc.data();
+                    addDebugLog(`Role data: ${JSON.stringify(roleData)}`, 'info');
+
+                    if (roleData.role !== 'admin') {
+                        addDebugLog(`User role is '${roleData.role}', not admin`, 'error');
+                        document.getElementById('loginStatus').className = 'status-message show error';
+                        document.getElementById('loginStatus').textContent = `❌ Access denied. Your role: ${roleData.role}`;
+                        return;
+                    }
+
+                    // ADMIN VERIFIED
+                    adminConfirmed = true;
+                    addDebugLog('✅ Admin verified, unlocking dashboard', 'success');
+
+                    // Hide login card, show everything else
+                    document.getElementById('loginCard').style.display = 'none';
+                    document.querySelectorAll('.adminOnly').forEach(el => {
+                        if (el.id !== 'loginCard') {
+                            el.style.display = 'block';
+                        }
+                    });
+
+                    // Show debug console
+                    document.getElementById('debugConsole').style.display = 'block';
+
+                    // Load initial data
+                    loadRecentPosts();
+                    loadComments();
+
+                } catch (error) {
+                    addDebugLog('Role verification error: ' + error.message, 'error');
+                    document.getElementById('loginStatus').className = 'status-message show error';
+                    document.getElementById('loginStatus').textContent = '❌ Error: ' + error.message;
+                }
+            });
+
+            // ROBUST PODCAST UPLOAD ENGINE
+            window.uploadPodcast = function() {
+                if (!adminConfirmed) {
+                    alert('Please login as admin first');
+                    return;
+                }
+
+                // Get DOM elements
+                const fileInput = document.getElementById('podFile');
+                const titleInput = document.getElementById('podTitle');
+                const descriptionInput = document.getElementById('podDescription');
+                const btn = document.getElementById('podcastBtn');
+                const status = document.getElementById('podcastStatus');
+                const progress = document.getElementById('podcastProgress');
+                const progressFill = document.getElementById('podcastProgressFill');
+                const progressText = document.getElementById('podcastProgressText');
+                const speedSpan = document.getElementById('podcastSpeed');
+                const timeRemainingSpan = document.getElementById('podcastTimeRemaining');
+                const fileInfo = document.getElementById('podcastFileInfo');
+                const fileNameSpan = document.getElementById('podcastFileName');
+                const fileSizeSpan = document.getElementById('podcastFileSize');
+                const fileTypeSpan = document.getElementById('podcastFileType');
+
+                // Validate inputs
+                const file = fileInput.files[0];
+                const title = titleInput.value.trim();
+
+                if (!file) {
+                    status.className = 'status-message show error';
+                    status.textContent = '❌ Please select an audio file';
+                    return;
+                }
+
+                if (!title) {
+                    status.className = 'status-message show error';
+                    status.textContent = '❌ Please enter a podcast title';
+                    return;
+                }
+
+                // Display file info
+                fileNameSpan.textContent = file.name;
+                fileSizeSpan.textContent = formatFileSize(file.size);
+                fileTypeSpan.textContent = file.type || 'audio/*';
+                fileInfo.style.display = 'block';
+
+                // Disable button and show progress
+                btn.disabled = true;
+                progress.style.display = 'block';
+                progressFill.style.width = '0%';
+                progressText.textContent = '0%';
+                speedSpan.textContent = '';
+                timeRemainingSpan.textContent = '';
+
+                status.className = 'status-message show info';
+                status.textContent = '⏳ Preparing upload...';
+
+                addDebugLog(`Starting podcast upload: ${file.name} (${formatFileSize(file.size)})`, 'info');
+
+                // Create unique filename
+                const timestamp = Date.now();
+                const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                const storagePath = `podcasts/${timestamp}_${safeFileName}`;
+
+                addDebugLog(`Storage path: ${storagePath}`, 'info');
+
+                // Get storage reference
+                const storageRef = storage.ref().child(storagePath);
+
+                // Create upload task with metadata
+                const metadata = {
+                    contentType: file.type,
+                    customMetadata: {
+                        uploadedBy: currentUser ? currentUser.uid : 'unknown',
+                        uploadedAt: new Date().toISOString(),
+                        title: title,
+                        type: 'podcast'
+                    }
+                };
+
+                const uploadTask = storageRef.put(file, metadata);
+
+                // Store upload task
+                const uploadId = 'podcast_' + timestamp;
+                activeUploads.set(uploadId, uploadTask);
+
+                // Progress tracking
+                let startTime = Date.now();
+                let lastLoaded = 0;
+
+                uploadTask.on('state_changed',
+                    // Progress observer
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        const loaded = snapshot.bytesTransferred;
+                        const total = snapshot.totalBytes;
+
+                        // Update progress bar
+                        progressFill.style.width = progress + '%';
+                        progressText.textContent = Math.round(progress) + '%';
+
+                        // Calculate speed and ETA
+                        const elapsedSeconds = (Date.now() - startTime) / 1000;
+                        const speed = loaded / elapsedSeconds; // bytes per second
+                        const remainingSeconds = (total - loaded) / speed;
+
+                        if (elapsedSeconds > 1) {
+                            speedSpan.textContent = `⚡ ${formatFileSize(speed)}/s`;
+                            if (remainingSeconds > 0 && remainingSeconds < 86400) {
+                                timeRemainingSpan.textContent = `⏱️ ${calculateETA(loaded, total, speed)}`;
+                            }
+                        }
+
+                        status.textContent = `⏫ Uploading: ${Math.round(progress)}%`;
+                    },
+                    // Error observer
+                    (error) => {
+                        addDebugLog(`Upload error: ${error.message}`, 'error');
+                        
+                        btn.disabled = false;
+                        status.className = 'status-message show error';
+                        status.textContent = '❌ Upload failed: ' + error.message;
+                        
+                        activeUploads.delete(uploadId);
+                        
+                        console.error('Upload error details:', error);
+                    },
+                    // Completion observer
+                    async () => {
+                        addDebugLog('Upload completed, getting download URL', 'success');
+
+                        try {
+                            // Get download URL
+                            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                            addDebugLog(`Download URL obtained: ${downloadURL.substring(0, 50)}...`, 'success');
+
+                            // Prepare podcast data
+                            const podcastData = {
+                                title: title,
+                                description: descriptionInput ? descriptionInput.value.trim() : '',
+                                audioUrl: downloadURL,
+                                storagePath: storagePath,
+                                fileName: file.name,
+                                fileSize: file.size,
+                                fileType: file.type,
+                                duration: null, // Could add audio duration extraction
+                                created: firebase.firestore.FieldValue.serverTimestamp(),
+                                uploadedBy: currentUser ? currentUser.uid : null,
+                                uploadedByEmail: currentUser ? currentUser.email : null,
+                                published: true,
+                                plays: 0,
+                                likes: 0
+                            };
+
+                            addDebugLog('Saving to Firestore...', 'info');
+
+                            // Save to Firestore
+                            const docRef = await db.collection('podcasts').add(podcastData);
+
+                            addDebugLog(`Podcast saved with ID: ${docRef.id}`, 'success');
+
+                            // Update status
+                            status.className = 'status-message show success';
+                            status.textContent = '✅ Podcast published successfully!';
+
+                            // Clear form
+                            fileInput.value = '';
+                            titleInput.value = '';
+                            if (descriptionInput) descriptionInput.value = '';
+
+                            // Hide progress after 3 seconds
+                            setTimeout(() => {
+                                progress.style.display = 'none';
+                                fileInfo.style.display = 'none';
+                                status.className = 'status-message';
+                                status.textContent = '';
+                            }, 3000);
+
+                            // Refresh posts
+                            loadRecentPosts();
+
+                        } catch (error) {
+                            addDebugLog(`Firestore error: ${error.message}`, 'error');
+                            
+                            status.className = 'status-message show error';
+                            status.textContent = '❌ Database error: ' + error.message;
+                        } finally {
+                            btn.disabled = false;
+                            activeUploads.delete(uploadId);
+                        }
+                    }
+                );
+            };
+
+            // ROBUST VIDEO UPLOAD ENGINE
+            window.uploadVideo = function() {
+                if (!adminConfirmed) {
+                    alert('Please login as admin first');
+                    return;
+                }
+
+                // Get DOM elements
+                const fileInput = document.getElementById('videoFile');
+                const titleInput = document.getElementById('videoTitle');
+                const descriptionInput = document.getElementById('videoDescription');
+                const categorySelect = document.getElementById('videoCategory');
+                const btn = document.getElementById('videoBtn');
+                const status = document.getElementById('videoStatus');
+                const progress = document.getElementById('videoProgress');
+                const progressFill = document.getElementById('videoProgressFill');
+                const progressText = document.getElementById('videoProgressText');
+                const speedSpan = document.getElementById('videoSpeed');
+                const timeRemainingSpan = document.getElementById('videoTimeRemaining');
+                const fileInfo = document.getElementById('videoFileInfo');
+                const fileNameSpan = document.getElementById('videoFileName');
+                const fileSizeSpan = document.getElementById('videoFileSize');
+                const videoDurationSpan = document.getElementById('videoDuration');
+
+                // Validate inputs
+                const file = fileInput.files[0];
+                const title = titleInput ? titleInput.value.trim() : file.name;
+
+                if (!file) {
+                    status.className = 'status-message show error';
+                    status.textContent = '❌ Please select a video file';
+                    return;
+                }
+
+                // Check file size (warn if > 500MB)
+                if (file.size > 500 * 1024 * 1024) {
+                    if (!confirm(`File is large (${formatFileSize(file.size)}). Upload may take a while. Continue?`)) {
+                        return;
+                    }
+                }
+
+                // Display file info
+                fileNameSpan.textContent = file.name;
+                fileSizeSpan.textContent = formatFileSize(file.size);
+                fileInfo.style.display = 'block';
+
+                // Try to get video duration
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.onloadedmetadata = function() {
+                    window.URL.revokeObjectURL(video.src);
+                    const duration = video.duration;
+                    const minutes = Math.floor(duration / 60);
+                    const seconds = Math.floor(duration % 60);
+                    videoDurationSpan.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                };
+                video.src = URL.createObjectURL(file);
+
+                // Disable button and show progress
+                btn.disabled = true;
+                progress.style.display = 'block';
+                progressFill.style.width = '0%';
+                progressText.textContent = '0%';
+                speedSpan.textContent = '';
+                timeRemainingSpan.textContent = '';
+
+                status.className = 'status-message show info';
+                status.textContent = '⏳ Preparing video upload...';
+
+                addDebugLog(`Starting video upload: ${file.name} (${formatFileSize(file.size)})`, 'info');
+
+                // Create unique filename
+                const timestamp = Date.now();
+                const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                const storagePath = `videos/${timestamp}_${safeFileName}`;
+
+                addDebugLog(`Storage path: ${storagePath}`, 'info');
+
+                // Get storage reference
+                const storageRef = storage.ref().child(storagePath);
+
+                // Create upload task with metadata
+                const metadata = {
+                    contentType: file.type,
+                    customMetadata: {
+                        uploadedBy: currentUser ? currentUser.uid : 'unknown',
+                        uploadedAt: new Date().toISOString(),
+                        title: title,
+                        category: categorySelect ? categorySelect.value : 'general',
+                        type: 'video'
+                    }
+                };
+
+                const uploadTask = storageRef.put(file, metadata);
+
+                // Store upload task
+                const uploadId = 'video_' + timestamp;
+                activeUploads.set(uploadId, uploadTask);
+
+                // Progress tracking
+                let startTime = Date.now();
+                let lastLoaded = 0;
+
+                uploadTask.on('state_changed',
+                    // Progress observer
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        const loaded = snapshot.bytesTransferred;
+                        const total = snapshot.totalBytes;
+
+                        // Update progress bar
+                        progressFill.style.width = progress + '%';
+                        progressText.textContent = Math.round(progress) + '%';
+
+                        // Calculate speed and ETA
+                        const elapsedSeconds = (Date.now() - startTime) / 1000;
+                        const speed = loaded / elapsedSeconds;
+                        const remainingSeconds = (total - loaded) / speed;
+
+                        if (elapsedSeconds > 1) {
+                            speedSpan.textContent = `⚡ ${formatFileSize(speed)}/s`;
+                            if (remainingSeconds > 0 && remainingSeconds < 86400) {
+                                timeRemainingSpan.textContent = `⏱️ ${calculateETA(loaded, total, speed)}`;
+                            }
+                        }
+
+                        status.textContent = `⏫ Uploading video: ${Math.round(progress)}%`;
+                    },
+                    // Error observer
+                    (error) => {
+                        addDebugLog(`Video upload error: ${error.message}`, 'error');
+                        
+                        btn.disabled = false;
+                        status.className = 'status-message show error';
+                        status.textContent = '❌ Upload failed: ' + error.message;
+                        
+                        activeUploads.delete(uploadId);
+                        
+                        console.error('Upload error details:', error);
+                    },
+                    // Completion observer
+                    async () => {
+                        addDebugLog('Video upload completed, getting download URL', 'success');
+
+                        try {
+                            // Get download URL
+                            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                            addDebugLog(`Download URL obtained`, 'success');
+
+                            // Prepare video data
+                            const videoData = {
+                                title: title,
+                                description: descriptionInput ? descriptionInput.value.trim() : '',
+                                videoUrl: downloadURL,
+                                storagePath: storagePath,
+                                fileName: file.name,
+                                fileSize: file.size,
+                                fileType: file.type,
+                                category: categorySelect ? categorySelect.value : 'general',
+                                admin: true,
+                                time: firebase.firestore.FieldValue.serverTimestamp(),
+                                uploadedBy: currentUser ? currentUser.uid : null,
+                                uploadedByEmail: currentUser ? currentUser.email : null,
+                                published: true,
+                                views: 0,
+                                likes: 0
+                            };
+
+                            addDebugLog('Saving video to Firestore...', 'info');
+
+                            // Save to Firestore (posts collection)
+                            const docRef = await db.collection('posts').add(videoData);
+
+                            addDebugLog(`Video post saved with ID: ${docRef.id}`, 'success');
+
+                            // Update status
+                            status.className = 'status-message show success';
+                            status.textContent = '✅ Video uploaded and posted successfully!';
+
+                            // Clear form
+                            fileInput.value = '';
+                            if (titleInput) titleInput.value = '';
+                            if (descriptionInput) descriptionInput.value = '';
+                            if (categorySelect) categorySelect.value = 'general';
+
+                            // Hide progress after 3 seconds
+                            setTimeout(() => {
+                                progress.style.display = 'none';
+                                fileInfo.style.display = 'none';
+                                status.className = 'status-message';
+                                status.textContent = '';
+                            }, 3000);
+
+                            // Refresh posts
+                            loadRecentPosts();
+
+                        } catch (error) {
+                            addDebugLog(`Firestore error: ${error.message}`, 'error');
+                            
+                            status.className = 'status-message show error';
+                            status.textContent = '❌ Database error: ' + error.message;
+                        } finally {
+                            btn.disabled = false;
+                            activeUploads.delete(uploadId);
+                        }
+                    }
+                );
+            };
+
+            // LIVE STREAM FUNCTIONS
+            window.setLive = function() {
+                if (!adminConfirmed) {
+                    alert('Please login as admin first');
+                    return;
+                }
+
+                const videoId = document.getElementById('liveId').value.trim();
+                const title = document.getElementById('liveTitle').value.trim();
+                const description = document.getElementById('liveDescription').value.trim();
+                const status = document.getElementById('liveStatus');
+                const btn = document.getElementById('liveBtn');
+
+                if (!videoId) {
+                    status.className = 'status-message show error';
+                    status.textContent = '❌ Please enter a YouTube Video ID';
+                    return;
+                }
+
+                btn.disabled = true;
+                status.className = 'status-message show info';
+                status.textContent = '⏳ Publishing live stream...';
+
+                addDebugLog(`Setting live stream with ID: ${videoId}`, 'info');
+
+                // Create live stream data
+                const liveData = {
+                    videoId: videoId,
+                    title: title || 'Live Stream',
+                    description: description || '',
+                    time: firebase.firestore.FieldValue.serverTimestamp(),
+                    publishedBy: currentUser ? currentUser.uid : null,
+                    publishedByEmail: currentUser ? currentUser.email : null,
+                    status: 'live',
+                    viewers: 0
+                };
+
+                // Save to Firestore
+                db.collection('live').doc('current').set(liveData)
+                    .then(() => {
+                        addDebugLog('Live stream published successfully', 'success');
+                        
+                        status.className = 'status-message show success';
+                        status.textContent = `✅ Live stream active: ${videoId}`;
+                        
+                        // Clear form
+                        document.getElementById('liveId').value = '';
+                        
+                        btn.disabled = false;
+                    })
+                    .catch(error => {
+                        addDebugLog(`Live stream error: ${error.message}`, 'error');
+                        
+                        status.className = 'status-message show error';
+                        status.textContent = '❌ Error: ' + error.message;
+                        
+                        btn.disabled = false;
+                    });
+            };
+
+            window.scheduleLive = function() {
+                if (!adminConfirmed) return;
+
+                const videoId = document.getElementById('liveId').value.trim();
+                const title = document.getElementById('liveTitle').value.trim();
+                const description = document.getElementById('liveDescription').value.trim();
+                const schedule = document.getElementById('liveSchedule').value;
+                const status = document.getElementById('liveStatus');
+
+                if (!videoId || !schedule) {
+                    status.className = 'status-message show error';
+                    status.textContent = '❌ Please enter Video ID and schedule';
+                    return;
+                }
+
+                const scheduleData = {
+                    videoId: videoId,
+                    title: title || 'Scheduled Stream',
+                    description: description || '',
+                    scheduledFor: new Date(schedule).toISOString(),
+                    created: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdBy: currentUser ? currentUser.uid : null
+                };
+
+                db.collection('live_schedule').add(scheduleData)
+                    .then(() => {
+                        status.className = 'status-message show success';
+                        status.textContent = '✅ Stream scheduled successfully';
+                    })
+                    .catch(error => {
+                        status.className = 'status-message show error';
+                        status.textContent = '❌ Error: ' + error.message;
+                    });
+            };
+
+            // LOAD RECENT POSTS
+            window.loadRecentPosts = async function() {
+                const postsDiv = document.getElementById('recentPosts');
+                
+                try {
+                    const snapshot = await db.collection('posts')
+                        .orderBy('time', 'desc')
+                        .limit(10)
+                        .get();
+
+                    if (snapshot.empty) {
+                        postsDiv.innerHTML = '<div style="text-align: center; color: #6e7a9e; padding: 2rem;">No posts yet</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const time = data.time ? new Date(data.time.seconds * 1000).toLocaleString() : 'Unknown date';
+                        
+                        html += `
+                            <div class="post-item">
+                                <div style="font-weight: 600;">${data.title || 'Untitled'}</div>
+                                <div style="color: #a0a8c0; font-size: 0.9rem;">${data.description || ''}</div>
+                                <div class="post-meta">
+                                    <span>📁 ${data.fileName || 'Video'}</span>
+                                    <span>👁️ ${data.views || 0} views</span>
+                                    <span>❤️ ${data.likes || 0} likes</span>
+                                    <span>📅 ${time}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    postsDiv.innerHTML = html;
+                    addDebugLog('Recent posts loaded', 'success');
+
+                } catch (error) {
+                    addDebugLog(`Error loading posts: ${error.message}`, 'error');
+                    postsDiv.innerHTML = '<div style="text-align: center; color: #ff5252; padding: 2rem;">Error loading posts</div>';
+                }
+            };
+
+            // LOAD COMMENTS
+            window.loadComments = async function() {
+                const commentsDiv = document.getElementById('commentsList');
+                
+                try {
+                    const snapshot = await db.collection('comments')
+                        .orderBy('created', 'desc')
+                        .limit(20)
+                        .get();
+
+                    if (snapshot.empty) {
+                        commentsDiv.innerHTML = '<div style="text-align: center; color: #6e7a9e; padding: 2rem;">No comments yet</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        html += `
+                            <div class="post-item" style="margin-bottom: 0.5rem;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="font-weight: 600;">👤 ${data.userName || 'Anonymous'}</span>
+                                    <span style="color: #97a9d6;">${new Date(data.created?.seconds * 1000).toLocaleDateString()}</span>
+                                </div>
+                                <div style="margin: 0.5rem 0;">${data.text || data.content || ''}</div>
+                                <div style="display: flex; gap: 1rem;">
+                                    <label>
+                                        <input type="checkbox" value="${doc.id}" class="comment-select"> Moderate
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    commentsDiv.innerHTML = html;
+                    addDebugLog('Comments loaded', 'success');
+
+                } catch (error) {
+                    addDebugLog(`Error loading comments: ${error.message}`, 'error');
+                    commentsDiv.innerHTML = '<div style="text-align: center; color: #ff5252; padding: 2rem;">Error loading comments</div>';
+                }
+            };
+
+            // MODERATE COMMENTS
+            window.moderateComments = function() {
+                const selected = document.querySelectorAll('.comment-select:checked');
+                if (selected.length === 0) {
+                    alert('Select comments to moderate');
+                    return;
+                }
+
+                if (!confirm(`Moderate ${selected.length} selected comments?`)) return;
+
+                selected.forEach(checkbox => {
+                    const commentId = checkbox.value;
+                    db.collection('comments').doc(commentId).update({
+                        moderated: true,
+                        moderatedBy: currentUser ? currentUser.uid : null,
+                        moderatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        addDebugLog(`Comment ${commentId} moderated`, 'success');
+                    }).catch(error => {
+                        addDebugLog(`Error moderating comment: ${error.message}`, 'error');
+                    });
+                });
+
+                setTimeout(loadComments, 1000);
+            };
+
+            // Cancel active uploads on page unload
+            window.addEventListener('beforeunload', () => {
+                activeUploads.forEach(upload => {
+                    if (upload && typeof upload.cancel === 'function') {
+                        upload.cancel();
+                    }
+                });
+            });
+
+            addDebugLog('Upload Engine initialized', 'success');
+        })();
+    </script>
 </body>
 </html>
