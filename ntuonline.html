@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ntudioka Admin · secure dashboard</title>
+    <title>Ntudioka Admin · fixed upload</title>
+
     <!-- Firebase SDKs (compat version) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -87,6 +88,11 @@
             box-shadow: 0 12px 20px -8px #00e5ff;
         }
         button:active { transform: scale(0.98); }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
         .adminOnly { display: none; }
         .note {
             font-size: 0.9rem;
@@ -97,23 +103,38 @@
             background: #03050b40;
             border-radius: 0 12px 12px 0;
         }
-        .file-label {
-            background: #262e45;
-            padding: 8px 16px;
-            border-radius: 60px;
-            display: inline-block;
-            margin: 8px 0 4px;
-            font-size: 0.9rem;
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #2d344b;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #00e5ff;
+            width: 0%;
+            transition: width 0.3s;
         }
         hr { border: 0.5px solid #2d344b; margin: 1.8rem 0; }
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .status.success { background: #00e5ff20; color: #00e5ff; }
+        .status.error { background: #ff005520; color: #ff6b8b; }
     </style>
 </head>
 <body>
 
-<h1>⚡ Ntudioka · admin core</h1>
+<h1>⚡ Ntudioka · admin core (fixed uploads)</h1>
 
-<!-- LOGIN CARD (hidden after auth) -->
-<div class="card adminOnly" id="loginCard" style="display:block">   <!-- initially visible, controlled by JS later -->
+<!-- LOGIN CARD -->
+<div class="card adminOnly" id="loginCard" style="display:block">
     <h3>🔐 Portal access</h3>
     <input id="email" placeholder="admin email" type="email" autocomplete="off">
     <input id="password" type="password" placeholder="password" autocomplete="off">
@@ -126,7 +147,11 @@
     <h3>🎙 Upload podcast</h3>
     <input type="file" id="podFile" accept="audio/*">
     <input id="podTitle" placeholder="Episode title (required)">
-    <button onclick="uploadPodcast()">📤 Publish podcast</button>
+    <div class="progress-bar" id="podcastProgress">
+        <div class="progress-fill" id="podcastProgressFill"></div>
+    </div>
+    <button onclick="uploadPodcast()" id="podcastUploadBtn">📤 Publish podcast</button>
+    <div class="status" id="podcastStatus"></div>
     <div class="note">MP3, M4A – stored in Firebase Storage / podcasts</div>
 </div>
 
@@ -134,7 +159,11 @@
 <div class="card adminOnly" style="display:none">
     <h3>🎥 Upload video post</h3>
     <input type="file" id="videoFile" accept="video/*">
-    <button onclick="uploadVideo()">📤 Upload & publish</button>
+    <div class="progress-bar" id="videoProgress">
+        <div class="progress-fill" id="videoProgressFill"></div>
+    </div>
+    <button onclick="uploadVideo()" id="videoUploadBtn">📤 Upload & publish</button>
+    <div class="status" id="videoStatus"></div>
     <div class="note">Video appears in 'posts' collection with admin flag</div>
 </div>
 
@@ -143,6 +172,7 @@
     <h3>🔴 Publish live stream</h3>
     <input id="liveId" placeholder="YouTube video ID (e.g. dQw4w9WgXcQ)">
     <button onclick="setLive()">▶️ Go live (set current)</button>
+    <div class="status" id="liveStatus"></div>
     <div class="note">Overwrites live/current document</div>
 </div>
 
@@ -152,7 +182,7 @@
 
 <script>
 (function() {
-    // ------ Firebase init (your config) ------
+    // ------ Firebase init ------
     const firebaseConfig = {
         apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
         authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -168,10 +198,10 @@
     const auth = firebase.auth();
     const storage = firebase.storage();
 
-    // Global flag – strict admin rights
+    // Global flag
     let adminConfirmed = false;
 
-    // ----- DOM elements -----
+    // DOM elements
     const loginCard = document.getElementById('loginCard');
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
@@ -179,25 +209,45 @@
     const podTitle = document.getElementById('podTitle');
     const videoFile = document.getElementById('videoFile');
     const liveId = document.getElementById('liveId');
+    
+    // Progress elements
+    const podcastProgress = document.getElementById('podcastProgress');
+    const podcastProgressFill = document.getElementById('podcastProgressFill');
+    const podcastStatus = document.getElementById('podcastStatus');
+    const podcastBtn = document.getElementById('podcastUploadBtn');
+    
+    const videoProgress = document.getElementById('videoProgress');
+    const videoProgressFill = document.getElementById('videoProgressFill');
+    const videoStatus = document.getElementById('videoStatus');
+    const videoBtn = document.getElementById('videoUploadBtn');
+    
+    const liveStatus = document.getElementById('liveStatus');
 
-    // Select all admin-only cards (including login card initially, but we manage separately)
     const adminElements = document.querySelectorAll('.adminOnly');
 
-    // helper to hide login card / show real admin cards
+    // Helper to show status
+    function showStatus(element, message, type) {
+        element.textContent = message;
+        element.className = 'status ' + type;
+        setTimeout(() => {
+            element.textContent = '';
+            element.className = 'status';
+        }, 5000);
+    }
+
+    // Unlock dashboard
     function unlockDashboard() {
-        // hide the login card specifically (keep it hidden after success)
         if (loginCard) loginCard.style.display = 'none';
-        // show every other .adminOnly card (podcast, video, live)
         adminElements.forEach(el => {
-            if (el !== loginCard) {   // don't show login card again
+            if (el !== loginCard) {
                 el.style.display = 'block';
             }
         });
         adminConfirmed = true;
-        console.log('✅ Dashboard fully unlocked');
+        console.log('✅ Dashboard unlocked');
     }
 
-    // ----- LOGIN function (called from button) -----
+    // LOGIN function
     window.login = function() {
         const email = emailInput.value.trim();
         const password = passwordInput.value;
@@ -208,9 +258,7 @@
 
         auth.signInWithEmailAndPassword(email, password)
             .then(() => {
-                // onAuthStateChanged will handle role check and unlock
                 alert("Login successful. Verifying admin role...");
-                // clear password field for security
                 passwordInput.value = '';
             })
             .catch(err => {
@@ -218,10 +266,9 @@
             });
     };
 
-    // ----- AUTH STATE WATCHER (heart of security) -----
+    // AUTH STATE WATCHER
     auth.onAuthStateChanged(async user => {
         if (!user) {
-            // No user: make sure admin panels are hidden, login visible
             adminConfirmed = false;
             adminElements.forEach(el => {
                 if (el === loginCard) el.style.display = 'block';
@@ -230,95 +277,129 @@
             return;
         }
 
-        console.log('✅ User UID:', user.uid);
+        console.log('User UID:', user.uid);
 
         try {
-            // Fetch role document from Firestore (collection 'roles', doc = uid)
             const roleRef = db.collection('roles').doc(user.uid);
             const roleSnap = await roleRef.get();
 
             if (!roleSnap.exists) {
-                alert("⚠️ You are logged in, but no role document exists in Firestore.\n" +
-                      "Create document 'roles/" + user.uid + "' with field 'role': 'admin'");
-                // keep dashboard locked, show login card? Actually user is logged in but not admin. 
-                // We hide admin stuff, show login card with a warning (but login card says "login" which is weird)
-                // Better to keep everything hidden except maybe a message.
-                adminConfirmed = false;
-                adminElements.forEach(el => el.style.display = 'none'); // all hidden
-                // optionally display a dedicated message (but keep simple)
-                alert('Admin role missing – access denied');
-                return;
-            }
-
-            const roleData = roleSnap.data();
-            if (roleData.role !== 'admin') {
-                alert("❌ Your role is '" + roleData.role + "', not 'admin'. Access denied.");
+                alert("No role document found for this user.\nCreate document 'roles/" + user.uid + "' with field 'role': 'admin'");
                 adminConfirmed = false;
                 adminElements.forEach(el => el.style.display = 'none');
                 return;
             }
 
-            // ---------- ADMIN VERIFIED ----------
-            adminConfirmed = true;
-            alert('✅ ADMIN confirmed – dashboard unlocked');
+            const roleData = roleSnap.data();
+            if (roleData.role !== 'admin') {
+                alert("Access denied. Your role is: " + roleData.role);
+                adminConfirmed = false;
+                adminElements.forEach(el => el.style.display = 'none');
+                return;
+            }
 
-            // Unlock: hide login card, show all admin cards
+            // ADMIN VERIFIED
+            adminConfirmed = true;
+            alert('✅ Admin confirmed – dashboard unlocked');
             unlockDashboard();
 
         } catch (error) {
             console.error('Role check error:', error);
             alert('Error during role verification: ' + error.message);
-            // For safety, lock everything
             adminConfirmed = false;
             adminElements.forEach(el => el.style.display = 'none');
         }
     });
 
-    // ----- UPLOAD PODCAST -----
+    // ----- UPLOAD PODCAST (FIXED) -----
     window.uploadPodcast = async function() {
         if (!adminConfirmed) {
-            alert('Admin session required – please log in.');
+            alert('Admin session required');
             return;
         }
 
         const file = podFile.files[0];
         const title = podTitle.value.trim();
 
-        if (!file) return alert('Select an audio file');
-        if (!title) return alert('Podcast title is required');
+        if (!file) {
+            showStatus(podcastStatus, '❌ Select an audio file', 'error');
+            return;
+        }
+        if (!title) {
+            showStatus(podcastStatus, '❌ Podcast title is required', 'error');
+            return;
+        }
+
+        // Disable button and show progress
+        podcastBtn.disabled = true;
+        podcastProgress.style.display = 'block';
+        podcastProgressFill.style.width = '0%';
+        showStatus(podcastStatus, '⏫ Uploading podcast...', 'status');
 
         try {
-            // Create unique filename
-            const fileName = `podcasts/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-            const storageRef = storage.ref(fileName);
+            // Create unique filename with safe characters
+            const timestamp = Date.now();
+            const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+            const fileName = `podcasts/${timestamp}_${safeFileName}`;
+            
+            // Create storage reference
+            const storageRef = storage.ref().child(fileName);
+            
+            // Upload with progress tracking
+            const uploadTask = storageRef.put(file);
+            
+            // Track progress
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    podcastProgressFill.style.width = progress + '%';
+                },
+                (error) => {
+                    // Upload error
+                    console.error('Upload error:', error);
+                    podcastBtn.disabled = false;
+                    podcastProgress.style.display = 'none';
+                    showStatus(podcastStatus, '❌ Upload failed: ' + error.message, 'error');
+                },
+                async () => {
+                    // Upload complete
+                    try {
+                        // Get download URL
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        
+                        // Save to Firestore
+                        await db.collection('podcasts').add({
+                            title: title,
+                            audioUrl: downloadURL,
+                            created: firebase.firestore.FieldValue.serverTimestamp(),
+                            uploadedBy: auth.currentUser ? auth.currentUser.uid : null,
+                            fileName: file.name,
+                            fileSize: file.size
+                        });
 
-            // Upload file
-            const uploadTask = await storageRef.put(file);
-            console.log('Upload completed');
-
-            // Get download URL
-            const downloadURL = await storageRef.getDownloadURL();
-
-            // Save to Firestore
-            await db.collection('podcasts').add({
-                title: title,
-                audioUrl: downloadURL,
-                created: Date.now(),
-                // optional: add uid of admin who uploaded
-                uploadedBy: auth.currentUser ? auth.currentUser.uid : null
-            });
-
-            alert('✅ Podcast published successfully');
-            // Clear inputs
-            podFile.value = '';
-            podTitle.value = '';
+                        // Reset UI
+                        podcastBtn.disabled = false;
+                        podcastProgress.style.display = 'none';
+                        podcastFile.value = '';
+                        podTitle.value = '';
+                        
+                        showStatus(podcastStatus, '✅ Podcast published successfully!', 'success');
+                    } catch (err) {
+                        podcastBtn.disabled = false;
+                        podcastProgress.style.display = 'none';
+                        showStatus(podcastStatus, '❌ Firestore error: ' + err.message, 'error');
+                    }
+                }
+            );
         } catch (err) {
-            alert('Upload failed: ' + err.message);
-            console.error(err);
+            console.error('Setup error:', err);
+            podcastBtn.disabled = false;
+            podcastProgress.style.display = 'none';
+            showStatus(podcastStatus, '❌ Error: ' + err.message, 'error');
         }
     };
 
-    // ----- UPLOAD VIDEO -----
+    // ----- UPLOAD VIDEO (FIXED) -----
     window.uploadVideo = async function() {
         if (!adminConfirmed) {
             alert('Admin session required');
@@ -326,32 +407,77 @@
         }
 
         const file = videoFile.files[0];
-        if (!file) return alert('Select a video file');
+        if (!file) {
+            showStatus(videoStatus, '❌ Select a video file', 'error');
+            return;
+        }
+
+        // Check file size (warn if > 100MB)
+        if (file.size > 100 * 1024 * 1024) {
+            if (!confirm('File is large (' + (file.size/1024/1024).toFixed(1) + 'MB). Continue?')) {
+                return;
+            }
+        }
+
+        videoBtn.disabled = true;
+        videoProgress.style.display = 'block';
+        videoProgressFill.style.width = '0%';
+        showStatus(videoStatus, '⏫ Uploading video...', 'status');
 
         try {
-            const fileName = `videos/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-            const storageRef = storage.ref(fileName);
+            const timestamp = Date.now();
+            const safeFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+            const fileName = `videos/${timestamp}_${safeFileName}`;
+            
+            const storageRef = storage.ref().child(fileName);
+            const uploadTask = storageRef.put(file);
+            
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    videoProgressFill.style.width = progress + '%';
+                },
+                (error) => {
+                    console.error('Upload error:', error);
+                    videoBtn.disabled = false;
+                    videoProgress.style.display = 'none';
+                    showStatus(videoStatus, '❌ Upload failed: ' + error.message, 'error');
+                },
+                async () => {
+                    try {
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        
+                        await db.collection('posts').add({
+                            video: downloadURL,
+                            admin: true,
+                            time: firebase.firestore.FieldValue.serverTimestamp(),
+                            type: 'video',
+                            fileName: file.name,
+                            fileSize: file.size,
+                            uploadedBy: auth.currentUser ? auth.currentUser.uid : null
+                        });
 
-            await storageRef.put(file);
-            const downloadURL = await storageRef.getDownloadURL();
-
-            // Store in 'posts' collection with admin flag
-            await db.collection('posts').add({
-                video: downloadURL,
-                admin: true,
-                time: Date.now(),
-                type: 'video',
-                uploadedBy: auth.currentUser ? auth.currentUser.uid : null
-            });
-
-            alert('✅ Video uploaded and post created');
-            videoFile.value = ''; // clear input
+                        videoBtn.disabled = false;
+                        videoProgress.style.display = 'none';
+                        videoFile.value = '';
+                        
+                        showStatus(videoStatus, '✅ Video uploaded and post created!', 'success');
+                    } catch (err) {
+                        videoBtn.disabled = false;
+                        videoProgress.style.display = 'none';
+                        showStatus(videoStatus, '❌ Firestore error: ' + err.message, 'error');
+                    }
+                }
+            );
         } catch (err) {
-            alert('Video upload error: ' + err.message);
+            console.error('Setup error:', err);
+            videoBtn.disabled = false;
+            videoProgress.style.display = 'none';
+            showStatus(videoStatus, '❌ Error: ' + err.message, 'error');
         }
     };
 
-    // ----- SET LIVE STREAM (YouTube ID) -----
+    // ----- SET LIVE STREAM -----
     window.setLive = async function() {
         if (!adminConfirmed) {
             alert('Admin session required');
@@ -359,38 +485,34 @@
         }
 
         const videoId = liveId.value.trim();
-        if (!videoId) return alert('Enter a YouTube video ID');
-
-        // basic validation: typical video ID length (11 chars) but can be flexible
-        if (videoId.length < 5) {
-            alert('Video ID looks too short, please check');
+        if (!videoId) {
+            showStatus(liveStatus, '❌ Enter a YouTube video ID', 'error');
+            return;
         }
+
+        liveStatus.textContent = '⏫ Setting live stream...';
+        liveStatus.className = 'status status';
 
         try {
             await db.collection('live').doc('current').set({
                 videoId: videoId,
-                time: Date.now(),
+                time: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedBy: auth.currentUser ? auth.currentUser.uid : null
             });
-            alert('🔴 Live stream ID updated to: ' + videoId);
-            liveId.value = ''; // optional clear
+            
+            liveId.value = '';
+            showStatus(liveStatus, '✅ Live stream ID updated to: ' + videoId, 'success');
         } catch (err) {
-            alert('Failed to set live: ' + err.message);
+            showStatus(liveStatus, '❌ Failed: ' + err.message, 'error');
         }
     };
 
-    // initial UI consistency: if no user is logged in, the login card is visible, others hidden.
-    // onAuthStateChanged runs immediately and will set correct visibility.
-    // But we also set a small fallback: if user somehow stays logged in but flag not set, we keep hidden.
-    // The onAuthStateChanged already triggers. Also ensure that login card is visible at start if no user.
-    // We'll call a small sync function, but it's fine.
-    // However, on first load, before auth state resolves, all .adminOnly are hidden by css (style="display:none" embedded),
-    // but login card has inline style="display:block" so it overrides. Good.
-    // To avoid flicker, we rely on that.
+    // Fix for variable name conflict
+    const podcastFile = document.getElementById('podFile');
 })();
 </script>
 
-<!-- additional note for roles -->
+<!-- roles reminder -->
 <div style="background:#131725; border-radius:20px; padding:16px; margin-top:30px; border:1px dashed #3a435e; color:#a3b3e0">
     <span style="color:#00e5ff;">⚙️ Firestore roles required:</span> collection <code style="background:#010313; padding:2px 8px; border-radius:40px;">roles</code> → document <code style="background:#010313; padding:2px 8px; border-radius:40px;">{UID}</code> → field <code style="background:#010313; padding:2px 8px; border-radius:40px;">role: "admin"</code>
 </div>
