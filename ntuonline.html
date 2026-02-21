@@ -4,209 +4,127 @@
 <meta charset="UTF-8">
 <title>Ntudioka Admin</title>
 
-<!-- ✅ ONLY THESE FIREBASE SCRIPTS -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 
 <style>
-body{background:#0e0f17;color:white;font-family:sans-serif;padding:30px}
-input,textarea{width:100%;padding:10px;margin-top:10px;border-radius:10px}
-button{padding:10px 20px;margin-top:10px;border:none;border-radius:20px;background:#00e5ff}
-.card{background:#1a1e2f;padding:20px;border-radius:20px;margin-bottom:20px}
+body{background:#0e0f17;color:white;font-family:sans-serif;padding:25px}
+.card{background:#1a1e2f;padding:20px;border-radius:15px;margin-bottom:20px}
+input{width:100%;padding:10px;margin-top:8px;border-radius:10px}
+button{padding:10px 18px;margin-top:10px;border:none;border-radius:15px;background:#00e5ff}
 </style>
 </head>
 
 <body>
 
-<h1>⚡ Ntudioka Admin Panel</h1>
- 
+<h1>⚡ Ntudioka Admin Dashboard</h1>
+
 <div class="card">
-<h2>📊 Dashboard Overview</h2>
-<div id="stats"></div>
+<h3>Login</h3>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
 </div>
 
 <div class="card">
-<h2>🎙 Upload Podcast</h2>
-<input type="file" id="podcastFile" accept="audio/*">
-<input type="text" id="podcastTitle" placeholder="Podcast title">
+<h3>🎙 Upload Podcast</h3>
+<input type="file" id="podFile" accept="audio/*">
+<input id="podTitle" placeholder="Podcast title">
 <button onclick="uploadPodcast()">Upload</button>
 </div>
 
 <div class="card">
-<h2>🎥 Upload Video Post</h2>
+<h3>🎥 Upload Video Post</h3>
 <input type="file" id="videoFile" accept="video/*">
-<button onclick="uploadVideo()">Upload</button>
+<button onclick="uploadVideo()">Upload Video</button>
 </div>
 
 <div class="card">
-<h2>🔴 Publish Live Stream</h2>
+<h3>🔴 Publish Live Stream</h3>
 <input id="liveId" placeholder="YouTube Video ID">
 <button onclick="setLive()">Go Live</button>
 </div>
+
 <script>
-
-/////////////////////////////
-// ✅ FIREBASE CONFIG (ONLY ONE)
-/////////////////////////////
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
-  authDomain: "ntudioka-online-c29d8.firebaseapp.com",
-  projectId: "ntudioka-online-c29d8",
-  storageBucket: "ntudioka-online-c29d8.appspot.com",
-  messagingSenderId: "1015621578149",
-  appId: "1:1015621578149:web:c755b458e505fd32928c4c"
+const firebaseConfig={
+ apiKey:"AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+ authDomain:"ntudioka-online-c29d8.firebaseapp.com",
+ projectId:"ntudioka-online-c29d8",
+ storageBucket:"ntudioka-online-c29d8.appspot.com",
+ messagingSenderId:"1015621578149",
+ appId:"1:1015621578149:web:c755b458e505fd32928c4c"
 };
 
 firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+const auth=firebase.auth();
+const storage=firebase.storage();
 
-const db = firebase.firestore();
-const auth = firebase.auth();
-const storage = firebase.storage();
-</script>
-<script>
-auth.onAuthStateChanged(async user=>{
-  if(!user){
-    alert("Login required");
-    location.href="index.html";
-    return;
-  }
-
-  const doc = await db.collection("roles").doc(user.uid).get();
-
-  if(!doc.exists || doc.data().role !== "admin"){
-    alert("Access denied. Not an admin.");
-    location.href="index.html";
-  }
-});
-
-
-/////////////////////////////
-// 🔐 LOGIN
-/////////////////////////////
+//////////////// LOGIN + ROLE CHECK //////////////////
 
 function login(){
-  const email=document.getElementById("adminEmail").value;
-  const pass=document.getElementById("adminPass").value;
-
-  auth.signInWithEmailAndPassword(email,pass)
-  .then(()=>alert("Admin logged in"))
-  .catch(e=>alert(e.message));
+ auth.signInWithEmailAndPassword(email.value,password.value)
+ .then(()=>checkAdmin())
+ .catch(e=>alert(e.message));
 }
 
-/////////////////////////////
-// 🎙 PODCAST UPLOAD
-/////////////////////////////
+async function checkAdmin(){
+ const uid=auth.currentUser.uid;
+ const doc=await db.collection("roles").doc(uid).get();
+ if(!doc.exists||doc.data().role!=="admin"){
+   alert("Not an admin");
+   location.href="index.html";
+ }
+}
+
+//////////////// PODCAST //////////////////
 
 async function uploadPodcast(){
+ const file=podFile.files[0];
+ const title=podTitle.value;
+ if(!file||!title)return alert("Complete fields");
 
-  const file=document.getElementById("podcastFile").files[0];
-  const title=document.getElementById("podcastTitle").value;
+ const ref=storage.ref("podcasts/"+Date.now()+"_"+file.name);
+ await ref.put(file);
+ const url=await ref.getDownloadURL();
 
-  if(!file || !title) return alert("Complete fields");
-
-  const ref=storage.ref("podcasts/"+Date.now()+"_"+file.name);
-  await ref.put(file);
-
-  const url=await ref.getDownloadURL();
-
-  await db.collection("podcasts").add({
-    title:title,
-    audioUrl:url,
-    created:firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  alert("Podcast uploaded");
+ await db.collection("podcasts").add({
+   title,
+   audioUrl:url,
+   created:Date.now()
+ });
+ alert("Podcast uploaded");
 }
 
-/////////////////////////////
-// 🔴 LIVE BROADCAST
-/////////////////////////////
+//////////////// VIDEO //////////////////
 
-async function setLive(){
-  const id=document.getElementById("liveId").value;
+async function uploadVideo(){
+ const file=videoFile.files[0];
+ if(!file)return alert("Select file");
 
-  await db.collection("live").doc("current").set({
-    videoId:id,
-    time:firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  alert("Live stream published");
-}
-/////////////////////////////
-// 📅 EVENT
-/////////////////////////////
-
-async function postEvent(){
- const title=document.getElementById("eventTitle").value;
+ const ref=storage.ref("videos/"+Date.now()+"_"+file.name);
+ await ref.put(file);
+ const url=await ref.getDownloadURL();
 
  await db.collection("posts").add({
-   text:"📅 EVENT: "+title,
+   video:url,
    admin:true,
    time:Date.now()
  });
-
- alert("Event posted");
+ alert("Video uploaded");
 }
 
-/////////////////////////////
-// 🔗 LINKS
-/////////////////////////////
+//////////////// LIVE //////////////////
 
-async function addLink(){
- const label=document.getElementById("linkLabel").value;
- const url=document.getElementById("linkURL").value;
-
- await db.collection("links").add({label,url});
- alert("Link added");
+async function setLive(){
+ await db.collection("live").doc("current").set({
+   videoId:liveId.value,
+   time:Date.now()
+ });
+ alert("Live published");
 }
-
-/////////////////////////////
-// 🎥 VIDEO UPLOAD
-/////////////////////////////
-
-async function uploadVideo(){
-
-  const file=document.getElementById("videoFile").files[0];
-  if(!file) return alert("Select video");
-
-  const ref=storage.ref("videos/"+Date.now()+"_"+file.name);
-  await ref.put(file);
-
-  const url=await ref.getDownloadURL();
-
-  await db.collection("posts").add({
-    video:url,
-    admin:true,
-    time:firebase.firestore.FieldValue.serverTimestamp()
-  });
-
-  alert("Video uploaded");
-}
-async function loadStats(){
-
- const users=await db.collection("users").get();
- const posts=await db.collection("posts").get();
- const podcasts=await db.collection("podcasts").get();
-
- document.getElementById("stats").innerHTML=
- `
- 👥 Users: ${users.size}<br>
- 📝 Posts: ${posts.size}<br>
- 🎙 Podcasts: ${podcasts.size}<br>
- `;
-}
-
-loadStats();
 </script>
-
 </body>
 </html>
-
-
-
-
-
-
