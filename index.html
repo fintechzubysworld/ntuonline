@@ -81,8 +81,8 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const storage = firebase.storage();
-</script>
-  <script>
+
+  
 auth.onAuthStateChanged(async user=>{
   if(!user){
     alert("Login required");
@@ -97,8 +97,8 @@ auth.onAuthStateChanged(async user=>{
     location.href="index.html";
   }
 });
-  </script>
-  <script>
+
+  
 /////////////////////////////
 // ✅ AUTH SYSTEM
 /////////////////////////////
@@ -220,5 +220,6 @@ db.collection("posts").orderBy("time","desc")
 </script>
 </body>
 </html>
+
 
 
