@@ -62,26 +62,63 @@ const db=firebase.firestore();
 const auth=firebase.auth();
 const storage=firebase.storage();
 
-//////////////// LOGIN + ROLE CHECK //////////////////
+let adminConfirmed=false;
+
+//////////////// LOGIN //////////////////
 
 function login(){
- auth.signInWithEmailAndPassword(email.value,password.value)
- .then(()=>checkAdmin())
- .catch(e=>alert(e.message));
+  const e=email.value;
+  const p=password.value;
+
+  auth.signInWithEmailAndPassword(e,p)
+  .then(()=>{
+    alert("Login successful. Checking admin role...");
+  })
+  .catch(err=>alert(err.message));
 }
 
-async function checkAdmin(){
- const uid=auth.currentUser.uid;
- const doc=await db.collection("roles").doc(uid).get();
- if(!doc.exists||doc.data().role!=="admin"){
-   alert("Not an admin");
-   location.href="index.html";
- }
+//////////////// AUTH STATE WATCHER //////////////////
+
+auth.onAuthStateChanged(async user=>{
+  if(!user) return;
+
+  console.log("Logged in UID:",user.uid);
+
+  try{
+    const roleDoc=await db.collection("roles").doc(user.uid).get();
+
+    if(!roleDoc.exists){
+      alert("Logged in, but NO ROLE document found.\nCreate one in Firestore.");
+      return;
+    }
+
+    if(roleDoc.data().role!=="admin"){
+      alert("Logged in but NOT ADMIN");
+      return;
+    }
+
+    adminConfirmed=true;
+    alert("✅ ADMIN VERIFIED — Dashboard unlocked");
+
+    unlockDashboard();
+
+  }catch(e){
+    alert("Role check error: "+e.message);
+  }
+});
+
+//////////////// UNLOCK DASHBOARD //////////////////
+
+function unlockDashboard(){
+  document.querySelectorAll(".adminOnly")
+    .forEach(el=>el.style.display="block");
 }
 
 //////////////// PODCAST //////////////////
 
 async function uploadPodcast(){
+ if(!adminConfirmed) return alert("Admin login required");
+
  const file=podFile.files[0];
  const title=podTitle.value;
  if(!file||!title)return alert("Complete fields");
@@ -95,12 +132,15 @@ async function uploadPodcast(){
    audioUrl:url,
    created:Date.now()
  });
- alert("Podcast uploaded");
+
+ alert("Podcast uploaded successfully");
 }
 
 //////////////// VIDEO //////////////////
 
 async function uploadVideo(){
+ if(!adminConfirmed) return alert("Admin login required");
+
  const file=videoFile.files[0];
  if(!file)return alert("Select file");
 
@@ -113,18 +153,23 @@ async function uploadVideo(){
    admin:true,
    time:Date.now()
  });
- alert("Video uploaded");
+
+ alert("Video uploaded successfully");
 }
 
 //////////////// LIVE //////////////////
 
 async function setLive(){
+ if(!adminConfirmed) return alert("Admin login required");
+
  await db.collection("live").doc("current").set({
    videoId:liveId.value,
    time:Date.now()
  });
- alert("Live published");
+
+ alert("Live stream published");
 }
 </script>
 </body>
 </html>
+
