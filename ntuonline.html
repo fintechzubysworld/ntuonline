@@ -22,51 +22,29 @@ button{padding:10px 20px;margin-top:10px;border:none;border-radius:20px;backgrou
 
 <h1>⚡ Ntudioka Admin Panel</h1>
 
-<!-- 🔐 LOGIN -->
 <div class="card">
-<h2>Admin Login</h2>
-<input id="adminEmail" placeholder="Admin email">
-<input id="adminPass" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
+<h2>📊 Dashboard Overview</h2>
+<div id="stats"></div>
 </div>
 
-<!-- 🎙 PODCAST UPLOAD -->
 <div class="card">
-<h2>Upload Podcast</h2>
-<input type="file" id="podcastFile">
+<h2>🎙 Upload Podcast</h2>
+<input type="file" id="podcastFile" accept="audio/*">
 <input type="text" id="podcastTitle" placeholder="Podcast title">
-<button onclick="uploadPodcast()">Upload Podcast</button>
+<button onclick="uploadPodcast()">Upload</button>
 </div>
 
-<!-- 🔴 LIVE BROADCAST -->
 <div class="card">
-<h2>Set Live Broadcast</h2>
-<input id="liveId" placeholder="YouTube Video ID">
-<button onclick="setLive()">Publish Live</button>
-</div>
-
-<!-- 📅 EVENT -->
-<div class="card">
-<h2>Create Event</h2>
-<input id="eventTitle" placeholder="Event title">
-<button onclick="postEvent()">Publish Event</button>
-</div>
-
-<!-- 🔗 LINK -->
-<div class="card">
-<h2>Add Community Link</h2>
-<input id="linkLabel" placeholder="Button label">
-<input id="linkURL" placeholder="URL">
-<button onclick="addLink()">Add Link</button>
-</div>
-
-<!-- 🎥 VIDEO -->
-<div class="card">
-<h2>Upload Video</h2>
+<h2>🎥 Upload Video Post</h2>
 <input type="file" id="videoFile" accept="video/*">
-<button onclick="uploadVideo()">Upload Video</button>
+<button onclick="uploadVideo()">Upload</button>
 </div>
 
+<div class="card">
+<h2>🔴 Publish Live Stream</h2>
+<input id="liveId" placeholder="YouTube Video ID">
+<button onclick="setLive()">Go Live</button>
+</div>
 <script>
 
 /////////////////////////////
@@ -213,4 +191,5 @@ async function uploadVideo(){
 
 </body>
 </html>
+
 
