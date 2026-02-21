@@ -72,7 +72,8 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const storage = firebase.storage();
-
+</script>
+<script>
 auth.onAuthStateChanged(async user=>{
   if(!user){
     alert("Login required");
@@ -210,6 +211,7 @@ loadStats();
 
 </body>
 </html>
+
 
 
 
