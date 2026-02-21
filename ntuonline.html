@@ -1,176 +1,398 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Ntudioka Admin</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ntudioka Admin · secure dashboard</title>
+    <!-- Firebase SDKs (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
-
-<style>
-body{background:#0e0f17;color:white;font-family:sans-serif;padding:25px}
-.card{background:#1a1e2f;padding:20px;border-radius:15px;margin-bottom:20px}
-input{width:100%;padding:10px;margin-top:8px;border-radius:10px}
-button{padding:10px 18px;margin-top:10px;border:none;border-radius:15px;background:#00e5ff}
-</style>
+    <style>
+        * { box-sizing: border-box; margin: 0; }
+        body {
+            background: #0e0f17;
+            color: #f0f4ff;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-weight: 500;
+            font-size: 2.2rem;
+            letter-spacing: -0.02em;
+            margin-bottom: 2rem;
+            border-left: 6px solid #00e5ff;
+            padding-left: 1.3rem;
+            background: linear-gradient(145deg, #ffffff20, transparent);
+            border-radius: 0 20px 20px 0;
+        }
+        .card {
+            background: #1a1e2f;
+            padding: 1.7rem 1.9rem;
+            border-radius: 28px;
+            margin-bottom: 1.8rem;
+            border: 1px solid #2e354a;
+            box-shadow: 0 20px 30px -10px #00000060;
+            backdrop-filter: blur(2px);
+            transition: all 0.2s ease;
+        }
+        .card:hover { border-color: #00e5ff50; }
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 1.4rem;
+            font-weight: 500;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #cbd5ff;
+        }
+        input, input[type="file"] {
+            width: 100%;
+            padding: 14px 16px;
+            margin-top: 8px;
+            margin-bottom: 6px;
+            border-radius: 18px;
+            border: 1px solid #2f374e;
+            background: #0d1224;
+            color: white;
+            font-size: 1rem;
+            transition: 0.15s;
+            outline: none;
+        }
+        input:focus { border-color: #00e5ff; box-shadow: 0 0 0 3px #00e5ff30; }
+        input::placeholder { color: #6e7a9e; font-weight: 300; }
+        button {
+            padding: 12px 28px;
+            margin-top: 18px;
+            margin-right: 12px;
+            border: none;
+            border-radius: 40px;
+            background: #00e5ff;
+            color: #0a0e1c;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 8px 16px -8px #00e5ff80;
+            transition: all 0.15s;
+            border: 1px solid #00e5ff;
+        }
+        button:hover {
+            background: #7ef0ff;
+            transform: scale(1.02);
+            box-shadow: 0 12px 20px -8px #00e5ff;
+        }
+        button:active { transform: scale(0.98); }
+        .adminOnly { display: none; }
+        .note {
+            font-size: 0.9rem;
+            margin-top: 8px;
+            color: #97a9d6;
+            border-left: 3px solid #00e5ff;
+            padding-left: 12px;
+            background: #03050b40;
+            border-radius: 0 12px 12px 0;
+        }
+        .file-label {
+            background: #262e45;
+            padding: 8px 16px;
+            border-radius: 60px;
+            display: inline-block;
+            margin: 8px 0 4px;
+            font-size: 0.9rem;
+        }
+        hr { border: 0.5px solid #2d344b; margin: 1.8rem 0; }
+    </style>
 </head>
-
 <body>
 
-<h1>⚡ Ntudioka Admin Dashboard</h1>
+<h1>⚡ Ntudioka · admin core</h1>
 
-<div class="card adminOnly" style="display:none">
-<h3>Login</h3>
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
+<!-- LOGIN CARD (hidden after auth) -->
+<div class="card adminOnly" id="loginCard" style="display:block">   <!-- initially visible, controlled by JS later -->
+    <h3>🔐 Portal access</h3>
+    <input id="email" placeholder="admin email" type="email" autocomplete="off">
+    <input id="password" type="password" placeholder="password" autocomplete="off">
+    <button onclick="login()">→ Login</button>
+    <div class="note">Use Firebase Auth + role in Firestore (roles/{uid} with field 'role':'admin')</div>
 </div>
 
+<!-- PODCAST SECTION -->
 <div class="card adminOnly" style="display:none">
-<h3>🎙 Upload Podcast</h3>
-<input type="file" id="podFile" accept="audio/*">
-<input id="podTitle" placeholder="Podcast title">
-<button onclick="uploadPodcast()">Upload</button>
+    <h3>🎙 Upload podcast</h3>
+    <input type="file" id="podFile" accept="audio/*">
+    <input id="podTitle" placeholder="Episode title (required)">
+    <button onclick="uploadPodcast()">📤 Publish podcast</button>
+    <div class="note">MP3, M4A – stored in Firebase Storage / podcasts</div>
 </div>
 
+<!-- VIDEO POST SECTION -->
 <div class="card adminOnly" style="display:none">
-<h3>🎥 Upload Video Post</h3>
-<input type="file" id="videoFile" accept="video/*">
-<button onclick="uploadVideo()">Upload Video</button>
+    <h3>🎥 Upload video post</h3>
+    <input type="file" id="videoFile" accept="video/*">
+    <button onclick="uploadVideo()">📤 Upload & publish</button>
+    <div class="note">Video appears in 'posts' collection with admin flag</div>
 </div>
 
+<!-- LIVE STREAM SECTION -->
 <div class="card adminOnly" style="display:none">
-<h3>🔴 Publish Live Stream</h3>
-<input id="liveId" placeholder="YouTube Video ID">
-<button onclick="setLive()">Go Live</button>
+    <h3>🔴 Publish live stream</h3>
+    <input id="liveId" placeholder="YouTube video ID (e.g. dQw4w9WgXcQ)">
+    <button onclick="setLive()">▶️ Go live (set current)</button>
+    <div class="note">Overwrites live/current document</div>
 </div>
+
+<!-- small reminder -->
+<hr style="opacity:0.2">
+<div style="color:#5e6c96; text-align:center; font-size:0.85rem;">🔒 admin functions appear after verification</div>
 
 <script>
-const firebaseConfig={
- apiKey:"AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
- authDomain:"ntudioka-online-c29d8.firebaseapp.com",
- projectId:"ntudioka-online-c29d8",
- storageBucket:"ntudioka-online-c29d8.appspot.com",
- messagingSenderId:"1015621578149",
- appId:"1:1015621578149:web:c755b458e505fd32928c4c"
-};
+(function() {
+    // ------ Firebase init (your config) ------
+    const firebaseConfig = {
+        apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+        authDomain: "ntudioka-online-c29d8.firebaseapp.com",
+        projectId: "ntudioka-online-c29d8",
+        storageBucket: "ntudioka-online-c29d8.appspot.com",
+        messagingSenderId: "1015621578149",
+        appId: "1:1015621578149:web:c755b458e505fd32928c4c"
+    };
 
-firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
-const auth=firebase.auth();
-const storage=firebase.storage();
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    const storage = firebase.storage();
 
-let adminConfirmed=false;
+    // Global flag – strict admin rights
+    let adminConfirmed = false;
 
-//////////////// LOGIN //////////////////
+    // ----- DOM elements -----
+    const loginCard = document.getElementById('loginCard');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const podFile = document.getElementById('podFile');
+    const podTitle = document.getElementById('podTitle');
+    const videoFile = document.getElementById('videoFile');
+    const liveId = document.getElementById('liveId');
 
-function login(){
-  const e=email.value;
-  const p=password.value;
+    // Select all admin-only cards (including login card initially, but we manage separately)
+    const adminElements = document.querySelectorAll('.adminOnly');
 
-  auth.signInWithEmailAndPassword(e,p)
-  .then(()=>{
-    alert("Login successful. Checking admin role...");
-  })
-  .catch(err=>alert(err.message));
-}
-
-//////////////// AUTH STATE WATCHER //////////////////
-
-auth.onAuthStateChanged(async user=>{
-  if(!user) return;
-
-  console.log("Logged in UID:",user.uid);
-
-  try{
-    const roleDoc=await db.collection("roles").doc(user.uid).get();
-
-    if(!roleDoc.exists){
-      alert("Logged in, but NO ROLE document found.\nCreate one in Firestore.");
-      return;
+    // helper to hide login card / show real admin cards
+    function unlockDashboard() {
+        // hide the login card specifically (keep it hidden after success)
+        if (loginCard) loginCard.style.display = 'none';
+        // show every other .adminOnly card (podcast, video, live)
+        adminElements.forEach(el => {
+            if (el !== loginCard) {   // don't show login card again
+                el.style.display = 'block';
+            }
+        });
+        adminConfirmed = true;
+        console.log('✅ Dashboard fully unlocked');
     }
 
-    if(roleDoc.data().role!=="admin"){
-      alert("Logged in but NOT ADMIN");
-      return;
-    }
+    // ----- LOGIN function (called from button) -----
+    window.login = function() {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        if (!email || !password) {
+            alert('Please enter email and password');
+            return;
+        }
 
-    adminConfirmed=true;
-    alert("✅ ADMIN VERIFIED — Dashboard unlocked");
+        auth.signInWithEmailAndPassword(email, password)
+            .then(() => {
+                // onAuthStateChanged will handle role check and unlock
+                alert("Login successful. Verifying admin role...");
+                // clear password field for security
+                passwordInput.value = '';
+            })
+            .catch(err => {
+                alert('Login error: ' + err.message);
+            });
+    };
 
-    unlockDashboard();
+    // ----- AUTH STATE WATCHER (heart of security) -----
+    auth.onAuthStateChanged(async user => {
+        if (!user) {
+            // No user: make sure admin panels are hidden, login visible
+            adminConfirmed = false;
+            adminElements.forEach(el => {
+                if (el === loginCard) el.style.display = 'block';
+                else el.style.display = 'none';
+            });
+            return;
+        }
 
-  }catch(e){
-    alert("Role check error: "+e.message);
-  }
-});
+        console.log('✅ User UID:', user.uid);
 
-//////////////// UNLOCK DASHBOARD //////////////////
+        try {
+            // Fetch role document from Firestore (collection 'roles', doc = uid)
+            const roleRef = db.collection('roles').doc(user.uid);
+            const roleSnap = await roleRef.get();
 
-function unlockDashboard(){
-  document.querySelectorAll(".adminOnly")
-    .forEach(el=>el.style.display="block");
-}
+            if (!roleSnap.exists) {
+                alert("⚠️ You are logged in, but no role document exists in Firestore.\n" +
+                      "Create document 'roles/" + user.uid + "' with field 'role': 'admin'");
+                // keep dashboard locked, show login card? Actually user is logged in but not admin. 
+                // We hide admin stuff, show login card with a warning (but login card says "login" which is weird)
+                // Better to keep everything hidden except maybe a message.
+                adminConfirmed = false;
+                adminElements.forEach(el => el.style.display = 'none'); // all hidden
+                // optionally display a dedicated message (but keep simple)
+                alert('Admin role missing – access denied');
+                return;
+            }
 
-//////////////// PODCAST //////////////////
+            const roleData = roleSnap.data();
+            if (roleData.role !== 'admin') {
+                alert("❌ Your role is '" + roleData.role + "', not 'admin'. Access denied.");
+                adminConfirmed = false;
+                adminElements.forEach(el => el.style.display = 'none');
+                return;
+            }
 
-async function uploadPodcast(){
- if(!adminConfirmed) return alert("Admin login required");
+            // ---------- ADMIN VERIFIED ----------
+            adminConfirmed = true;
+            alert('✅ ADMIN confirmed – dashboard unlocked');
 
- const file=podFile.files[0];
- const title=podTitle.value;
- if(!file||!title)return alert("Complete fields");
+            // Unlock: hide login card, show all admin cards
+            unlockDashboard();
 
- const ref=storage.ref("podcasts/"+Date.now()+"_"+file.name);
- await ref.put(file);
- const url=await ref.getDownloadURL();
+        } catch (error) {
+            console.error('Role check error:', error);
+            alert('Error during role verification: ' + error.message);
+            // For safety, lock everything
+            adminConfirmed = false;
+            adminElements.forEach(el => el.style.display = 'none');
+        }
+    });
 
- await db.collection("podcasts").add({
-   title,
-   audioUrl:url,
-   created:Date.now()
- });
+    // ----- UPLOAD PODCAST -----
+    window.uploadPodcast = async function() {
+        if (!adminConfirmed) {
+            alert('Admin session required – please log in.');
+            return;
+        }
 
- alert("Podcast uploaded successfully");
-}
+        const file = podFile.files[0];
+        const title = podTitle.value.trim();
 
-//////////////// VIDEO //////////////////
+        if (!file) return alert('Select an audio file');
+        if (!title) return alert('Podcast title is required');
 
-async function uploadVideo(){
- if(!adminConfirmed) return alert("Admin login required");
+        try {
+            // Create unique filename
+            const fileName = `podcasts/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+            const storageRef = storage.ref(fileName);
 
- const file=videoFile.files[0];
- if(!file)return alert("Select file");
+            // Upload file
+            const uploadTask = await storageRef.put(file);
+            console.log('Upload completed');
 
- const ref=storage.ref("videos/"+Date.now()+"_"+file.name);
- await ref.put(file);
- const url=await ref.getDownloadURL();
+            // Get download URL
+            const downloadURL = await storageRef.getDownloadURL();
 
- await db.collection("posts").add({
-   video:url,
-   admin:true,
-   time:Date.now()
- });
+            // Save to Firestore
+            await db.collection('podcasts').add({
+                title: title,
+                audioUrl: downloadURL,
+                created: Date.now(),
+                // optional: add uid of admin who uploaded
+                uploadedBy: auth.currentUser ? auth.currentUser.uid : null
+            });
 
- alert("Video uploaded successfully");
-}
+            alert('✅ Podcast published successfully');
+            // Clear inputs
+            podFile.value = '';
+            podTitle.value = '';
+        } catch (err) {
+            alert('Upload failed: ' + err.message);
+            console.error(err);
+        }
+    };
 
-//////////////// LIVE //////////////////
+    // ----- UPLOAD VIDEO -----
+    window.uploadVideo = async function() {
+        if (!adminConfirmed) {
+            alert('Admin session required');
+            return;
+        }
 
-async function setLive(){
- if(!adminConfirmed) return alert("Admin login required");
+        const file = videoFile.files[0];
+        if (!file) return alert('Select a video file');
 
- await db.collection("live").doc("current").set({
-   videoId:liveId.value,
-   time:Date.now()
- });
+        try {
+            const fileName = `videos/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+            const storageRef = storage.ref(fileName);
 
- alert("Live stream published");
-}
+            await storageRef.put(file);
+            const downloadURL = await storageRef.getDownloadURL();
+
+            // Store in 'posts' collection with admin flag
+            await db.collection('posts').add({
+                video: downloadURL,
+                admin: true,
+                time: Date.now(),
+                type: 'video',
+                uploadedBy: auth.currentUser ? auth.currentUser.uid : null
+            });
+
+            alert('✅ Video uploaded and post created');
+            videoFile.value = ''; // clear input
+        } catch (err) {
+            alert('Video upload error: ' + err.message);
+        }
+    };
+
+    // ----- SET LIVE STREAM (YouTube ID) -----
+    window.setLive = async function() {
+        if (!adminConfirmed) {
+            alert('Admin session required');
+            return;
+        }
+
+        const videoId = liveId.value.trim();
+        if (!videoId) return alert('Enter a YouTube video ID');
+
+        // basic validation: typical video ID length (11 chars) but can be flexible
+        if (videoId.length < 5) {
+            alert('Video ID looks too short, please check');
+        }
+
+        try {
+            await db.collection('live').doc('current').set({
+                videoId: videoId,
+                time: Date.now(),
+                updatedBy: auth.currentUser ? auth.currentUser.uid : null
+            });
+            alert('🔴 Live stream ID updated to: ' + videoId);
+            liveId.value = ''; // optional clear
+        } catch (err) {
+            alert('Failed to set live: ' + err.message);
+        }
+    };
+
+    // initial UI consistency: if no user is logged in, the login card is visible, others hidden.
+    // onAuthStateChanged runs immediately and will set correct visibility.
+    // But we also set a small fallback: if user somehow stays logged in but flag not set, we keep hidden.
+    // The onAuthStateChanged already triggers. Also ensure that login card is visible at start if no user.
+    // We'll call a small sync function, but it's fine.
+    // However, on first load, before auth state resolves, all .adminOnly are hidden by css (style="display:none" embedded),
+    // but login card has inline style="display:block" so it overrides. Good.
+    // To avoid flicker, we rely on that.
+})();
 </script>
+
+<!-- additional note for roles -->
+<div style="background:#131725; border-radius:20px; padding:16px; margin-top:30px; border:1px dashed #3a435e; color:#a3b3e0">
+    <span style="color:#00e5ff;">⚙️ Firestore roles required:</span> collection <code style="background:#010313; padding:2px 8px; border-radius:40px;">roles</code> → document <code style="background:#010313; padding:2px 8px; border-radius:40px;">{UID}</code> → field <code style="background:#010313; padding:2px 8px; border-radius:40px;">role: "admin"</code>
+</div>
 </body>
 </html>
-
-
