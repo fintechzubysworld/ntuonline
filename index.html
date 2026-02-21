@@ -78,25 +78,12 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-//const db = firebase.firestore();
-//const auth = firebase.auth();
-//const storage = firebase.storage();
+const db = firebase.firestore();
+const auth = firebase.auth();
+const storage = firebase.storage();
 </script>
 <script> 
-auth.onAuthStateChanged(async user=>{
-  if(!user){
-    alert("Login required");
-    location.href="index.html";
-    return;
-  }
 
-  const doc = await db.collection("roles").doc(user.uid).get();
-
-  if(!doc.exists || doc.data().role !== "admin"){
-    alert("Access denied. Not an admin.");
-    location.href="index.html";
-  }
-});
 </script>
 <script>  
 /////////////////////////////
@@ -130,15 +117,20 @@ function logout(){
 /////////////////////////////
 
 function adminLogin(){
- const user=prompt("Admin username");
- const pass=prompt("Admin password");
+auth.onAuthStateChanged(async user=>{
+  if(!user){
+    alert("Login required");
+    location.href="index.html";
+    return;
+  }
 
- if(user==="admin" && pass==="admin123"){
-   location.href="ntuonline.html";
- }else{
-   alert("Wrong admin login");
- }
-}
+  const doc = await db.collection("roles").doc(user.uid).get();
+
+  if(!doc.exists || doc.data().role !== "admin"){
+    alert("Access denied. Not an admin.");
+    location.href="index.html";
+  }
+});
 
 /////////////////////////////
 // ✅ PODCAST PLAYER (FIREBASE CONNECTED)
@@ -220,6 +212,7 @@ db.collection("posts").orderBy("time","desc")
 </script>
 </body>
 </html>
+
 
 
 
