@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Ntudioka Online</title>
+<title>Ntudioka Community</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -19,21 +19,23 @@ color:white;
 }
 
 header{
-padding:20px;
 background:#0ea5e9;
+padding:15px;
 display:flex;
 justify-content:space-between;
 align-items:center;
 }
 
 button{
-padding:8px 15px;
+padding:6px 12px;
 border:none;
 border-radius:20px;
-cursor:pointer;
 background:#f97316;
 color:white;
+cursor:pointer;
 }
+
+button:hover{opacity:0.9;}
 
 .section{
 padding:20px;
@@ -50,16 +52,22 @@ input,textarea{
 width:100%;
 padding:8px;
 margin-top:6px;
-border-radius:10px;
+border-radius:8px;
 border:none;
 }
 
-.live{
-border:2px solid red;
+.chatBox{
+height:250px;
+overflow-y:auto;
+background:#111827;
+padding:10px;
+border-radius:10px;
+margin-bottom:10px;
 }
 
-.commentBox{
-margin-top:10px;
+.online{
+color:#22c55e;
+font-size:12px;
 }
 </style>
 </head>
@@ -67,29 +75,61 @@ margin-top:10px;
 <body>
 
 <header>
-<h2><i class="fa-solid fa-globe"></i> Ntudioka Online</h2>
-<div>
+<h2><i class="fa-solid fa-globe"></i> Ntudioka Community</h2>
+
+<div id="navArea">
 <button onclick="showLogin()">Login</button>
 <button onclick="showRegister()">Register</button>
-<button onclick="goAdmin()">Admin</button>
 </div>
+
 </header>
 
 <div class="section">
 
-<h2>🔴 Live Stream</h2>
-<div id="liveContainer"></div>
+<!-- LIVE STREAM -->
+<div class="card">
+<h3>🔴 Live Stream</h3>
+<div id="liveArea">Loading...</div>
+</div>
 
-<h2>📅 Events</h2>
-<div id="eventContainer"></div>
+<!-- EVENTS -->
+<div class="card">
+<h3>📅 Events</h3>
+<div id="eventArea"></div>
+</div>
 
-<h2>💬 Community Feed</h2>
-<div id="feedContainer"></div>
+<!-- FEED -->
+<div class="card">
+<h3>📰 Community Feed</h3>
+
+<textarea id="feedInput" placeholder="Share something..."></textarea>
+<button onclick="postFeed()">Post</button>
+
+<div id="feedArea"></div>
+</div>
+
+<!-- GLOBAL CHAT -->
+<div class="card">
+<h3>💬 Community Chat</h3>
+
+<div class="chatBox" id="chatMessages"></div>
+<input id="chatInput" placeholder="Type message">
+<button onclick="sendChat()">Send</button>
+</div>
+
+<!-- PRIVATE CHAT -->
+<div class="card">
+<h3>📩 Private Messages</h3>
+<input id="privateEmail" placeholder="Enter user email">
+<div class="chatBox" id="privateMessages"></div>
+<input id="privateInput" placeholder="Type private message">
+<button onclick="sendPrivate()">Send</button>
+</div>
 
 </div>
 
-<!-- LOGIN MODAL -->
-<div id="authArea" style="display:none;padding:20px;">
+<!-- AUTH MODAL -->
+<div id="authBox" style="display:none;padding:20px;">
 <h3 id="authTitle"></h3>
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Password">
@@ -98,28 +138,32 @@ margin-top:10px;
 
 <script>
 const firebaseConfig={
-apiKey:"AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
-authDomain:"ntudioka-online-c29d8.firebaseapp.com",
-projectId:"ntudioka-online-c29d8"
+apiKey:"YOUR_API_KEY",
+authDomain:"YOUR_AUTH_DOMAIN",
+projectId:"YOUR_PROJECT_ID"
 };
 firebase.initializeApp(firebaseConfig);
 
 const auth=firebase.auth();
 const db=firebase.firestore();
 
-let mode="login";
+let currentUser=null;
+
+//////////////// AUTH //////////////////
 
 function showLogin(){
-authArea.style.display="block";
+authBox.style.display="block";
 authTitle.innerText="Login";
 mode="login";
 }
 
 function showRegister(){
-authArea.style.display="block";
+authBox.style.display="block";
 authTitle.innerText="Register";
 mode="register";
 }
+
+let mode="login";
 
 function submitAuth(){
 const e=email.value;
@@ -128,75 +172,89 @@ const p=password.value;
 if(mode==="register"){
 auth.createUserWithEmailAndPassword(e,p)
 .then(()=>{
-alert("Registration successful!");
+alert("Registration successful");
 email.value="";
 password.value="";
-authArea.style.display="none";
+authBox.style.display="none";
 });
 }else{
 auth.signInWithEmailAndPassword(e,p)
 .then(()=>{
-alert("Login successful!");
+alert("Login successful");
 email.value="";
 password.value="";
-authArea.style.display="none";
+authBox.style.display="none";
 });
 }
 }
 
-function goAdmin(){
-if(auth.currentUser && auth.currentUser.email==="fintech.zubysworld@gmail.com"){
-window.location="ntuonline.html";
+auth.onAuthStateChanged(user=>{
+currentUser=user;
+
+if(user){
+
+navArea.innerHTML=`
+<span class="online">● Online</span>
+<button onclick="logout()">Logout</button>
+${user.email==="fintech.zubysworld@gmail.com" ? 
+`<button onclick="window.location='ntuonline.html'">Admin</button>`:""}
+`;
+
+db.collection("users").doc(user.uid).set({
+email:user.email,
+online:true
+},{merge:true});
+
 }else{
-alert("Admin access denied.");
+navArea.innerHTML=`
+<button onclick="showLogin()">Login</button>
+<button onclick="showRegister()">Register</button>
+`;
 }
+});
+
+function logout(){
+auth.signOut();
 }
 
 //////////////// LIVE STREAM //////////////////
 
 db.collection("live").doc("current")
 .onSnapshot(doc=>{
-liveContainer.innerHTML="";
 if(doc.exists){
 const d=doc.data();
-liveContainer.innerHTML=`
-<div class="card live">
-<h3>${d.title}</h3>
+liveArea.innerHTML=`
+<h4>${d.title}</h4>
 <iframe width="100%" height="315"
 src="https://www.youtube.com/embed/${d.videoId}"
 allowfullscreen></iframe>
-</div>`;
+`;
 }else{
-liveContainer.innerHTML="<p>Currently offline</p>";
+liveArea.innerHTML="Currently Offline";
 }
 });
 
 //////////////// EVENTS //////////////////
 
 db.collection("events").orderBy("created","desc")
-.onSnapshot(s=>{
-eventContainer.innerHTML="";
-s.forEach(doc=>{
+.onSnapshot(snapshot=>{
+eventArea.innerHTML="";
+snapshot.forEach(doc=>{
 const e=doc.data();
-
-eventContainer.innerHTML+=`
+eventArea.innerHTML+=`
 <div class="card">
-<h3>${e.title}</h3>
+<h4>${e.title}</h4>
 <p>${e.description}</p>
-<p><b>Date:</b> ${e.date}</p>
-
 ${e.image?`<img src="${e.image}" width="100%">`:""}
-${e.video?`<iframe width="100%" height="315" src="${e.video}" allowfullscreen></iframe>`:""}
-${e.audio?`<audio controls style="width:100%;"><source src="${e.audio}" type="audio/mpeg"></audio>`:""}
+${e.video?`<iframe width="100%" height="315" src="${e.video}"></iframe>`:""}
+${e.audio?`<audio controls style="width:100%"><source src="${e.audio}"></audio>`:""}
 
-<div class="commentBox">
-<textarea id="c${doc.id}" placeholder="Write comment"></textarea>
-<button onclick="comment('${doc.id}')">Comment</button>
-</div>
-
+<button onclick="rsvp('${doc.id}')">RSVP</button>
 <div id="comments${doc.id}"></div>
-
-</div>`;
+<textarea id="comment${doc.id}" placeholder="Comment"></textarea>
+<button onclick="commentEvent('${doc.id}')">Comment</button>
+</div>
+`;
 
 db.collection("events").doc(doc.id).collection("comments")
 .onSnapshot(cs=>{
@@ -209,36 +267,98 @@ document.getElementById("comments"+doc.id).innerHTML=html;
 });
 });
 
-function comment(id){
-if(!auth.currentUser) return alert("Login required");
-const text=document.getElementById("c"+id).value;
+function rsvp(id){
+if(!currentUser) return alert("Login required");
+db.collection("events").doc(id).collection("rsvp")
+.doc(currentUser.uid).set({
+user:currentUser.email
+});
+alert("RSVP confirmed");
+}
+
+function commentEvent(id){
+if(!currentUser) return alert("Login required");
+const text=document.getElementById("comment"+id).value;
 db.collection("events").doc(id).collection("comments")
-.add({text:text,user:auth.currentUser.email});
-document.getElementById("c"+id).value="";
+.add({text:text,user:currentUser.email});
+document.getElementById("comment"+id).value="";
 }
 
 //////////////// FEED //////////////////
 
+function postFeed(){
+if(!currentUser) return alert("Login required");
+
+db.collection("feed").add({
+text:feedInput.value,
+user:currentUser.email,
+created:Date.now(),
+likes:0
+});
+feedInput.value="";
+}
+
 db.collection("feed").orderBy("created","desc")
-.onSnapshot(s=>{
-feedContainer.innerHTML="";
-s.forEach(doc=>{
+.onSnapshot(snapshot=>{
+feedArea.innerHTML="";
+snapshot.forEach(doc=>{
 const f=doc.data();
-feedContainer.innerHTML+=`
+feedArea.innerHTML+=`
 <div class="card">
 <p>${f.text}</p>
-<button onclick="react('${doc.id}')">👍 Like</button>
-<span id="like${doc.id}">${f.likes||0}</span>
-</div>`;
+<small>By ${f.user}</small><br>
+<button onclick="likePost('${doc.id}')">👍</button>
+<span>${f.likes||0}</span>
+</div>
+`;
 });
 });
 
-function react(id){
-if(!auth.currentUser) return alert("Login required");
-db.collection("feed").doc(id).update({
-likes:firebase.firestore.FieldValue.increment(1)
-});
+function likePost(id){
+if(!currentUser) return alert("Login required");
+db.collection("feed").doc(id)
+.update({likes:firebase.firestore.FieldValue.increment(1)});
 }
+
+//////////////// GLOBAL CHAT //////////////////
+
+function sendChat(){
+if(!currentUser) return alert("Login required");
+
+db.collection("chat").add({
+text:chatInput.value,
+user:currentUser.email,
+created:Date.now()
+});
+chatInput.value="";
+}
+
+db.collection("chat").orderBy("created")
+.onSnapshot(snapshot=>{
+chatMessages.innerHTML="";
+snapshot.forEach(doc=>{
+const m=doc.data();
+chatMessages.innerHTML+=`<p><b>${m.user}:</b> ${m.text}</p>`;
+});
+});
+
+//////////////// PRIVATE CHAT //////////////////
+
+function sendPrivate(){
+if(!currentUser) return alert("Login required");
+
+const other=privateEmail.value;
+const room=[currentUser.email,other].sort().join("_");
+
+db.collection("privateChats").doc(room).collection("messages")
+.add({
+text:privateInput.value,
+user:currentUser.email,
+created:Date.now()
+});
+privateInput.value="";
+}
+
 </script>
 
 </body>
