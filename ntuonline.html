@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Ntudioka Admin</title>
+<title>Ntudioka Admin CMS</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -11,45 +11,96 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-body{background:#111;color:white;font-family:Arial;padding:30px;}
-.card{background:#1e1e1e;padding:20px;border-radius:15px;margin-bottom:20px;}
-input,textarea{width:100%;padding:8px;margin-top:5px;border-radius:8px;border:none;}
-button{margin-top:10px;padding:8px 15px;border:none;border-radius:20px;background:#ff9800;color:white;cursor:pointer;}
+body{background:#0f172a;color:white;font-family:Arial;padding:30px;}
+h1{color:#ff9800;}
+.card{
+ background:#1e293b;
+ padding:20px;
+ border-radius:15px;
+ margin-bottom:25px;
+}
+input,textarea{
+ width:100%;
+ padding:8px;
+ margin-top:6px;
+ border-radius:8px;
+ border:none;
+}
+button{
+ margin-top:10px;
+ padding:8px 15px;
+ border:none;
+ border-radius:20px;
+ background:#ff9800;
+ color:white;
+ cursor:pointer;
+}
 button:hover{background:#ff5722;}
+.item{
+ background:#334155;
+ padding:10px;
+ margin-top:10px;
+ border-radius:10px;
+}
+.actions button{
+ margin-right:5px;
+ background:#2563eb;
+}
+.deleteBtn{background:#dc2626;}
+.liveStatus{
+ margin-top:10px;
+ font-weight:bold;
+}
+.liveActive{color:#22c55e;}
+.liveOff{color:#ef4444;}
 </style>
 </head>
 
 <body>
 
-<h1><i class="fa-solid fa-shield"></i> Admin Dashboard</h1>
+<h1><i class="fa-solid fa-shield"></i> Ntudioka Admin CMS</h1>
 
+<!-- LIVE STREAM SECTION -->
 <div class="card">
-<h3>🎙 Add Podcast (External Link)</h3>
-<input id="podTitle" placeholder="Title">
-<input id="podUrl" placeholder="Audio URL">
-<button onclick="uploadPodcast()">Publish</button>
-</div>
+<h2>🔴 Live Stream Control</h2>
 
-<div class="card">
-<h3>🎥 Add Video (External Link)</h3>
-<input id="videoTitle" placeholder="Title">
-<input id="videoUrl" placeholder="Video URL">
-<button onclick="uploadVideo()">Post</button>
-</div>
-
-<div class="card">
-<h3>🖼 Add Photo</h3>
-<input id="photoTitle" placeholder="Title">
-<input id="photoUrl" placeholder="Image URL">
-<button onclick="uploadPhoto()">Post</button>
-</div>
-
-<div class="card">
-<h3>🔴 Live Stream</h3>
 <input id="liveId" placeholder="YouTube Video ID">
-<input id="liveDuration" type="number" placeholder="Auto end after (minutes)">
-<button onclick="setLive()">Go Live</button>
-<button onclick="endLive()">End Live Now</button>
+<input id="liveTitle" placeholder="Stream Title">
+<textarea id="liveDesc" placeholder="Stream Description"></textarea>
+<input type="number" id="liveDuration" placeholder="Auto end after (minutes)">
+
+<button onclick="startLive()">Go Live</button>
+<button onclick="endLive()" style="background:#dc2626;">End Live Now</button>
+
+<div id="liveStatus" class="liveStatus liveOff">Status: Offline</div>
+</div>
+
+<!-- PODCAST SECTION -->
+<div class="card">
+<h2>🎙 Manage Podcasts</h2>
+
+<input id="podTitle" placeholder="Podcast Title">
+<input id="podUrl" placeholder="Audio URL">
+<button onclick="savePodcast()">Save Podcast</button>
+
+<div id="podcastList"></div>
+</div>
+
+<!-- EVENTS SECTION -->
+<div class="card">
+<h2>📅 Create Event</h2>
+
+<input id="eventTitle" placeholder="Event Title">
+<textarea id="eventDesc" placeholder="Event Description"></textarea>
+<input type="date" id="eventDate">
+
+<input id="eventVideo" placeholder="Video URL (optional)">
+<input id="eventAudio" placeholder="Audio URL (optional)">
+<input id="eventImage" placeholder="Image URL (optional)">
+
+<button onclick="saveEvent()">Save Event</button>
+
+<div id="eventList"></div>
 </div>
 
 <script>
@@ -60,55 +111,165 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
-const auth=firebase.auth();
 
-function uploadPodcast(){
- db.collection("podcasts").add({
-   title:podTitle.value,
-   audioUrl:podUrl.value,
-   created:firebase.firestore.FieldValue.serverTimestamp()
- });
- podTitle.value=""; podUrl.value="";
- alert("Podcast linked");
-}
+let editingPodcast=null;
+let editingEvent=null;
 
-function uploadVideo(){
- db.collection("posts").add({
-   title:videoTitle.value,
-   video:videoUrl.value,
-   time:Date.now()
- });
- videoTitle.value=""; videoUrl.value="";
- alert("Video linked");
-}
+//////////////// LIVE STREAM //////////////////
 
-function uploadPhoto(){
- db.collection("posts").add({
-   title:photoTitle.value,
-   image:photoUrl.value,
-   time:Date.now()
- });
- photoTitle.value=""; photoUrl.value="";
- alert("Photo linked");
-}
-
-function setLive(){
- db.collection("live").doc("current").set({
-   videoId:liveId.value,
-   startedAt:Date.now()
- });
+function startLive(){
+ const videoId=liveId.value;
+ const title=liveTitle.value;
+ const desc=liveDesc.value;
  const duration=parseInt(liveDuration.value);
+
+ if(!videoId) return alert("Video ID required");
+
+ db.collection("live").doc("current").set({
+   videoId:videoId,
+   title:title,
+   description:desc,
+   startedAt:Date.now(),
+   status:"live"
+ });
+
  if(duration){
    setTimeout(()=>{
      db.collection("live").doc("current").delete();
    },duration*60000);
  }
+
  alert("Live started");
 }
 
 function endLive(){
  db.collection("live").doc("current").delete();
  alert("Live ended");
+}
+
+db.collection("live").doc("current")
+.onSnapshot(doc=>{
+ const statusDiv=document.getElementById("liveStatus");
+ if(doc.exists){
+   statusDiv.innerHTML="Status: LIVE 🔴";
+   statusDiv.className="liveStatus liveActive";
+ }else{
+   statusDiv.innerHTML="Status: Offline";
+   statusDiv.className="liveStatus liveOff";
+ }
+});
+
+//////////////// PODCAST CRUD //////////////////
+
+function savePodcast(){
+ const title=podTitle.value;
+ const url=podUrl.value;
+
+ if(editingPodcast){
+   db.collection("podcasts").doc(editingPodcast).update({title,url});
+   editingPodcast=null;
+ }else{
+   db.collection("podcasts").add({title:title,audioUrl:url,created:Date.now()});
+ }
+
+ podTitle.value="";
+ podUrl.value="";
+}
+
+db.collection("podcasts").orderBy("created","desc")
+.onSnapshot(s=>{
+ podcastList.innerHTML="";
+ s.forEach(doc=>{
+   const p=doc.data();
+   podcastList.innerHTML+=`
+   <div class="item">
+     <b>${p.title}</b>
+     <div class="actions">
+       <button onclick="editPodcast('${doc.id}','${p.title}','${p.audioUrl}')">
+         <i class="fa-solid fa-pen"></i>
+       </button>
+       <button class="deleteBtn" onclick="deletePodcast('${doc.id}')">
+         <i class="fa-solid fa-trash"></i>
+       </button>
+     </div>
+   </div>`;
+ });
+});
+
+function editPodcast(id,title,url){
+ editingPodcast=id;
+ podTitle.value=title;
+ podUrl.value=url;
+}
+
+function deletePodcast(id){
+ if(confirm("Delete this podcast?")){
+   db.collection("podcasts").doc(id).delete();
+ }
+}
+
+//////////////// EVENTS CRUD //////////////////
+
+function saveEvent(){
+ const data={
+   title:eventTitle.value,
+   description:eventDesc.value,
+   date:eventDate.value,
+   video:eventVideo.value||null,
+   audio:eventAudio.value||null,
+   image:eventImage.value||null,
+   created:Date.now()
+ };
+
+ if(editingEvent){
+   db.collection("events").doc(editingEvent).update(data);
+   editingEvent=null;
+ }else{
+   db.collection("events").add(data);
+ }
+
+ eventTitle.value="";
+ eventDesc.value="";
+ eventDate.value="";
+ eventVideo.value="";
+ eventAudio.value="";
+ eventImage.value="";
+}
+
+db.collection("events").orderBy("created","desc")
+.onSnapshot(s=>{
+ eventList.innerHTML="";
+ s.forEach(doc=>{
+   const e=doc.data();
+   eventList.innerHTML+=`
+   <div class="item">
+     <b>${e.title}</b> (${e.date})
+     <div class="actions">
+       <button onclick="editEvent('${doc.id}',\`${e.title}\`,\`${e.description}\`,\`${e.date}\`,\`${e.video||''}\`,\`${e.audio||''}\`,\`${e.image||''}\`)">
+         <i class="fa-solid fa-pen"></i>
+       </button>
+       <button class="deleteBtn" onclick="deleteEvent('${doc.id}')">
+         <i class="fa-solid fa-trash"></i>
+       </button>
+     </div>
+   </div>`;
+ });
+});
+
+function editEvent(id,title,desc,date,video,audio,image){
+ editingEvent=id;
+ eventTitle.value=title;
+ eventDesc.value=desc;
+ eventDate.value=date;
+ eventVideo.value=video;
+ eventAudio.value=audio;
+ eventImage.value=image;
+}
+
+function deleteEvent(id){
+ if(confirm("Delete this event?")){
+   db.collection("events").doc(id).delete();
+ }
 }
 </script>
 
