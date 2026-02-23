@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Ntudioka Admin CMS</title>
+<title>Admin Panel</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -11,265 +11,150 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-body{background:#0f172a;color:white;font-family:Arial;padding:30px;}
-h1{color:#ff9800;}
+body{
+background:#0f172a;
+color:white;
+font-family:Arial;
+padding:20px;
+}
 .card{
- background:#1e293b;
- padding:20px;
- border-radius:15px;
- margin-bottom:25px;
+background:#1e293b;
+padding:15px;
+border-radius:15px;
+margin-bottom:20px;
 }
 input,textarea{
- width:100%;
- padding:8px;
- margin-top:6px;
- border-radius:8px;
- border:none;
+width:100%;
+padding:8px;
+margin-top:6px;
+border-radius:10px;
+border:none;
 }
 button{
- margin-top:10px;
- padding:8px 15px;
- border:none;
- border-radius:20px;
- background:#ff9800;
- color:white;
- cursor:pointer;
+margin-top:8px;
+padding:8px 15px;
+border:none;
+border-radius:20px;
+background:#f97316;
+color:white;
+cursor:pointer;
 }
-button:hover{background:#ff5722;}
-.item{
- background:#334155;
- padding:10px;
- margin-top:10px;
- border-radius:10px;
-}
-.actions button{
- margin-right:5px;
- background:#2563eb;
-}
-.deleteBtn{background:#dc2626;}
-.liveStatus{
- margin-top:10px;
- font-weight:bold;
-}
-.liveActive{color:#22c55e;}
-.liveOff{color:#ef4444;}
 </style>
 </head>
 
 <body>
 
-<h1><i class="fa-solid fa-shield"></i> Ntudioka Admin CMS</h1>
+<h1>🛡 Admin Dashboard</h1>
 
-<!-- LIVE STREAM SECTION -->
 <div class="card">
-<h2>🔴 Live Stream Control</h2>
-
+<h2>🔴 Live Stream</h2>
 <input id="liveId" placeholder="YouTube Video ID">
-<input id="liveTitle" placeholder="Stream Title">
-<textarea id="liveDesc" placeholder="Stream Description"></textarea>
-<input type="number" id="liveDuration" placeholder="Auto end after (minutes)">
-
+<input id="liveTitle" placeholder="Title">
+<input id="liveDuration" type="number" placeholder="Auto end (minutes)">
 <button onclick="startLive()">Go Live</button>
-<button onclick="endLive()" style="background:#dc2626;">End Live Now</button>
-
-<div id="liveStatus" class="liveStatus liveOff">Status: Offline</div>
+<button onclick="endLive()">End Now</button>
 </div>
 
-<!-- PODCAST SECTION -->
-<div class="card">
-<h2>🎙 Manage Podcasts</h2>
-
-<input id="podTitle" placeholder="Podcast Title">
-<input id="podUrl" placeholder="Audio URL">
-<button onclick="savePodcast()">Save Podcast</button>
-
-<div id="podcastList"></div>
-</div>
-
-<!-- EVENTS SECTION -->
 <div class="card">
 <h2>📅 Create Event</h2>
-
-<input id="eventTitle" placeholder="Event Title">
-<textarea id="eventDesc" placeholder="Event Description"></textarea>
-<input type="date" id="eventDate">
-
-<input id="eventVideo" placeholder="Video URL (optional)">
-<input id="eventAudio" placeholder="Audio URL (optional)">
-<input id="eventImage" placeholder="Image URL (optional)">
-
-<button onclick="saveEvent()">Save Event</button>
-
+<input id="title" placeholder="Title">
+<textarea id="desc" placeholder="Description"></textarea>
+<input type="date" id="date">
+<input id="image" placeholder="Image URL">
+<input id="video" placeholder="Video Embed URL">
+<input id="audio" placeholder="Audio URL">
+<button onclick="createEvent()">Create Event</button>
 <div id="eventList"></div>
+</div>
+
+<div class="card">
+<h2>📰 Post to Feed</h2>
+<textarea id="feedText"></textarea>
+<button onclick="postFeed()">Post</button>
 </div>
 
 <script>
 const firebaseConfig={
- apiKey:"AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
- authDomain:"ntudioka-online-c29d8.firebaseapp.com",
- projectId:"ntudioka-online-c29d8"
+apiKey:"AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+authDomain:"ntudioka-online-c29d8.firebaseapp.com",
+projectId:"ntudioka-online-c29d8"
 };
 firebase.initializeApp(firebaseConfig);
+
+const auth=firebase.auth();
 const db=firebase.firestore();
 
-let editingPodcast=null;
-let editingEvent=null;
-
-//////////////// LIVE STREAM //////////////////
+auth.onAuthStateChanged(user=>{
+if(!user || user.email!=="fintech.zubysworld@gmail.com"){
+alert("Unauthorized");
+window.location="index.html";
+}
+});
 
 function startLive(){
- const videoId=liveId.value;
- const title=liveTitle.value;
- const desc=liveDesc.value;
- const duration=parseInt(liveDuration.value);
+const id=liveId.value;
+const title=liveTitle.value;
+const duration=parseInt(liveDuration.value);
 
- if(!videoId) return alert("Video ID required");
+db.collection("live").doc("current").set({
+videoId:id,
+title:title,
+started:Date.now()
+});
 
- db.collection("live").doc("current").set({
-   videoId:videoId,
-   title:title,
-   description:desc,
-   startedAt:Date.now(),
-   status:"live"
- });
-
- if(duration){
-   setTimeout(()=>{
-     db.collection("live").doc("current").delete();
-   },duration*60000);
- }
-
- alert("Live started");
+if(duration){
+setTimeout(()=>{
+db.collection("live").doc("current").delete();
+},duration*60000);
+}
 }
 
 function endLive(){
- db.collection("live").doc("current").delete();
- alert("Live ended");
+db.collection("live").doc("current").delete();
 }
 
-db.collection("live").doc("current")
-.onSnapshot(doc=>{
- const statusDiv=document.getElementById("liveStatus");
- if(doc.exists){
-   statusDiv.innerHTML="Status: LIVE 🔴";
-   statusDiv.className="liveStatus liveActive";
- }else{
-   statusDiv.innerHTML="Status: Offline";
-   statusDiv.className="liveStatus liveOff";
- }
+function createEvent(){
+db.collection("events").add({
+title:title.value,
+description:desc.value,
+date:date.value,
+image:image.value||null,
+video:video.value||null,
+audio:audio.value||null,
+created:Date.now()
 });
 
-//////////////// PODCAST CRUD //////////////////
-
-function savePodcast(){
- const title=podTitle.value;
- const url=podUrl.value;
-
- if(editingPodcast){
-   db.collection("podcasts").doc(editingPodcast).update({title,url});
-   editingPodcast=null;
- }else{
-   db.collection("podcasts").add({title:title,audioUrl:url,created:Date.now()});
- }
-
- podTitle.value="";
- podUrl.value="";
+title.value="";
+desc.value="";
+date.value="";
+image.value="";
+video.value="";
+audio.value="";
 }
 
-db.collection("podcasts").add({title:title,audioUrl:url,created:Date.now()})
-.onSnapshot(s=>{
- podcastList.innerHTML="";
- s.forEach(doc=>{
-   const p=doc.data();
-   podcastList.innerHTML+=`
-   <div class="item">
-     <b>${p.title}</b>
-     <div class="actions">
-       <button onclick="editPodcast('${doc.id}','${p.title}','${p.audioUrl}')">
-         <i class="fa-solid fa-pen"></i>
-       </button>
-       <button class="deleteBtn" onclick="deletePodcast('${doc.id}')">
-         <i class="fa-solid fa-trash"></i>
-       </button>
-     </div>
-   </div>`;
- });
+function postFeed(){
+db.collection("feed").add({
+text:feedText.value,
+created:Date.now(),
+likes:0
 });
-
-function editPodcast(id,title,url){
- editingPodcast=id;
- podTitle.value=title;
- podUrl.value=url;
-}
-
-function deletePodcast(id){
- if(confirm("Delete this podcast?")){
-   db.collection("podcasts").doc(id).delete();
- }
-}
-
-//////////////// EVENTS CRUD //////////////////
-
-function saveEvent(){
- const data={
-   title:eventTitle.value,
-   description:eventDesc.value,
-   date:eventDate.value,
-   video:eventVideo.value||null,
-   audio:eventAudio.value||null,
-   image:eventImage.value||null,
-   created:Date.now()
- };
-
- if(editingEvent){
-   db.collection("events").doc(editingEvent).update(data);
-   editingEvent=null;
- }else{
-   db.collection("events").add(data);
- }
-
- eventTitle.value="";
- eventDesc.value="";
- eventDate.value="";
- eventVideo.value="";
- eventAudio.value="";
- eventImage.value="";
+feedText.value="";
 }
 
 db.collection("events").orderBy("created","desc")
 .onSnapshot(s=>{
- eventList.innerHTML="";
- s.forEach(doc=>{
-   const e=doc.data();
-   eventList.innerHTML+=`
-   <div class="item">
-     <b>${e.title}</b> (${e.date})
-     <div class="actions">
-       <button onclick="editEvent('${doc.id}',\`${e.title}\`,\`${e.description}\`,\`${e.date}\`,\`${e.video||''}\`,\`${e.audio||''}\`,\`${e.image||''}\`)">
-         <i class="fa-solid fa-pen"></i>
-       </button>
-       <button class="deleteBtn" onclick="deleteEvent('${doc.id}')">
-         <i class="fa-solid fa-trash"></i>
-       </button>
-     </div>
-   </div>`;
- });
+eventList.innerHTML="";
+s.forEach(doc=>{
+eventList.innerHTML+=`
+<div>
+${doc.data().title}
+<button onclick="deleteEvent('${doc.id}')">Delete</button>
+</div>`;
+});
 });
 
-function editEvent(id,title,desc,date,video,audio,image){
- editingEvent=id;
- eventTitle.value=title;
- eventDesc.value=desc;
- eventDate.value=date;
- eventVideo.value=video;
- eventAudio.value=audio;
- eventImage.value=image;
-}
-
 function deleteEvent(id){
- if(confirm("Delete this event?")){
-   db.collection("events").doc(id).delete();
- }
+db.collection("events").doc(id).delete();
 }
 </script>
 
