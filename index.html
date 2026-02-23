@@ -54,9 +54,7 @@ button{
   cursor:pointer;
   transition:.3s;
 }
-button:hover{
-  transform:scale(1.05);
-}
+button:hover{ transform:scale(1.05); }
 input,textarea{
   width:100%;
   padding:8px;
@@ -64,8 +62,10 @@ input,textarea{
   border-radius:10px;
   border:none;
 }
-.commentBox{
+audio,video,iframe{
+  width:100%;
   margin-top:10px;
+  border-radius:10px;
 }
 .reactions i{
   margin-right:10px;
@@ -95,10 +95,10 @@ input,textarea{
 </div>
 </header>
 
-<!-- PODCAST LIST -->
+<!-- PODCASTS -->
 <section>
 <h2><i class="fa-solid fa-podcast"></i> Podcasts</h2>
-<ul id="podcastList"></ul>
+<div id="podcastList"></div>
 </section>
 
 <!-- LIVE STREAM -->
@@ -168,7 +168,7 @@ function checkAdmin(){
  });
 }
 
-//////////////// PODCASTS (EXTERNAL LINKS) //////////////////
+//////////////// EMBED PODCASTS //////////////////
 
 db.collection("podcasts").orderBy("created","desc")
 .onSnapshot(s=>{
@@ -176,11 +176,10 @@ db.collection("podcasts").orderBy("created","desc")
  s.forEach(doc=>{
    const p=doc.data();
    podcastList.innerHTML+=`
-   <li>
-   <a href="${p.audioUrl}" target="_blank" style="color:white;">
-   ▶ ${p.title}
-   </a>
-   </li>`;
+   <div class="post">
+     <b>${p.title}</b>
+     <audio controls src="${p.audioUrl}"></audio>
+   </div>`;
  });
 });
 
@@ -191,7 +190,7 @@ db.collection("live").doc("current")
  if(!d.exists){ liveBox.innerHTML="No live stream"; return;}
  const data=d.data();
  liveBox.innerHTML=`
- <iframe width="100%" height="350"
+ <iframe height="350"
  src="https://www.youtube.com/embed/${data.videoId}"
  allowfullscreen></iframe>`;
 });
@@ -215,15 +214,20 @@ db.collection("liveChat").orderBy("time","asc")
  });
 });
 
-//////////////// FEED //////////////////
+//////////////// FEED WITH EMBED LOGIC //////////////////
+
+function extractYouTubeID(url){
+ const reg=/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/;
+ const match=url.match(reg);
+ return match?match[1]:null;
+}
 
 function postMessage(){
  if(!requireAuth()) return;
  db.collection("posts").add({
    text:postInput.value,
    user:auth.currentUser.email,
-   time:Date.now(),
-   likes:0
+   time:Date.now()
  });
  postInput.value="";
 }
@@ -233,12 +237,32 @@ db.collection("posts").orderBy("time","desc")
  feed.innerHTML="";
  s.forEach(doc=>{
    const p=doc.data();
+   let media="";
+
+   if(p.video){
+     const ytID=extractYouTubeID(p.video);
+     if(ytID){
+       media=`<iframe height="315"
+       src="https://www.youtube.com/embed/${ytID}"
+       allowfullscreen></iframe>`;
+     }else{
+       media=`<video controls src="${p.video}"></video>`;
+     }
+   }
+
+   if(p.audio){
+     media+=`<audio controls src="${p.audio}"></audio>`;
+   }
+
+   if(p.image){
+     media+=`<img src="${p.image}">`;
+   }
+
    feed.innerHTML+=`
    <div class="post">
-   <b>${p.user}</b>
+   <b>${p.user||"Admin"}</b>
    <p>${p.text||""}</p>
-   ${p.video?`<video controls width="100%" src="${p.video}"></video>`:""}
-   ${p.image?`<img src="${p.image}" width="100%">`:""}
+   ${media}
    <div class="reactions">
    <i class="fa-solid fa-heart" onclick="react('${doc.id}')"></i>
    </div>
