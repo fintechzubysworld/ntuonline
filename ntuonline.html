@@ -176,7 +176,7 @@ function savePodcast(){
  podUrl.value="";
 }
 
-db.collection("podcasts").orderBy("created","desc")
+db.collection("podcasts").add({title:title,audioUrl:url,created:Date.now()})
 .onSnapshot(s=>{
  podcastList.innerHTML="";
  s.forEach(doc=>{
