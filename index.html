@@ -96,41 +96,10 @@ audio,video,iframe{
 </header>
 
 <!-- PODCASTS -->
-<div id="podcastSection"></div>
-
-<script>
-db.collection("podcasts")
-.orderBy("created","desc")
-.onSnapshot(snapshot=>{
-    podcastSection.innerHTML="";
-
-    snapshot.forEach(doc=>{
-        const p = doc.data();
-
-        podcastSection.innerHTML += `
-        <div class="podcastCard">
-            <h3>${p.title}</h3>
-
-            <audio controls style="width:100%; margin-top:10px;">
-                <source src="${convertToDirectLink(p.audioUrl)}" type="audio/mpeg">
-                Your browser does not support audio.
-            </audio>
-        </div>
-        `;
-    });
-});
-
-function convertToDirectLink(url){
-
-    // Fix Google Drive links
-    if(url.includes("drive.google.com")){
-        const id = url.split("/d/")[1].split("/")[0];
-        return `https://drive.google.com/uc?export=download&id=${id}`;
-    }
-
-    return url;
-}
-</script>
+<section>
+<h2><i class="fa-solid fa-podcast"></i> Podcasts</h2>
+<div id="podcastList"></div>
+</section>
 
 <!-- LIVE STREAM -->
 <section>
@@ -200,6 +169,40 @@ function checkAdmin(){
 }
 
 //////////////// EMBED PODCASTS //////////////////
+//<div id="podcastSection"></div>
+
+
+db.collection("podcasts")
+.orderBy("created","desc")
+.onSnapshot(snapshot=>{
+    podcastSection.innerHTML="";
+
+    snapshot.forEach(doc=>{
+        const p = doc.data();
+
+        podcastSection.innerHTML += `
+        <div class="podcastCard">
+            <h3>${p.title}</h3>
+
+            <audio controls style="width:100%; margin-top:10px;">
+                <source src="${convertToDirectLink(p.audioUrl)}" type="audio/mpeg">
+                Your browser does not support audio.
+            </audio>
+        </div>
+        `;
+    });
+});
+
+function convertToDirectLink(url){
+
+    // Fix Google Drive links
+    if(url.includes("drive.google.com")){
+        const id = url.split("/d/")[1].split("/")[0];
+        return `https://drive.google.com/uc?export=download&id=${id}`;
+    }
+
+    return url;
+}
 
 db.collection("podcasts").orderBy("created","desc")
 .onSnapshot(s=>{
