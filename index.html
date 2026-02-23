@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ntudioka Community</title>
+<title>Ntudioka Online</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -13,70 +12,54 @@
 
 <style>
 body{
-  margin:0;
-  font-family:Arial;
-  background:linear-gradient(135deg,#ff9800,#ff5722,#ff9800);
-  background-size:400% 400%;
-  animation:gradientMove 15s ease infinite;
-  color:white;
+margin:0;
+font-family:Arial;
+background:linear-gradient(135deg,#0f172a,#1e293b);
+color:white;
 }
-@keyframes gradientMove{
-  0%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-  100%{background-position:0% 50%}
-}
+
 header{
-  background:rgba(0,0,0,0.6);
-  padding:15px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+padding:20px;
+background:#0ea5e9;
+display:flex;
+justify-content:space-between;
+align-items:center;
 }
-section{
-  max-width:900px;
-  margin:25px auto;
-  padding:15px;
-}
-.post{
-  background:rgba(255,255,255,0.1);
-  backdrop-filter:blur(12px);
-  padding:15px;
-  border-radius:15px;
-  margin-top:15px;
-}
+
 button{
-  padding:8px 15px;
-  border:none;
-  border-radius:20px;
-  background:white;
-  color:#ff5722;
-  font-weight:bold;
-  cursor:pointer;
-  transition:.3s;
+padding:8px 15px;
+border:none;
+border-radius:20px;
+cursor:pointer;
+background:#f97316;
+color:white;
 }
-button:hover{ transform:scale(1.05); }
+
+.section{
+padding:20px;
+}
+
+.card{
+background:#1e293b;
+padding:15px;
+border-radius:15px;
+margin-bottom:15px;
+}
+
 input,textarea{
-  width:100%;
-  padding:8px;
-  margin-top:6px;
-  border-radius:10px;
-  border:none;
+width:100%;
+padding:8px;
+margin-top:6px;
+border-radius:10px;
+border:none;
 }
-audio,video,iframe{
-  width:100%;
-  margin-top:10px;
-  border-radius:10px;
+
+.live{
+border:2px solid red;
 }
-.reactions i{
-  margin-right:10px;
-  cursor:pointer;
-}
-.liveChat{
-  background:rgba(0,0,0,0.5);
-  padding:10px;
-  border-radius:10px;
-  max-height:200px;
-  overflow-y:auto;
+
+.commentBox{
+margin-top:10px;
 }
 </style>
 </head>
@@ -84,232 +67,179 @@ audio,video,iframe{
 <body>
 
 <header>
-<div><b><i class="fa-solid fa-bolt"></i> Ntudioka Community</b></div>
+<h2><i class="fa-solid fa-globe"></i> Ntudioka Online</h2>
 <div>
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button onclick="signup()">Sign Up</button>
-<button onclick="login()">Login</button>
-<button onclick="logout()">Logout</button>
-<button onclick="checkAdmin()">Admin</button>
+<button onclick="showLogin()">Login</button>
+<button onclick="showRegister()">Register</button>
+<button onclick="goAdmin()">Admin</button>
 </div>
 </header>
 
-<!-- PODCASTS -->
-<section>
-<h2><i class="fa-solid fa-podcast"></i> Podcasts</h2>
-<div id="podcastList"></div>
-</section>
+<div class="section">
 
-<!-- LIVE STREAM -->
-<section>
-<h2><i class="fa-solid fa-video"></i> Live Broadcast</h2>
-<div id="liveBox"></div>
-<div class="liveChat" id="liveChat"></div>
-<input id="liveMsg" placeholder="Send live chat message">
-<button onclick="sendLiveChat()">Send</button>
-</section>
+<h2>🔴 Live Stream</h2>
+<div id="liveContainer"></div>
 
-<!-- COMMUNITY FEED -->
-<section>
-<h2><i class="fa-solid fa-comments"></i> Community Feed</h2>
-<textarea id="postInput" placeholder="Write message..."></textarea>
-<button onclick="postMessage()">Post</button>
-<div id="feed"></div>
-</section>
+<h2>📅 Events</h2>
+<div id="eventContainer"></div>
+
+<h2>💬 Community Feed</h2>
+<div id="feedContainer"></div>
+
+</div>
+
+<!-- LOGIN MODAL -->
+<div id="authArea" style="display:none;padding:20px;">
+<h3 id="authTitle"></h3>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="submitAuth()">Submit</button>
+</div>
 
 <script>
 const firebaseConfig={
- apiKey:"AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
- authDomain:"ntudioka-online-c29d8.firebaseapp.com",
- projectId:"ntudioka-online-c29d8"
+apiKey:"AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+authDomain:"ntudioka-online-c29d8.firebaseapp.com",
+projectId:"ntudioka-online-c29d8"
 };
 firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
+
 const auth=firebase.auth();
+const db=firebase.firestore();
 
-function requireAuth(){
- if(!auth.currentUser){
-   alert("Please login to interact");
-   return false;
- }
- return true;
+let mode="login";
+
+function showLogin(){
+authArea.style.display="block";
+authTitle.innerText="Login";
+mode="login";
 }
 
-function signup(){
- auth.createUserWithEmailAndPassword(email.value,password.value)
- .then(()=>{
-   alert("✅ Registration successful");
-   email.value="";
-   password.value="";
- })
- .catch(e=>alert(e.message));
+function showRegister(){
+authArea.style.display="block";
+authTitle.innerText="Register";
+mode="register";
 }
 
-function login(){
- auth.signInWithEmailAndPassword(email.value,password.value)
- .then(()=>{
-   alert("✅ Login successful");
-   email.value="";
-   password.value="";
- })
- .catch(e=>alert(e.message));
-}
+function submitAuth(){
+const e=email.value;
+const p=password.value;
 
-function logout(){ auth.signOut(); }
-
-function checkAdmin(){
- if(!auth.currentUser) return alert("Login first");
- db.collection("roles").doc(auth.currentUser.uid).get()
- .then(doc=>{
-   if(doc.exists && doc.data().role==="admin"){
-     location.href="ntuonline.html";
-   }else alert("Admin only");
- });
-}
-
-//////////////// EMBED PODCASTS //////////////////
-//<div id="podcastSection"></div>
-
-
-db.collection("podcasts")
-.orderBy("created","desc")
-.onSnapshot(snapshot=>{
-    podcastSection.innerHTML="";
-
-    snapshot.forEach(doc=>{
-        const p = doc.data();
-
-        podcastSection.innerHTML += `
-        <div class="podcastCard">
-            <h3>${p.title}</h3>
-
-            <audio controls style="width:100%; margin-top:10px;">
-                <source src="${convertToDirectLink(p.audioUrl)}" type="audio/mpeg">
-                Your browser does not support audio.
-            </audio>
-        </div>
-        `;
-    });
+if(mode==="register"){
+auth.createUserWithEmailAndPassword(e,p)
+.then(()=>{
+alert("Registration successful!");
+email.value="";
+password.value="";
+authArea.style.display="none";
 });
-
-function convertToDirectLink(url){
-
-    // Fix Google Drive links
-    if(url.includes("drive.google.com")){
-        const id = url.split("/d/")[1].split("/")[0];
-        return `https://drive.google.com/uc?export=download&id=${id}`;
-    }
-
-    return url;
+}else{
+auth.signInWithEmailAndPassword(e,p)
+.then(()=>{
+alert("Login successful!");
+email.value="";
+password.value="";
+authArea.style.display="none";
+});
+}
 }
 
-db.collection("podcasts").orderBy("created","desc")
-.onSnapshot(s=>{
- podcastList.innerHTML="";
- s.forEach(doc=>{
-   const p=doc.data();
-   podcastList.innerHTML+=`
-   <div class="post">
-     <b>${p.title}</b>
-     <audio controls src="${p.audioUrl}"></audio>
-   </div>`;
- });
-});
+function goAdmin(){
+if(auth.currentUser && auth.currentUser.email==="fintech.zubysworld@gmail.com"){
+window.location="ntuonline.html";
+}else{
+alert("Admin access denied.");
+}
+}
 
 //////////////// LIVE STREAM //////////////////
 
 db.collection("live").doc("current")
-.onSnapshot(d=>{
- if(!d.exists){ liveBox.innerHTML="No live stream"; return;}
- const data=d.data();
- liveBox.innerHTML=`
- <iframe height="350"
- src="https://www.youtube.com/embed/${data.videoId}"
- allowfullscreen></iframe>`;
+.onSnapshot(doc=>{
+liveContainer.innerHTML="";
+if(doc.exists){
+const d=doc.data();
+liveContainer.innerHTML=`
+<div class="card live">
+<h3>${d.title}</h3>
+<iframe width="100%" height="315"
+src="https://www.youtube.com/embed/${d.videoId}"
+allowfullscreen></iframe>
+</div>`;
+}else{
+liveContainer.innerHTML="<p>Currently offline</p>";
+}
 });
 
-function sendLiveChat(){
- if(!requireAuth()) return;
- db.collection("liveChat").add({
-   text:liveMsg.value,
-   user:auth.currentUser.email,
-   time:Date.now()
- });
- liveMsg.value="";
-}
+//////////////// EVENTS //////////////////
 
-db.collection("liveChat").orderBy("time","asc")
+db.collection("events").orderBy("created","desc")
 .onSnapshot(s=>{
- liveChat.innerHTML="";
- s.forEach(doc=>{
-   const m=doc.data();
-   liveChat.innerHTML+=`<div><b>${m.user}:</b> ${m.text}</div>`;
- });
+eventContainer.innerHTML="";
+s.forEach(doc=>{
+const e=doc.data();
+
+eventContainer.innerHTML+=`
+<div class="card">
+<h3>${e.title}</h3>
+<p>${e.description}</p>
+<p><b>Date:</b> ${e.date}</p>
+
+${e.image?`<img src="${e.image}" width="100%">`:""}
+${e.video?`<iframe width="100%" height="315" src="${e.video}" allowfullscreen></iframe>`:""}
+${e.audio?`<audio controls style="width:100%;"><source src="${e.audio}" type="audio/mpeg"></audio>`:""}
+
+<div class="commentBox">
+<textarea id="c${doc.id}" placeholder="Write comment"></textarea>
+<button onclick="comment('${doc.id}')">Comment</button>
+</div>
+
+<div id="comments${doc.id}"></div>
+
+</div>`;
+
+db.collection("events").doc(doc.id).collection("comments")
+.onSnapshot(cs=>{
+let html="";
+cs.forEach(c=>{
+html+=`<p>💬 ${c.data().text}</p>`;
+});
+document.getElementById("comments"+doc.id).innerHTML=html;
+});
+});
 });
 
-//////////////// FEED WITH EMBED LOGIC //////////////////
-
-function extractYouTubeID(url){
- const reg=/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/;
- const match=url.match(reg);
- return match?match[1]:null;
+function comment(id){
+if(!auth.currentUser) return alert("Login required");
+const text=document.getElementById("c"+id).value;
+db.collection("events").doc(id).collection("comments")
+.add({text:text,user:auth.currentUser.email});
+document.getElementById("c"+id).value="";
 }
 
-function postMessage(){
- if(!requireAuth()) return;
- db.collection("posts").add({
-   text:postInput.value,
-   user:auth.currentUser.email,
-   time:Date.now()
- });
- postInput.value="";
-}
+//////////////// FEED //////////////////
 
-db.collection("posts").orderBy("time","desc")
+db.collection("feed").orderBy("created","desc")
 .onSnapshot(s=>{
- feed.innerHTML="";
- s.forEach(doc=>{
-   const p=doc.data();
-   let media="";
-
-   if(p.video){
-     const ytID=extractYouTubeID(p.video);
-     if(ytID){
-       media=`<iframe height="315"
-       src="https://www.youtube.com/embed/${ytID}"
-       allowfullscreen></iframe>`;
-     }else{
-       media=`<video controls src="${p.video}"></video>`;
-     }
-   }
-
-   if(p.audio){
-     media+=`<audio controls src="${p.audio}"></audio>`;
-   }
-
-   if(p.image){
-     media+=`<img src="${p.image}">`;
-   }
-
-   feed.innerHTML+=`
-   <div class="post">
-   <b>${p.user||"Admin"}</b>
-   <p>${p.text||""}</p>
-   ${media}
-   <div class="reactions">
-   <i class="fa-solid fa-heart" onclick="react('${doc.id}')"></i>
-   </div>
-   </div>`;
- });
+feedContainer.innerHTML="";
+s.forEach(doc=>{
+const f=doc.data();
+feedContainer.innerHTML+=`
+<div class="card">
+<p>${f.text}</p>
+<button onclick="react('${doc.id}')">👍 Like</button>
+<span id="like${doc.id}">${f.likes||0}</span>
+</div>`;
+});
 });
 
 function react(id){
- if(!requireAuth()) return;
- db.collection("posts").doc(id).update({
-   likes:firebase.firestore.FieldValue.increment(1)
- });
+if(!auth.currentUser) return alert("Login required");
+db.collection("feed").doc(id).update({
+likes:firebase.firestore.FieldValue.increment(1)
+});
 }
 </script>
+
 </body>
 </html>
