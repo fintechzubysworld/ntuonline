@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Admin Control Center</title>
+<title>Admin Dashboard - Ntudioka</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -11,119 +11,148 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-body{
-margin:0;
-font-family:Arial;
-background:#0f172a;
-color:white;
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
+  color: white;
+  padding: 20px;
 }
-
-header{
-background:#1e293b;
-padding:15px;
-display:flex;
-justify-content:space-between;
-align-items:center;
+header {
+  background: #0ea5e9;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 10px;
+  margin-bottom: 20px;
 }
-
-.section{
-padding:20px;
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 20px;
 }
-
-.card{
-background:#1e293b;
-padding:15px;
-border-radius:15px;
-margin-bottom:20px;
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: none;
+  box-sizing: border-box;
 }
-
-button{
-padding:6px 12px;
-border:none;
-border-radius:20px;
-background:#f97316;
-color:white;
-cursor:pointer;
-margin-top:5px;
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  background: #f97316;
+  color: white;
+  cursor: pointer;
+  margin-right: 10px;
+  margin-top: 10px;
 }
-
-button:hover{opacity:0.85;}
-
-input,textarea{
-width:100%;
-padding:8px;
-margin-top:6px;
-border-radius:8px;
-border:none;
+button.secondary {
+  background: #64748b;
 }
-
-.stat{
-font-size:18px;
-margin-bottom:10px;
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+th, td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #334155;
+}
+th {
+  background: #0f172a;
+  color: #f97316;
+}
+.admin-badge {
+  background: #22c55e;
+  color: black;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+}
+.user-badge {
+  background: #64748b;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+.message {
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+  display: none;
+}
+.success {
+  background: #22c55e;
+  color: black;
+  display: block;
+}
+.error {
+  background: #ef4444;
+  color: white;
+  display: block;
 }
 </style>
 </head>
-
 <body>
 
 <header>
-<h2><i class="fa-solid fa-shield"></i> Admin Control Center</h2>
-<button onclick="logout()">Logout</button>
-<button onclick="window.location='index.html'">Public page</button>
+  <h2><i class="fa-solid fa-shield-halved"></i> Admin Dashboard</h2>
+  <div>
+    <span id="userEmail"></span>
+    <button onclick="logout()">Logout</button>
+    <button onclick="window.location='index.html'">Back to Community</button>
+  </div>
 </header>
 
-<div class="section">
-
-<!-- DASHBOARD -->
-<div class="card">
-<h3>📊 Dashboard Stats</h3>
-<div id="stats"></div>
+<div id="authCheck" style="display:none; text-align:center; padding:50px;">
+  <h3>Checking authorization...</h3>
 </div>
 
-<!-- LIVE CONTROL -->
-<div class="card">
-<h3>🔴 Live Stream Control</h3>
-<input id="liveId" placeholder="YouTube Video ID">
-<input id="liveTitle" placeholder="Live Title">
-<input id="liveDuration" type="number" placeholder="Auto End (minutes)">
-<button onclick="startLive()">Start Live</button>
-<button onclick="endLive()">End Live</button>
-<div id="liveStatus"></div>
-</div>
+<div id="dashboard" style="display:none;">
 
-<!-- EVENT MANAGEMENT -->
-<div class="card">
-<h3>📅 Event Management</h3>
+  <!-- PUBLISH EVENT -->
+  <div class="card">
+    <h3>📅 Publish New Event</h3>
+    <input type="text" id="eventTitle" placeholder="Event Title" required>
+    <textarea id="eventDesc" placeholder="Description (optional)"></textarea>
+    <input type="text" id="eventDate" placeholder="Date (e.g., March 15, 2025)">
+    <input type="url" id="eventImage" placeholder="Image URL (optional)">
+    <input type="url" id="eventVideo" placeholder="Video URL (optional)">
+    <input type="url" id="eventAudio" placeholder="Audio URL (optional)">
+    <button onclick="publishEvent()">Publish Event</button>
+    <div id="eventMessage" class="message"></div>
+  </div>
 
-<input id="eventTitle" placeholder="Title">
-<textarea id="eventDesc" placeholder="Description"></textarea>
-<input id="eventDate" type="date">
-<input id="eventImage" placeholder="Image URL">
-<input id="eventVideo" placeholder="Video URL">
-<input id="eventAudio" placeholder="Audio URL">
-<button onclick="createEvent()">Create Event</button>
+  <!-- CHANGE PASSWORD -->
+  <div class="card">
+    <h3>🔐 Change Your Password</h3>
+    <input type="password" id="currentPass" placeholder="Current Password">
+    <input type="password" id="newPass" placeholder="New Password">
+    <input type="password" id="confirmNewPass" placeholder="Confirm New Password">
+    <button onclick="changePassword()">Update Password</button>
+    <div id="passMessage" class="message"></div>
+  </div>
 
-<div id="eventList"></div>
-</div>
-
-<!-- FEED MODERATION -->
-<div class="card">
-<h3>📰 Feed Moderation</h3>
-<div id="feedList"></div>
-</div>
-
-<!-- CHAT MODERATION -->
-<div class="card">
-<h3>💬 Global Chat Moderation</h3>
-<div id="chatList"></div>
-<button onclick="clearChat()">Clear All Chat</button>
-</div>
-
-<!-- USERS -->
-<div class="card">
-<h3>👥 Users</h3>
-<div id="userList"></div>
-</div>
+  <!-- PROMOTE USER -->
+  <div class="card">
+    <h3>👥 Manage Administrators</h3>
+    <p>Toggle admin status for any user.</p>
+    <table id="userTable">
+      <thead>
+        <tr><th>Name</th><th>Email</th><th>Kindred</th><th>Role</th><th>Action</th></tr>
+      </thead>
+      <tbody id="userList"></tbody>
+    </table>
+    <div id="adminMessage" class="message"></div>
+  </div>
 
 </div>
 
@@ -137,172 +166,180 @@ margin-bottom:10px;
     appId: "1:1015621578149:web:c755b458e505fd32928c4c",
     measurementId: "G-JPVKYQRKEB"
   };
-firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
 
-const auth=firebase.auth();
-const db=firebase.firestore();
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-//////////////// ACCESS CONTROL //////////////////
+  let currentUser = null;
 
-auth.onAuthStateChanged(user=>{
-if(!user || user.email!=="fintech.zubysworld@gmail.com"){
-alert("Unauthorized Access");
-window.location="index.html";
-}
-});
+  // UI elements
+  const authCheckDiv = document.getElementById('authCheck');
+  const dashboardDiv = document.getElementById('dashboard');
+  const userEmailSpan = document.getElementById('userEmail');
 
-function logout(){
-auth.signOut().then(()=>{
-window.location="index.html";
-});
-}
+  // Helper: show error
+  function showError(message) {
+    alert("Error: " + message);
+    console.error(message);
+  }
 
-//////////////// DASHBOARD STATS //////////////////
+  // Check if user is admin
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      userEmailSpan.textContent = user.email;
+      // Fetch user doc to check admin
+      db.collection('users').doc(user.uid).get()
+        .then(doc => {
+          if (doc.exists && doc.data().isAdmin === true) {
+            // Authorized: show dashboard
+            currentUser = user;
+            authCheckDiv.style.display = 'none';
+            dashboardDiv.style.display = 'block';
+            loadUsers(); // load user list for promotion
+          } else {
+            // Not admin
+            authCheckDiv.innerHTML = '<h3>Access Denied. You are not an administrator.</h3><button onclick="window.location=\'index.html\'">Go Home</button>';
+            authCheckDiv.style.display = 'block';
+          }
+        })
+        .catch(err => {
+          showError(err.message);
+          authCheckDiv.innerHTML = '<h3>Error checking permissions.</h3>';
+          authCheckDiv.style.display = 'block';
+        });
+    } else {
+      // Not logged in, redirect to index
+      window.location.href = 'index.html';
+    }
+  });
 
-function loadStats(){
-Promise.all([
-db.collection("users").get(),
-db.collection("feed").get(),
-db.collection("events").get(),
-db.collection("chat").get()
-]).then(([users,feed,events,chat])=>{
-stats.innerHTML=`
-<div class="stat">Total Users: ${users.size}</div>
-<div class="stat">Total Posts: ${feed.size}</div>
-<div class="stat">Total Events: ${events.size}</div>
-<div class="stat">Total Chat Messages: ${chat.size}</div>
-`;
-});
-}
+  // Logout
+  window.logout = function() {
+    auth.signOut().then(() => {
+      window.location.href = 'index.html';
+    }).catch(showError);
+  };
 
-loadStats();
+  // ---------- PUBLISH EVENT ----------
+  window.publishEvent = function() {
+    const title = document.getElementById('eventTitle').value.trim();
+    if (!title) {
+      showMessage('eventMessage', 'Event title is required', 'error');
+      return;
+    }
 
-//////////////// LIVE //////////////////
+    const eventData = {
+      title: title,
+      description: document.getElementById('eventDesc').value.trim() || null,
+      date: document.getElementById('eventDate').value.trim() || null,
+      image: document.getElementById('eventImage').value.trim() || null,
+      video: document.getElementById('eventVideo').value.trim() || null,
+      audio: document.getElementById('eventAudio').value.trim() || null,
+      created: Date.now()
+    };
 
-function startLive(){
-db.collection("live").doc("current").set({
-videoId:liveId.value,
-title:liveTitle.value,
-created:Date.now()
-});
+    db.collection('events').add(eventData)
+      .then(() => {
+        showMessage('eventMessage', 'Event published successfully!', 'success');
+        // Clear form
+        document.getElementById('eventTitle').value = '';
+        document.getElementById('eventDesc').value = '';
+        document.getElementById('eventDate').value = '';
+        document.getElementById('eventImage').value = '';
+        document.getElementById('eventVideo').value = '';
+        document.getElementById('eventAudio').value = '';
+      })
+      .catch(err => showMessage('eventMessage', err.message, 'error'));
+  };
 
-if(liveDuration.value){
-setTimeout(()=>{
-endLive();
-},liveDuration.value*60000);
-}
-}
+  // ---------- CHANGE PASSWORD ----------
+  window.changePassword = function() {
+    const currentPass = document.getElementById('currentPass').value;
+    const newPass = document.getElementById('newPass').value;
+    const confirmPass = document.getElementById('confirmNewPass').value;
 
-function endLive(){
-db.collection("live").doc("current").delete();
-}
+    if (!currentPass || !newPass || !confirmPass) {
+      showMessage('passMessage', 'All fields are required', 'error');
+      return;
+    }
+    if (newPass !== confirmPass) {
+      showMessage('passMessage', 'New passwords do not match', 'error');
+      return;
+    }
+    if (newPass.length < 6) {
+      showMessage('passMessage', 'Password must be at least 6 characters', 'error');
+      return;
+    }
 
-db.collection("live").doc("current")
-.onSnapshot(doc=>{
-if(doc.exists){
-liveStatus.innerHTML="Live is Active";
-}else{
-liveStatus.innerHTML="Live is Offline";
-}
-});
+    const user = auth.currentUser;
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
 
-//////////////// EVENTS //////////////////
+    user.reauthenticateWithCredential(credential)
+      .then(() => user.updatePassword(newPass))
+      .then(() => {
+        showMessage('passMessage', 'Password updated successfully!', 'success');
+        document.getElementById('currentPass').value = '';
+        document.getElementById('newPass').value = '';
+        document.getElementById('confirmNewPass').value = '';
+      })
+      .catch(err => showMessage('passMessage', err.message, 'error'));
+  };
 
-function createEvent(){
-db.collection("events").add({
-title:eventTitle.value,
-description:eventDesc.value,
-date:eventDate.value,
-image:eventImage.value||null,
-video:eventVideo.value||null,
-audio:eventAudio.value||null,
-created:Date.now()
-});
-eventTitle.value="";
-eventDesc.value="";
-eventDate.value="";
-eventImage.value="";
-eventVideo.value="";
-eventAudio.value="";
-}
+  // ---------- PROMOTE USER ----------
+  function loadUsers() {
+    db.collection('users').get()
+      .then(snapshot => {
+        const tbody = document.getElementById('userList');
+        tbody.innerHTML = '';
+        snapshot.forEach(doc => {
+          const user = doc.data();
+          const uid = doc.id;
+          const isAdmin = user.isAdmin || false;
 
-db.collection("events").orderBy("created","desc")
-.onSnapshot(snapshot=>{
-eventList.innerHTML="";
-snapshot.forEach(doc=>{
-const e=doc.data();
-eventList.innerHTML+=`
-<div class="card">
-<h4>${e.title}</h4>
-<button onclick="deleteEvent('${doc.id}')">Delete</button>
-</div>
-`;
-});
-});
+          // Don't show current user in the list? (optional, but we can allow self-demotion)
+          // if (uid === currentUser.uid) return; // uncomment to hide self
 
-function deleteEvent(id){
-db.collection("events").doc(id).delete();
-}
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${user.name || '?'}</td>
+            <td>${user.email || '?'}</td>
+            <td>${user.kindred || '?'}</td>
+            <td><span class="${isAdmin ? 'admin-badge' : 'user-badge'}">${isAdmin ? 'ADMIN' : 'USER'}</span></td>
+            <td>
+              <button class="secondary" onclick="toggleAdmin('${uid}', ${isAdmin})">
+                ${isAdmin ? 'Revoke Admin' : 'Make Admin'}
+              </button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      })
+      .catch(err => showMessage('adminMessage', err.message, 'error'));
+  }
 
-//////////////// FEED //////////////////
+  window.toggleAdmin = function(uid, currentStatus) {
+    if (!confirm(`Are you sure you want to ${currentStatus ? 'revoke admin from' : 'grant admin to'} this user?`)) return;
 
-db.collection("feed").orderBy("created","desc")
-.onSnapshot(snapshot=>{
-feedList.innerHTML="";
-snapshot.forEach(doc=>{
-const f=doc.data();
-feedList.innerHTML+=`
-<div class="card">
-<p>${f.text}</p>
-<small>${f.user}</small><br>
-<button onclick="deletePost('${doc.id}')">Delete</button>
-</div>
-`;
-});
-});
+    db.collection('users').doc(uid).update({
+      isAdmin: !currentStatus
+    })
+    .then(() => {
+      showMessage('adminMessage', 'User role updated successfully!', 'success');
+      loadUsers(); // refresh table
+    })
+    .catch(err => showMessage('adminMessage', err.message, 'error'));
+  };
 
-function deletePost(id){
-db.collection("feed").doc(id).delete();
-}
-
-//////////////// CHAT //////////////////
-
-db.collection("chat").orderBy("created")
-.onSnapshot(snapshot=>{
-chatList.innerHTML="";
-snapshot.forEach(doc=>{
-const m=doc.data();
-chatList.innerHTML+=`
-<p><b>${m.user}</b>: ${m.text}
-<button onclick="deleteChat('${doc.id}')">X</button></p>
-`;
-});
-});
-
-function deleteChat(id){
-db.collection("chat").doc(id).delete();
-}
-
-function clearChat(){
-db.collection("chat").get().then(snapshot=>{
-snapshot.forEach(doc=>{
-doc.ref.delete();
-});
-});
-}
-
-//////////////// USERS //////////////////
-
-db.collection("users")
-.onSnapshot(snapshot=>{
-userList.innerHTML="";
-snapshot.forEach(doc=>{
-const u=doc.data();
-userList.innerHTML+=`
-<p>${u.email} ${u.online?"🟢":"⚫"}</p>
-`;
-});
-});
+  // Helper to show messages in specific div
+  function showMessage(elementId, text, type) {
+    const div = document.getElementById(elementId);
+    div.textContent = text;
+    div.className = `message ${type}`;
+    setTimeout(() => {
+      div.style.display = 'none';
+    }, 5000);
+  }
 </script>
 
 </body>
