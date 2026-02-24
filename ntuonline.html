@@ -7,15 +7,98 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-/* (styles unchanged, add progress indicator) */
-.progress {
+/* (styles unchanged) */
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
+  color: white;
+  padding: 20px;
+}
+header {
+  background: #0ea5e9;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+.card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+}
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: none;
+  box-sizing: border-box;
+}
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  background: #f97316;
+  color: white;
+  cursor: pointer;
+  margin-right: 10px;
   margin-top: 10px;
+}
+button.secondary {
+  background: #64748b;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+th, td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #334155;
+}
+th {
+  background: #0f172a;
   color: #f97316;
+}
+.admin-badge {
+  background: #22c55e;
+  color: black;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+}
+.user-badge {
+  background: #64748b;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+.message {
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+  display: none;
+}
+.success {
+  background: #22c55e;
+  color: black;
+  display: block;
+}
+.error {
+  background: #ef4444;
+  color: white;
+  display: block;
 }
 </style>
 </head>
@@ -36,28 +119,17 @@
 
 <div id="dashboard" style="display:none;">
 
-  <!-- PUBLISH EVENT with file uploads -->
+  <!-- PUBLISH EVENT -->
   <div class="card">
     <h3>📅 Publish New Event</h3>
     <input type="text" id="eventTitle" placeholder="Event Title" required>
     <textarea id="eventDesc" placeholder="Description (optional)"></textarea>
     <input type="text" id="eventDate" placeholder="Date (e.g., March 15, 2025)">
-
-    <label>Image (upload or URL):</label>
-    <input type="file" id="eventImageFile" accept="image/*">
-    <input type="url" id="eventImageUrl" placeholder="Or image URL (optional)">
-
-    <label>Video (upload or URL):</label>
-    <input type="file" id="eventVideoFile" accept="video/*">
-    <input type="url" id="eventVideoUrl" placeholder="Or video URL (optional)">
-
-    <label>Audio (upload or URL):</label>
-    <input type="file" id="eventAudioFile" accept="audio/*">
-    <input type="url" id="eventAudioUrl" placeholder="Or audio URL (optional)">
-
+    <input type="url" id="eventImage" placeholder="Image URL (optional)">
+    <input type="url" id="eventVideo" placeholder="Video URL (optional)">
+    <input type="url" id="eventAudio" placeholder="Audio URL (optional)">
     <button onclick="publishEvent()">Publish Event</button>
     <div id="eventMessage" class="message"></div>
-    <div id="uploadProgress" class="progress"></div>
   </div>
 
   <!-- CHANGE PASSWORD -->
@@ -99,8 +171,8 @@
 
   const auth = firebase.auth();
   const db = firebase.firestore();
-  const storage = firebase.storage();
 
+  // Hardcoded superadmin email (the one you used in index.html)
   const SUPER_ADMIN_EMAIL = "fintech.zubysworld@gmail.com";
 
   let currentUser = null;
@@ -110,11 +182,13 @@
   const dashboardDiv = document.getElementById('dashboard');
   const userEmailSpan = document.getElementById('userEmail');
 
+  // Helper: show error
   function showError(message) {
     alert("Error: " + message);
     console.error(message);
   }
 
+  // Helper to show messages in specific div
   function showMessage(elementId, text, type) {
     const div = document.getElementById(elementId);
     div.textContent = text;
@@ -124,13 +198,16 @@
     }, 5000);
   }
 
-  // Check admin status
+  // Check if user is admin
   auth.onAuthStateChanged(user => {
     if (user) {
       userEmailSpan.textContent = user.email;
+      // Fetch user doc to check admin status
       db.collection('users').doc(user.uid).get()
         .then(doc => {
           let isAdmin = doc.exists && doc.data().isAdmin === true;
+
+          // Superadmin fallback: if email matches and not already admin, set them as admin
           if (!isAdmin && user.email === SUPER_ADMIN_EMAIL) {
             return db.collection('users').doc(user.uid).set({
               isAdmin: true
@@ -139,15 +216,20 @@
             });
           }
         })
-        .then(() => db.collection('users').doc(user.uid).get())
+        .then(() => {
+          // Re-fetch the doc to confirm admin status after potential update
+          return db.collection('users').doc(user.uid).get();
+        })
         .then(doc => {
           const isAdmin = doc.exists && doc.data().isAdmin === true;
           if (isAdmin) {
+            // Authorized: show dashboard
             currentUser = user;
             authCheckDiv.style.display = 'none';
             dashboardDiv.style.display = 'block';
-            loadUsers();
+            loadUsers(); // load user list for promotion
           } else {
+            // Not admin
             authCheckDiv.innerHTML = '<h3>Access Denied. You are not an administrator.</h3><button onclick="window.location=\'index.html\'">Go Home</button>';
             authCheckDiv.style.display = 'block';
           }
@@ -158,109 +240,51 @@
           authCheckDiv.style.display = 'block';
         });
     } else {
+      // Not logged in, redirect to index
       window.location.href = 'index.html';
     }
   });
 
+  // Logout
   window.logout = function() {
     auth.signOut().then(() => {
       window.location.href = 'index.html';
     }).catch(showError);
   };
 
-  // ---------- PUBLISH EVENT WITH FILE UPLOADS ----------
-  async function uploadFile(file, folder) {
-    if (!file) return null;
-    const fileName = `${Date.now()}_${file.name}`;
-    const storageRef = storage.ref(`${folder}/${fileName}`);
-    const task = storageRef.put(file);
-    
-    // Show progress
-    const progressDiv = document.getElementById('uploadProgress');
-    progressDiv.textContent = 'Uploading... 0%';
-    
-    return new Promise((resolve, reject) => {
-      task.on('state_changed',
-        snapshot => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          progressDiv.textContent = `Uploading... ${Math.round(progress)}%`;
-        },
-        error => {
-          progressDiv.textContent = '';
-          reject(error);
-        },
-        async () => {
-          const url = await task.snapshot.ref.getDownloadURL();
-          progressDiv.textContent = 'Upload complete!';
-          setTimeout(() => { progressDiv.textContent = ''; }, 2000);
-          resolve(url);
-        }
-      );
-    });
-  }
-
-  window.publishEvent = async function() {
+  // ---------- PUBLISH EVENT ----------
+  window.publishEvent = function() {
     const title = document.getElementById('eventTitle').value.trim();
     if (!title) {
       showMessage('eventMessage', 'Event title is required', 'error');
       return;
     }
 
-    // Get file inputs
-    const imageFile = document.getElementById('eventImageFile').files[0];
-    const videoFile = document.getElementById('eventVideoFile').files[0];
-    const audioFile = document.getElementById('eventAudioFile').files[0];
+    const eventData = {
+      title: title,
+      description: document.getElementById('eventDesc').value.trim() || null,
+      date: document.getElementById('eventDate').value.trim() || null,
+      image: document.getElementById('eventImage').value.trim() || null,
+      video: document.getElementById('eventVideo').value.trim() || null,
+      audio: document.getElementById('eventAudio').value.trim() || null,
+      created: Date.now()
+    };
 
-    // Get URL inputs (fallback)
-    const imageUrl = document.getElementById('eventImageUrl').value.trim();
-    const videoUrl = document.getElementById('eventVideoUrl').value.trim();
-    const audioUrl = document.getElementById('eventAudioUrl').value.trim();
-
-    let finalImageUrl = imageUrl || null;
-    let finalVideoUrl = videoUrl || null;
-    let finalAudioUrl = audioUrl || null;
-
-    try {
-      // Upload files if present (they take precedence over URL inputs)
-      if (imageFile) {
-        finalImageUrl = await uploadFile(imageFile, 'events/images');
-      }
-      if (videoFile) {
-        finalVideoUrl = await uploadFile(videoFile, 'events/videos');
-      }
-      if (audioFile) {
-        finalAudioUrl = await uploadFile(audioFile, 'events/audio');
-      }
-
-      const eventData = {
-        title: title,
-        description: document.getElementById('eventDesc').value.trim() || null,
-        date: document.getElementById('eventDate').value.trim() || null,
-        image: finalImageUrl,
-        video: finalVideoUrl,
-        audio: finalAudioUrl,
-        created: Date.now()
-      };
-
-      await db.collection('events').add(eventData);
-      showMessage('eventMessage', 'Event published successfully!', 'success');
-
-      // Clear all inputs
-      document.getElementById('eventTitle').value = '';
-      document.getElementById('eventDesc').value = '';
-      document.getElementById('eventDate').value = '';
-      document.getElementById('eventImageFile').value = '';
-      document.getElementById('eventImageUrl').value = '';
-      document.getElementById('eventVideoFile').value = '';
-      document.getElementById('eventVideoUrl').value = '';
-      document.getElementById('eventAudioFile').value = '';
-      document.getElementById('eventAudioUrl').value = '';
-    } catch (err) {
-      showMessage('eventMessage', err.message, 'error');
-    }
+    db.collection('events').add(eventData)
+      .then(() => {
+        showMessage('eventMessage', 'Event published successfully!', 'success');
+        // Clear form
+        document.getElementById('eventTitle').value = '';
+        document.getElementById('eventDesc').value = '';
+        document.getElementById('eventDate').value = '';
+        document.getElementById('eventImage').value = '';
+        document.getElementById('eventVideo').value = '';
+        document.getElementById('eventAudio').value = '';
+      })
+      .catch(err => showMessage('eventMessage', err.message, 'error'));
   };
 
-  // ---------- CHANGE PASSWORD (unchanged) ----------
+  // ---------- CHANGE PASSWORD ----------
   window.changePassword = function() {
     const currentPass = document.getElementById('currentPass').value;
     const newPass = document.getElementById('newPass').value;
@@ -293,7 +317,7 @@
       .catch(err => showMessage('passMessage', err.message, 'error'));
   };
 
-  // ---------- PROMOTE USER (unchanged) ----------
+  // ---------- PROMOTE USER ----------
   function loadUsers() {
     db.collection('users').get()
       .then(snapshot => {
@@ -330,7 +354,7 @@
     })
     .then(() => {
       showMessage('adminMessage', 'User role updated successfully!', 'success');
-      loadUsers();
+      loadUsers(); // refresh table
     })
     .catch(err => showMessage('adminMessage', err.message, 'error'));
   };
