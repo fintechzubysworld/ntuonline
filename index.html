@@ -240,20 +240,24 @@ created:Date.now()
 .then(()=>feedInput.value="");
 }
 
+// Feed with replies (already functional, but shown for completeness)
 db.collection("feed").orderBy("created","desc")
 .onSnapshot(s=>{
-feedArea.innerHTML="";
-s.forEach(doc=>{
-const p=doc.data();
-feedArea.innerHTML+=`
-<div class="card">
-<strong>${p.name} (${p.kindred})</strong>
-<p>${p.text}</p>
-<div id="feedReplies${doc.id}"></div>
-<input id="replyFeed${doc.id}" placeholder="Reply">
-<button onclick="replyFeed('${doc.id}')">Reply</button>
-</div>
-`;
+  feedArea.innerHTML="";
+  s.forEach(doc=>{
+    const p=doc.data();
+    feedArea.innerHTML+=`
+      <div class="card">
+        <strong>${p.name} (${p.kindred})</strong>
+        <p>${p.text}</p>
+        <div id="feedReplies${doc.id}"></div>
+        <input id="replyFeed${doc.id}" placeholder="Reply">
+        <button onclick="replyFeed('${doc.id}')">Reply</button>
+      </div>
+    `;
+    loadReplies("feed",doc.id,"feedReplies");
+  });
+});
 loadReplies("feed",doc.id,"feedReplies");
 });
 });
@@ -306,17 +310,60 @@ created:Date.now()
 .then(()=>chatInput.value="");
 }
 
+// Chat messages with replies
 db.collection("chat").orderBy("created")
 .onSnapshot(s=>{
-chatArea.innerHTML="";
-s.forEach(doc=>{
-const m=doc.data();
-chatArea.innerHTML+=`
-<div>
-<strong>${m.name} (${m.kindred})</strong>: ${m.text}
-</div>`;
+  chatArea.innerHTML="";
+  s.forEach(doc=>{
+    const m=doc.data();
+    const chatId=doc.id;
+    chatArea.innerHTML+=`
+      <div class="card" style="margin-bottom:10px;">
+        <strong>${m.name} (${m.kindred})</strong>: ${m.text}
+        <div id="chatReplies${chatId}"></div>
+        <input id="chatReplyInput${chatId}" placeholder="Reply to this message">
+        <button onclick="replyChat('${chatId}')">Reply</button>
+      </div>
+    `;
+    loadChatReplies(chatId);
+  });
 });
-});
+
+function replyChat(chatId){
+  if(!currentUser) return alert("Login required");
+  const input = document.getElementById("chatReplyInput"+chatId);
+  if(!input.value.trim()) return;
+  db.collection("users").doc(currentUser.uid).get()
+    .then(u=>{
+      return db.collection("chat").doc(chatId)
+        .collection("replies").add({
+          text: input.value,
+          name: u.data().name,
+          kindred: u.data().kindred,
+          created: Date.now()
+        });
+    })
+    .then(()=>{ input.value=""; });
+}
+
+function loadChatReplies(chatId){
+  db.collection("chat").doc(chatId)
+    .collection("replies")
+    .orderBy("created")
+    .onSnapshot(s=>{
+      const container = document.getElementById("chatReplies"+chatId);
+      if(!container) return;
+      container.innerHTML="";
+      s.forEach(doc=>{
+        const r=doc.data();
+        container.innerHTML+=`
+          <div class="replyBox">
+            <strong>${r.name} (${r.kindred})</strong>: ${r.text}
+          </div>
+        `;
+      });
+    });
+}
 
 /* ================= GOODWILL ================= */
 
@@ -334,18 +381,61 @@ created:Date.now()
 .then(()=>goodwillInput.value="");
 }
 
+// Goodwill messages with replies
 db.collection("goodwill").orderBy("created","desc")
 .onSnapshot(s=>{
-goodwillArea.innerHTML="";
-s.forEach(doc=>{
-const g=doc.data();
-goodwillArea.innerHTML+=`
-<div>
-<strong>${g.name} (${g.kindred})</strong>
-<p>${g.text}</p>
-</div>`;
+  goodwillArea.innerHTML="";
+  s.forEach(doc=>{
+    const g=doc.data();
+    const goodwillId=doc.id;
+    goodwillArea.innerHTML+=`
+      <div class="card" style="margin-bottom:10px;">
+        <strong>${g.name} (${g.kindred})</strong>
+        <p>${g.text}</p>
+        <div id="goodwillReplies${goodwillId}"></div>
+        <input id="goodwillReplyInput${goodwillId}" placeholder="Reply to this message">
+        <button onclick="replyGoodwill('${goodwillId}')">Reply</button>
+      </div>
+    `;
+    loadGoodwillReplies(goodwillId);
+  });
 });
-});
+
+function replyGoodwill(goodwillId){
+  if(!currentUser) return alert("Login required");
+  const input = document.getElementById("goodwillReplyInput"+goodwillId);
+  if(!input.value.trim()) return;
+  db.collection("users").doc(currentUser.uid).get()
+    .then(u=>{
+      return db.collection("goodwill").doc(goodwillId)
+        .collection("replies").add({
+          text: input.value,
+          name: u.data().name,
+          kindred: u.data().kindred,
+          created: Date.now()
+        });
+    })
+    .then(()=>{ input.value=""; });
+}
+
+function loadGoodwillReplies(goodwillId){
+  db.collection("goodwill").doc(goodwillId)
+    .collection("replies")
+    .orderBy("created")
+    .onSnapshot(s=>{
+      const container = document.getElementById("goodwillReplies"+goodwillId);
+      if(!container) return;
+      container.innerHTML="";
+      s.forEach(doc=>{
+        const r=doc.data();
+        container.innerHTML+=`
+          <div class="replyBox">
+            <strong>${r.name} (${r.kindred})</strong>: ${r.text}
+          </div>
+        `;
+      });
+    });
+}
 
 /* ================= LIVE ================= */
 
@@ -379,18 +469,64 @@ created:Date.now()
 .then(()=>liveCommentInput.value="");
 }
 
+// Live comments with replies
 db.collection("live").doc("current")
 .collection("comments")
 .orderBy("created")
 .onSnapshot(s=>{
-liveComments.innerHTML="";
-s.forEach(doc=>{
-const c=doc.data();
-liveComments.innerHTML+=`
-<p><strong>${c.name} (${c.kindred})</strong>: ${c.text}</p>
-`;
+  liveComments.innerHTML="";
+  s.forEach(doc=>{
+    const c=doc.data();
+    const commentId=doc.id;
+    liveComments.innerHTML+=`
+      <div class="card" style="margin-bottom:10px;">
+        <strong>${c.name} (${c.kindred})</strong>: ${c.text}
+        <div id="liveReplies${commentId}"></div>
+        <input id="liveReplyInput${commentId}" placeholder="Reply to this comment">
+        <button onclick="replyLiveComment('${commentId}')">Reply</button>
+      </div>
+    `;
+    loadLiveReplies(commentId);
+  });
 });
-});
+
+function replyLiveComment(commentId){
+  if(!currentUser) return alert("Login required");
+  const input = document.getElementById("liveReplyInput"+commentId);
+  if(!input.value.trim()) return;
+  db.collection("users").doc(currentUser.uid).get()
+    .then(u=>{
+      return db.collection("live").doc("current")
+        .collection("comments").doc(commentId)
+        .collection("replies").add({
+          text: input.value,
+          name: u.data().name,
+          kindred: u.data().kindred,
+          created: Date.now()
+        });
+    })
+    .then(()=>{ input.value=""; });
+}
+
+function loadLiveReplies(commentId){
+  db.collection("live").doc("current")
+    .collection("comments").doc(commentId)
+    .collection("replies")
+    .orderBy("created")
+    .onSnapshot(s=>{
+      const container = document.getElementById("liveReplies"+commentId);
+      if(!container) return;
+      container.innerHTML="";
+      s.forEach(doc=>{
+        const r=doc.data();
+        container.innerHTML+=`
+          <div class="replyBox">
+            <strong>${r.name} (${r.kindred})</strong>: ${r.text}
+          </div>
+        `;
+      });
+    });
+}
 </script>
 
 </body>
