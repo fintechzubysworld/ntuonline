@@ -152,6 +152,73 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
+  
+/* ===============================
+   USER PRESENCE SYSTEM
+   =============================== */
+
+const usersCollection = db.collection("users");
+
+/* Mark User Online */
+function setUserOnline(user){
+    if(!user) return;
+
+    usersCollection.doc(user.uid).set({
+        email: user.email,
+        online: true,
+        lastSeen: null,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+/* Mark User Offline */
+function setUserOffline(user){
+    if(!user) return;
+
+    usersCollection.doc(user.uid).set({
+        online: false,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+/* Auth State Listener */
+auth.onAuthStateChanged(user=>{
+    if(user){
+        setUserOnline(user);
+    }
+});
+
+/* Logout Override */
+function logout(){
+    const user = auth.currentUser;
+
+    if(user){
+        setUserOffline(user);
+    }
+
+    auth.signOut();
+}
+
+/* Detect Tab / Browser Close */
+window.addEventListener("beforeunload", function () {
+    const user = auth.currentUser;
+    if(user){
+        setUserOffline(user);
+    }
+});
+
+/* Optional: Detect Page Visibility Change (Tab Switch) */
+document.addEventListener("visibilitychange", function(){
+    const user = auth.currentUser;
+    if(!user) return;
+
+    if(document.visibilityState === "hidden"){
+        setUserOffline(user);
+    } else {
+        setUserOnline(user);
+    }
+});
 
 let currentUser = null;
 let authMode = "login";
@@ -428,7 +495,75 @@ created:Date.now()
 privateInput.value="";
 }
 
+/* ===============================
+   USER PRESENCE SYSTEM
+   =============================== */
+
+const usersCollection = db.collection("users");
+
+/* Mark User Online */
+function setUserOnline(user){
+    if(!user) return;
+
+    usersCollection.doc(user.uid).set({
+        email: user.email,
+        online: true,
+        lastSeen: null,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+/* Mark User Offline */
+function setUserOffline(user){
+    if(!user) return;
+
+    usersCollection.doc(user.uid).set({
+        online: false,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+/* Auth State Listener */
+auth.onAuthStateChanged(user=>{
+    if(user){
+        setUserOnline(user);
+    }
+});
+
+/* Logout Override */
+function logout(){
+    const user = auth.currentUser;
+
+    if(user){
+        setUserOffline(user);
+    }
+
+    auth.signOut();
+}
+
+/* Detect Tab / Browser Close */
+window.addEventListener("beforeunload", function () {
+    const user = auth.currentUser;
+    if(user){
+        setUserOffline(user);
+    }
+});
+
+/* Optional: Detect Page Visibility Change (Tab Switch) */
+document.addEventListener("visibilitychange", function(){
+    const user = auth.currentUser;
+    if(!user) return;
+
+    if(document.visibilityState === "hidden"){
+        setUserOffline(user);
+    } else {
+        setUserOnline(user);
+    }
+});
+
 </script>
 
 </body>
 </html>
+
