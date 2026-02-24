@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Admin Panel</title>
+<title>Admin Control Center</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -12,100 +12,179 @@
 
 <style>
 body{
+margin:0;
+font-family:Arial;
 background:#0f172a;
 color:white;
-font-family:Arial;
+}
+
+header{
+background:#1e293b;
+padding:15px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.section{
 padding:20px;
 }
+
 .card{
 background:#1e293b;
 padding:15px;
 border-radius:15px;
 margin-bottom:20px;
 }
-input,textarea{
-width:100%;
-padding:8px;
-margin-top:6px;
-border-radius:10px;
-border:none;
-}
+
 button{
-margin-top:8px;
-padding:8px 15px;
+padding:6px 12px;
 border:none;
 border-radius:20px;
 background:#f97316;
 color:white;
 cursor:pointer;
+margin-top:5px;
+}
+
+button:hover{opacity:0.85;}
+
+input,textarea{
+width:100%;
+padding:8px;
+margin-top:6px;
+border-radius:8px;
+border:none;
+}
+
+.stat{
+font-size:18px;
+margin-bottom:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🛡 Admin Dashboard</h1>
+<header>
+<h2><i class="fa-solid fa-shield"></i> Admin Control Center</h2>
+<button onclick="logout()">Logout</button>
+</header>
 
+<div class="section">
+
+<!-- DASHBOARD -->
 <div class="card">
-<h2>🔴 Live Stream</h2>
-<input id="liveId" placeholder="YouTube Video ID">
-<input id="liveTitle" placeholder="Title">
-<input id="liveDuration" type="number" placeholder="Auto end (minutes)">
-<button onclick="startLive()">Go Live</button>
-<button onclick="endLive()">End Now</button>
+<h3>📊 Dashboard Stats</h3>
+<div id="stats"></div>
 </div>
 
+<!-- LIVE CONTROL -->
 <div class="card">
-<h2>📅 Create Event</h2>
-<input id="title" placeholder="Title">
-<textarea id="desc" placeholder="Description"></textarea>
-<input type="date" id="date">
-<input id="image" placeholder="Image URL">
-<input id="video" placeholder="Video Embed URL">
-<input id="audio" placeholder="Audio URL">
+<h3>🔴 Live Stream Control</h3>
+<input id="liveId" placeholder="YouTube Video ID">
+<input id="liveTitle" placeholder="Live Title">
+<input id="liveDuration" type="number" placeholder="Auto End (minutes)">
+<button onclick="startLive()">Start Live</button>
+<button onclick="endLive()">End Live</button>
+<div id="liveStatus"></div>
+</div>
+
+<!-- EVENT MANAGEMENT -->
+<div class="card">
+<h3>📅 Event Management</h3>
+
+<input id="eventTitle" placeholder="Title">
+<textarea id="eventDesc" placeholder="Description"></textarea>
+<input id="eventDate" type="date">
+<input id="eventImage" placeholder="Image URL">
+<input id="eventVideo" placeholder="Video URL">
+<input id="eventAudio" placeholder="Audio URL">
 <button onclick="createEvent()">Create Event</button>
+
 <div id="eventList"></div>
 </div>
 
+<!-- FEED MODERATION -->
 <div class="card">
-<h2>📰 Post to Feed</h2>
-<textarea id="feedText"></textarea>
-<button onclick="postFeed()">Post</button>
+<h3>📰 Feed Moderation</h3>
+<div id="feedList"></div>
+</div>
+
+<!-- CHAT MODERATION -->
+<div class="card">
+<h3>💬 Global Chat Moderation</h3>
+<div id="chatList"></div>
+<button onclick="clearChat()">Clear All Chat</button>
+</div>
+
+<!-- USERS -->
+<div class="card">
+<h3>👥 Users</h3>
+<div id="userList"></div>
+</div>
+
 </div>
 
 <script>
 const firebaseConfig={
-apiKey:"AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
-authDomain:"ntudioka-online-c29d8.firebaseapp.com",
-projectId:"ntudioka-online-c29d8"
+apiKey:"YOUR_API_KEY",
+authDomain:"YOUR_AUTH_DOMAIN",
+projectId:"YOUR_PROJECT_ID"
 };
 firebase.initializeApp(firebaseConfig);
 
 const auth=firebase.auth();
 const db=firebase.firestore();
 
+//////////////// ACCESS CONTROL //////////////////
+
 auth.onAuthStateChanged(user=>{
 if(!user || user.email!=="fintech.zubysworld@gmail.com"){
-alert("Unauthorized");
+alert("Unauthorized Access");
 window.location="index.html";
 }
 });
 
-function startLive(){
-const id=liveId.value;
-const title=liveTitle.value;
-const duration=parseInt(liveDuration.value);
+function logout(){
+auth.signOut().then(()=>{
+window.location="index.html";
+});
+}
 
+//////////////// DASHBOARD STATS //////////////////
+
+function loadStats(){
+Promise.all([
+db.collection("users").get(),
+db.collection("feed").get(),
+db.collection("events").get(),
+db.collection("chat").get()
+]).then(([users,feed,events,chat])=>{
+stats.innerHTML=`
+<div class="stat">Total Users: ${users.size}</div>
+<div class="stat">Total Posts: ${feed.size}</div>
+<div class="stat">Total Events: ${events.size}</div>
+<div class="stat">Total Chat Messages: ${chat.size}</div>
+`;
+});
+}
+
+loadStats();
+
+//////////////// LIVE //////////////////
+
+function startLive(){
 db.collection("live").doc("current").set({
-videoId:id,
-title:title,
-started:Date.now()
+videoId:liveId.value,
+title:liveTitle.value,
+created:Date.now()
 });
 
-if(duration){
+if(liveDuration.value){
 setTimeout(()=>{
-db.collection("live").doc("current").delete();
-},duration*60000);
+endLive();
+},liveDuration.value*60000);
 }
 }
 
@@ -113,49 +192,112 @@ function endLive(){
 db.collection("live").doc("current").delete();
 }
 
+db.collection("live").doc("current")
+.onSnapshot(doc=>{
+if(doc.exists){
+liveStatus.innerHTML="Live is Active";
+}else{
+liveStatus.innerHTML="Live is Offline";
+}
+});
+
+//////////////// EVENTS //////////////////
+
 function createEvent(){
 db.collection("events").add({
-title:title.value,
-description:desc.value,
-date:date.value,
-image:image.value||null,
-video:video.value||null,
-audio:audio.value||null,
+title:eventTitle.value,
+description:eventDesc.value,
+date:eventDate.value,
+image:eventImage.value||null,
+video:eventVideo.value||null,
+audio:eventAudio.value||null,
 created:Date.now()
 });
-
-title.value="";
-desc.value="";
-date.value="";
-image.value="";
-video.value="";
-audio.value="";
-}
-
-function postFeed(){
-db.collection("feed").add({
-text:feedText.value,
-created:Date.now(),
-likes:0
-});
-feedText.value="";
+eventTitle.value="";
+eventDesc.value="";
+eventDate.value="";
+eventImage.value="";
+eventVideo.value="";
+eventAudio.value="";
 }
 
 db.collection("events").orderBy("created","desc")
-.onSnapshot(s=>{
+.onSnapshot(snapshot=>{
 eventList.innerHTML="";
-s.forEach(doc=>{
+snapshot.forEach(doc=>{
+const e=doc.data();
 eventList.innerHTML+=`
-<div>
-${doc.data().title}
+<div class="card">
+<h4>${e.title}</h4>
 <button onclick="deleteEvent('${doc.id}')">Delete</button>
-</div>`;
+</div>
+`;
 });
 });
 
 function deleteEvent(id){
 db.collection("events").doc(id).delete();
 }
+
+//////////////// FEED //////////////////
+
+db.collection("feed").orderBy("created","desc")
+.onSnapshot(snapshot=>{
+feedList.innerHTML="";
+snapshot.forEach(doc=>{
+const f=doc.data();
+feedList.innerHTML+=`
+<div class="card">
+<p>${f.text}</p>
+<small>${f.user}</small><br>
+<button onclick="deletePost('${doc.id}')">Delete</button>
+</div>
+`;
+});
+});
+
+function deletePost(id){
+db.collection("feed").doc(id).delete();
+}
+
+//////////////// CHAT //////////////////
+
+db.collection("chat").orderBy("created")
+.onSnapshot(snapshot=>{
+chatList.innerHTML="";
+snapshot.forEach(doc=>{
+const m=doc.data();
+chatList.innerHTML+=`
+<p><b>${m.user}</b>: ${m.text}
+<button onclick="deleteChat('${doc.id}')">X</button></p>
+`;
+});
+});
+
+function deleteChat(id){
+db.collection("chat").doc(id).delete();
+}
+
+function clearChat(){
+db.collection("chat").get().then(snapshot=>{
+snapshot.forEach(doc=>{
+doc.ref.delete();
+});
+});
+}
+
+//////////////// USERS //////////////////
+
+db.collection("users")
+.onSnapshot(snapshot=>{
+userList.innerHTML="";
+snapshot.forEach(doc=>{
+const u=doc.data();
+userList.innerHTML+=`
+<p>${u.email} ${u.online?"🟢":"⚫"}</p>
+`;
+});
+});
 </script>
 
 </body>
