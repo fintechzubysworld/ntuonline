@@ -240,7 +240,6 @@ created:Date.now()
 .then(()=>feedInput.value="");
 }
 
-// Feed with replies (already functional, but shown for completeness)
 db.collection("feed").orderBy("created","desc")
 .onSnapshot(s=>{
   feedArea.innerHTML="";
@@ -254,10 +253,7 @@ db.collection("feed").orderBy("created","desc")
         <input id="replyFeed${doc.id}" placeholder="Reply">
         <button onclick="replyFeed('${doc.id}')">Reply</button>
       </div>
-    `;
-    loadReplies("feed",doc.id,"feedReplies");
-  });
-});
+`;
 loadReplies("feed",doc.id,"feedReplies");
 });
 });
