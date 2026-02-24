@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
+/* (styles unchanged) */
 body {
   margin: 0;
   font-family: Arial;
@@ -171,6 +172,9 @@ th {
   const auth = firebase.auth();
   const db = firebase.firestore();
 
+  // Hardcoded superadmin email (the one you used in index.html)
+  const SUPER_ADMIN_EMAIL = "fintech.zubysworld@gmail.com";
+
   let currentUser = null;
 
   // UI elements
@@ -184,14 +188,41 @@ th {
     console.error(message);
   }
 
+  // Helper to show messages in specific div
+  function showMessage(elementId, text, type) {
+    const div = document.getElementById(elementId);
+    div.textContent = text;
+    div.className = `message ${type}`;
+    setTimeout(() => {
+      div.style.display = 'none';
+    }, 5000);
+  }
+
   // Check if user is admin
   auth.onAuthStateChanged(user => {
     if (user) {
       userEmailSpan.textContent = user.email;
-      // Fetch user doc to check admin
+      // Fetch user doc to check admin status
       db.collection('users').doc(user.uid).get()
         .then(doc => {
-          if (doc.exists && doc.data().isAdmin === true) {
+          let isAdmin = doc.exists && doc.data().isAdmin === true;
+
+          // Superadmin fallback: if email matches and not already admin, set them as admin
+          if (!isAdmin && user.email === SUPER_ADMIN_EMAIL) {
+            return db.collection('users').doc(user.uid).set({
+              isAdmin: true
+            }, { merge: true }).then(() => {
+              isAdmin = true;
+            });
+          }
+        })
+        .then(() => {
+          // Re-fetch the doc to confirm admin status after potential update
+          return db.collection('users').doc(user.uid).get();
+        })
+        .then(doc => {
+          const isAdmin = doc.exists && doc.data().isAdmin === true;
+          if (isAdmin) {
             // Authorized: show dashboard
             currentUser = user;
             authCheckDiv.style.display = 'none';
@@ -297,9 +328,6 @@ th {
           const uid = doc.id;
           const isAdmin = user.isAdmin || false;
 
-          // Don't show current user in the list? (optional, but we can allow self-demotion)
-          // if (uid === currentUser.uid) return; // uncomment to hide self
-
           const row = document.createElement('tr');
           row.innerHTML = `
             <td>${user.name || '?'}</td>
@@ -330,16 +358,6 @@ th {
     })
     .catch(err => showMessage('adminMessage', err.message, 'error'));
   };
-
-  // Helper to show messages in specific div
-  function showMessage(elementId, text, type) {
-    const div = document.getElementById(elementId);
-    div.textContent = text;
-    div.className = `message ${type}`;
-    setTimeout(() => {
-      div.style.display = 'none';
-    }, 5000);
-  }
 </script>
 
 </body>
