@@ -17,7 +17,6 @@ font-family:Arial;
 background:linear-gradient(135deg,#0f172a,#1e293b);
 color:white;
 }
-
 header{
 background:#0ea5e9;
 padding:15px;
@@ -25,7 +24,13 @@ display:flex;
 justify-content:space-between;
 align-items:center;
 }
-
+.section{padding:20px;}
+.card{
+background:#1e293b;
+padding:15px;
+border-radius:15px;
+margin-bottom:20px;
+}
 button{
 padding:6px 12px;
 border:none;
@@ -33,21 +38,8 @@ border-radius:20px;
 background:#f97316;
 color:white;
 cursor:pointer;
+margin-top:5px;
 }
-
-button:hover{opacity:0.9;}
-
-.section{
-padding:20px;
-}
-
-.card{
-background:#1e293b;
-padding:15px;
-border-radius:15px;
-margin-bottom:15px;
-}
-
 input,textarea{
 width:100%;
 padding:8px;
@@ -55,33 +47,16 @@ margin-top:6px;
 border-radius:8px;
 border:none;
 }
-
-.chatBox{
-height:250px;
-overflow-y:auto;
-background:#111827;
-padding:10px;
-border-radius:10px;
-margin-bottom:10px;
-}
-
-.online{
-color:#22c55e;
-font-size:12px;
-}
+.replyBox{margin-left:20px;margin-top:10px;}
+.small{font-size:12px;color:#94a3b8;}
+.onlineDot{color:#22c55e;}
 </style>
 </head>
-
 <body>
 
 <header>
 <h2><i class="fa-solid fa-globe"></i> Ntudioka Community</h2>
-
-<div id="navArea">
-<button onclick="showLogin()">Login</button>
-<button onclick="showRegister()">Register</button>
-</div>
-
+<div id="navArea"></div>
 </header>
 
 <div class="section">
@@ -90,6 +65,10 @@ font-size:12px;
 <div class="card">
 <h3>🔴 Live Stream</h3>
 <div id="liveArea">Loading...</div>
+
+<textarea id="liveCommentInput" placeholder="Comment on live"></textarea>
+<button onclick="commentLive()">Comment</button>
+<div id="liveComments"></div>
 </div>
 
 <!-- EVENTS -->
@@ -101,39 +80,49 @@ font-size:12px;
 <!-- FEED -->
 <div class="card">
 <h3>📰 Community Feed</h3>
-
-<textarea id="feedInput" placeholder="Share something..."></textarea>
+<textarea id="feedInput" placeholder="Share something"></textarea>
 <button onclick="postFeed()">Post</button>
-
 <div id="feedArea"></div>
 </div>
 
-<!-- GLOBAL CHAT -->
+<!-- CHAT -->
 <div class="card">
 <h3>💬 Community Chat</h3>
-
-<div class="chatBox" id="chatMessages"></div>
+<div id="chatArea"></div>
 <input id="chatInput" placeholder="Type message">
 <button onclick="sendChat()">Send</button>
 </div>
 
-<!-- PRIVATE CHAT -->
+<!-- GOODWILL -->
 <div class="card">
-<h3>📩 Private Messages</h3>
-<input id="privateEmail" placeholder="Enter user email">
-<div class="chatBox" id="privateMessages"></div>
-<input id="privateInput" placeholder="Type private message">
-<button onclick="sendPrivate()">Send</button>
+<h3>🤝 Goodwill Messages</h3>
+<textarea id="goodwillInput"></textarea>
+<button onclick="postGoodwill()">Post</button>
+<div id="goodwillArea"></div>
 </div>
 
 </div>
 
-<!-- AUTH MODAL -->
-<div id="authBox" style="display:none;padding:20px;">
-<h3 id="authTitle"></h3>
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button onclick="submitAuth()">Submit</button>
+<!-- AUTH -->
+<div id="authContainer" style="display:none;padding:20px;background:#1e293b;">
+<h3 id="authHeader">Login</h3>
+
+<div id="registerFields" style="display:none;">
+<input id="regName" placeholder="Full Name">
+<input id="regKindred" placeholder="Kindred Name">
+</div>
+
+<input id="authEmail" placeholder="Email">
+<input id="authPassword" type="password" placeholder="Password">
+
+<button id="authSubmitBtn">Login</button>
+
+<p>
+<span id="toggleText">Don't have an account?</span>
+<a href="#" onclick="toggleAuthMode()" style="color:#22c55e;">Register</a>
+</p>
+
+<div id="authMessage"></div>
 </div>
 
 <script>
@@ -148,214 +137,218 @@ font-size:12px;
   };
 firebase.initializeApp(firebaseConfig);
 
+const auth=firebase.auth();
+const db=firebase.firestore();
+let currentUser=null;
 
-/* ========= AUTH FIXED MODULE ========= */
+/* ================= AUTH ================= */
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+let authMode="login";
+const navArea=document.getElementById("navArea");
+const authContainer=document.getElementById("authContainer");
 
+function showAuth(){authContainer.style.display="block";}
 
-/* ===============================
-   USER PRESENCE SYSTEM
-   =============================== */
-
-const usersCollection = db.collection("users");
-
-/* Mark User Online */
-function setUserOnline(user){
-    if(!user) return;
-
-    usersCollection.doc(user.uid).set({
-        email: user.email,
-        online: true,
-        lastSeen: null,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+function toggleAuthMode(){
+authMode=authMode==="login"?"register":"login";
+document.getElementById("registerFields").style.display=authMode==="register"?"block":"none";
+document.getElementById("authHeader").innerText=authMode==="login"?"Login":"Register";
+document.getElementById("authSubmitBtn").innerText=authMode==="login"?"Login":"Register";
+document.getElementById("toggleText").innerText=
+authMode==="login"?"Don't have an account?":"Already have an account?";
 }
 
-/* Mark User Offline */
-function setUserOffline(user){
-    if(!user) return;
+document.getElementById("authSubmitBtn").onclick=function(){
+const email=authEmail.value.trim();
+const password=authPassword.value.trim();
 
-    usersCollection.doc(user.uid).set({
-        online: false,
-        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-}
+if(authMode==="register"){
+const name=regName.value.trim();
+const kindred=regKindred.value.trim();
+if(!name||!kindred||!email||!password){alert("All fields required");return;}
 
-/* Auth State Listener */
-auth.onAuthStateChanged(user=>{
-    if(user){
-        setUserOnline(user);
-    }
+auth.createUserWithEmailAndPassword(email,password)
+.then(cred=>{
+return db.collection("users").doc(cred.user.uid).set({
+name,kindred,email,
+online:true,
+lastSeen:null,
+createdAt:firebase.firestore.FieldValue.serverTimestamp()
 });
-
-/* Logout Override */
-function logout(){
-    const user = auth.currentUser;
-
-    if(user){
-        setUserOffline(user);
-    }
-
-    auth.signOut();
+})
+.then(()=>{alert("Registered");authContainer.style.display="none";clearAuth();});
+}else{
+auth.signInWithEmailAndPassword(email,password)
+.then(()=>{alert("Login successful");authContainer.style.display="none";clearAuth();})
+.catch(e=>alert(e.message));
 }
-
-/* Detect Tab / Browser Close */
-window.addEventListener("beforeunload", function () {
-    const user = auth.currentUser;
-    if(user){
-        setUserOffline(user);
-    }
-});
-
-/* Optional: Detect Page Visibility Change (Tab Switch) */
-document.addEventListener("visibilitychange", function(){
-    const user = auth.currentUser;
-    if(!user) return;
-
-    if(document.visibilityState === "hidden"){
-        setUserOffline(user);
-    } else {
-        setUserOnline(user);
-    }
-});
-
-let currentUser = null;
-let authMode = "login";
-
-/* Cache Elements */
-const navArea = document.getElementById("navArea");
-const authBox = document.getElementById("authBox");
-const authTitle = document.getElementById("authTitle");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-
-/* Show Login */
-function showLogin(){
-    authMode = "login";
-    authTitle.innerText = "Login";
-    authBox.style.display = "block";
-}
-
-/* Show Register */
-function showRegister(){
-    authMode = "register";
-    authTitle.innerText = "Register";
-    authBox.style.display = "block";
-}
-
-/* Submit Auth */
-function submitAuth(){
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-
-    if(!email || !password){
-        alert("Please enter email and password.");
-        return;
-    }
-
-    if(authMode === "register"){
-        auth.createUserWithEmailAndPassword(email,password)
-        .then(()=>{
-            alert("Registration successful!");
-            clearAuthInputs();
-        })
-        .catch(err=>{
-            alert(err.message);
-        });
-    } else {
-        auth.signInWithEmailAndPassword(email,password)
-        .then(()=>{
-            alert("Login successful!");
-            clearAuthInputs();
-        })
-        .catch(err=>{
-            alert(err.message);
-        });
-    }
-}
-
-/* Clear Inputs */
-function clearAuthInputs(){
-    emailInput.value = "";
-    passwordInput.value = "";
-    authBox.style.display = "none";
-}
-
-/* Logout */
-function logout(){
-    auth.signOut();
-}
-
-/* Toggle Navigation Based On Login */
-auth.onAuthStateChanged(user=>{
-    currentUser = user;
-
-    if(user){
-
-        navArea.innerHTML = `
-            <span style="color:#22c55e;">● Online</span>
-            <button onclick="logout()">Logout</button>
-            ${user.email === "fintech.zubysworld@gmail.com" ?
-            `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
-        `;
-
-        // Update user online status
-        db.collection("users").doc(user.uid).set({
-            email:user.email,
-            online:true,
-            lastActive:Date.now()
-        },{merge:true});
-
-    } else {
-
-        navArea.innerHTML = `
-            <button onclick="showLogin()">Login</button>
-            <button onclick="showRegister()">Register</button>
-        `;
-    }
-});
-
-/* Optional: Hide modal if clicked outside */
-window.onclick = function(e){
-    if(e.target === authBox){
-        authBox.style.display = "none";
-    }
 };
 
-auth.onAuthStateChanged(user=>{
-currentUser=user;
-
-if(user){
-
-navArea.innerHTML=`
-<span class="online">● Online</span>
-<button onclick="logout()">Logout</button>
-${user.email==="fintech.zubysworld@gmail.com" ? 
-`<button onclick="window.location='ntuonline.html'">Admin</button>`:""}
-`;
-
-db.collection("users").doc(user.uid).set({
-email:user.email,
-online:true
-},{merge:true});
-
-}else{
-navArea.innerHTML=`
-<button onclick="showLogin()">Login</button>
-<button onclick="showRegister()">Register</button>
-`;
+function clearAuth(){
+authEmail.value="";
+authPassword.value="";
+if(regName)regName.value="";
+if(regKindred)regKindred.value="";
 }
-});
 
 function logout(){
+if(currentUser){
+db.collection("users").doc(currentUser.uid).update({
+online:false,
+lastSeen:firebase.firestore.FieldValue.serverTimestamp()
+});
+}
 auth.signOut();
 }
 
-//////////////// LIVE STREAM //////////////////
+auth.onAuthStateChanged(user=>{
+currentUser=user;
+if(user){
+db.collection("users").doc(user.uid).update({online:true});
+navArea.innerHTML=`
+<span class="onlineDot">● Online</span>
+<button onclick="logout()">Logout</button>
+${user.email==="fintech.zubysworld@gmail.com"?
+`<button onclick="window.location='ntuonline.html'">Admin</button>`:""}
+`;
+}else{
+navArea.innerHTML=`<button onclick="showAuth()">Login / Register</button>`;
+}
+});
+
+window.addEventListener("beforeunload",()=>{
+if(currentUser){
+db.collection("users").doc(currentUser.uid).update({
+online:false,
+lastSeen:firebase.firestore.FieldValue.serverTimestamp()
+});
+}
+});
+
+/* ================= FEED ================= */
+
+function postFeed(){
+if(!currentUser)return alert("Login required");
+db.collection("users").doc(currentUser.uid).get()
+.then(u=>{
+return db.collection("feed").add({
+text:feedInput.value,
+name:u.data().name,
+kindred:u.data().kindred,
+created:Date.now()
+});
+})
+.then(()=>feedInput.value="");
+}
+
+db.collection("feed").orderBy("created","desc")
+.onSnapshot(s=>{
+feedArea.innerHTML="";
+s.forEach(doc=>{
+const p=doc.data();
+feedArea.innerHTML+=`
+<div class="card">
+<strong>${p.name} (${p.kindred})</strong>
+<p>${p.text}</p>
+<div id="feedReplies${doc.id}"></div>
+<input id="replyFeed${doc.id}" placeholder="Reply">
+<button onclick="replyFeed('${doc.id}')">Reply</button>
+</div>
+`;
+loadReplies("feed",doc.id,"feedReplies");
+});
+});
+
+function replyFeed(id){
+if(!currentUser)return;
+db.collection("users").doc(currentUser.uid).get()
+.then(u=>{
+return db.collection("feed").doc(id)
+.collection("replies").add({
+text:document.getElementById("replyFeed"+id).value,
+name:u.data().name,
+kindred:u.data().kindred,
+created:Date.now()
+});
+})
+.then(()=>document.getElementById("replyFeed"+id).value="");
+}
+
+function loadReplies(collection,id,containerPrefix){
+db.collection(collection).doc(id).collection("replies")
+.orderBy("created")
+.onSnapshot(s=>{
+const box=document.getElementById(containerPrefix+id);
+if(!box)return;
+box.innerHTML="";
+s.forEach(r=>{
+box.innerHTML+=`
+<div class="replyBox">
+<strong>${r.data().name} (${r.data().kindred})</strong>
+<p>${r.data().text}</p>
+</div>`;
+});
+});
+}
+
+/* ================= CHAT ================= */
+
+function sendChat(){
+if(!currentUser)return;
+db.collection("users").doc(currentUser.uid).get()
+.then(u=>{
+return db.collection("chat").add({
+text:chatInput.value,
+name:u.data().name,
+kindred:u.data().kindred,
+created:Date.now()
+});
+})
+.then(()=>chatInput.value="");
+}
+
+db.collection("chat").orderBy("created")
+.onSnapshot(s=>{
+chatArea.innerHTML="";
+s.forEach(doc=>{
+const m=doc.data();
+chatArea.innerHTML+=`
+<div>
+<strong>${m.name} (${m.kindred})</strong>: ${m.text}
+</div>`;
+});
+});
+
+/* ================= GOODWILL ================= */
+
+function postGoodwill(){
+if(!currentUser)return;
+db.collection("users").doc(currentUser.uid).get()
+.then(u=>{
+return db.collection("goodwill").add({
+text:goodwillInput.value,
+name:u.data().name,
+kindred:u.data().kindred,
+created:Date.now()
+});
+})
+.then(()=>goodwillInput.value="");
+}
+
+db.collection("goodwill").orderBy("created","desc")
+.onSnapshot(s=>{
+goodwillArea.innerHTML="";
+s.forEach(doc=>{
+const g=doc.data();
+goodwillArea.innerHTML+=`
+<div>
+<strong>${g.name} (${g.kindred})</strong>
+<p>${g.text}</p>
+</div>`;
+});
+});
+
+/* ================= LIVE ================= */
 
 db.collection("live").doc("current")
 .onSnapshot(doc=>{
@@ -372,131 +365,33 @@ liveArea.innerHTML="Currently Offline";
 }
 });
 
-//////////////// EVENTS //////////////////
-
-db.collection("events").orderBy("created","desc")
-.onSnapshot(snapshot=>{
-eventArea.innerHTML="";
-snapshot.forEach(doc=>{
-const e=doc.data();
-eventArea.innerHTML+=`
-<div class="card">
-<h4>${e.title}</h4>
-<p>${e.description}</p>
-${e.image?`<img src="${e.image}" width="100%">`:""}
-${e.video?`<iframe width="100%" height="315" src="${e.video}"></iframe>`:""}
-${e.audio?`<audio controls style="width:100%"><source src="${e.audio}"></audio>`:""}
-
-<button onclick="rsvp('${doc.id}')">RSVP</button>
-<div id="comments${doc.id}"></div>
-<textarea id="comment${doc.id}" placeholder="Comment"></textarea>
-<button onclick="commentEvent('${doc.id}')">Comment</button>
-</div>
-`;
-
-db.collection("events").doc(doc.id).collection("comments")
-.onSnapshot(cs=>{
-let html="";
-cs.forEach(c=>{
-html+=`<p>💬 ${c.data().text}</p>`;
+function commentLive(){
+if(!currentUser)return;
+db.collection("users").doc(currentUser.uid).get()
+.then(u=>{
+return db.collection("live").doc("current")
+.collection("comments").add({
+text:liveCommentInput.value,
+name:u.data().name,
+kindred:u.data().kindred,
+created:Date.now()
 });
-document.getElementById("comments"+doc.id).innerHTML=html;
-});
-});
-});
-
-function rsvp(id){
-if(!currentUser) return alert("Login required");
-db.collection("events").doc(id).collection("rsvp")
-.doc(currentUser.uid).set({
-user:currentUser.email
-});
-alert("RSVP confirmed");
+})
+.then(()=>liveCommentInput.value="");
 }
 
-function commentEvent(id){
-if(!currentUser) return alert("Login required");
-const text=document.getElementById("comment"+id).value;
-db.collection("events").doc(id).collection("comments")
-.add({text:text,user:currentUser.email});
-document.getElementById("comment"+id).value="";
-}
-
-//////////////// FEED //////////////////
-
-function postFeed(){
-if(!currentUser) return alert("Login required");
-
-db.collection("feed").add({
-text:feedInput.value,
-user:currentUser.email,
-created:Date.now(),
-likes:0
-});
-feedInput.value="";
-}
-
-db.collection("feed").orderBy("created","desc")
-.onSnapshot(snapshot=>{
-feedArea.innerHTML="";
-snapshot.forEach(doc=>{
-const f=doc.data();
-feedArea.innerHTML+=`
-<div class="card">
-<p>${f.text}</p>
-<small>By ${f.user}</small><br>
-<button onclick="likePost('${doc.id}')">👍</button>
-<span>${f.likes||0}</span>
-</div>
+db.collection("live").doc("current")
+.collection("comments")
+.orderBy("created")
+.onSnapshot(s=>{
+liveComments.innerHTML="";
+s.forEach(doc=>{
+const c=doc.data();
+liveComments.innerHTML+=`
+<p><strong>${c.name} (${c.kindred})</strong>: ${c.text}</p>
 `;
 });
 });
-
-function likePost(id){
-if(!currentUser) return alert("Login required");
-db.collection("feed").doc(id)
-.update({likes:firebase.firestore.FieldValue.increment(1)});
-}
-
-//////////////// GLOBAL CHAT //////////////////
-
-function sendChat(){
-if(!currentUser) return alert("Login required");
-
-db.collection("chat").add({
-text:chatInput.value,
-user:currentUser.email,
-created:Date.now()
-});
-chatInput.value="";
-}
-
-db.collection("chat").orderBy("created")
-.onSnapshot(snapshot=>{
-chatMessages.innerHTML="";
-snapshot.forEach(doc=>{
-const m=doc.data();
-chatMessages.innerHTML+=`<p><b>${m.user}:</b> ${m.text}</p>`;
-});
-});
-
-//////////////// PRIVATE CHAT //////////////////
-
-function sendPrivate(){
-if(!currentUser) return alert("Login required");
-
-const other=privateEmail.value;
-const room=[currentUser.email,other].sort().join("_");
-
-db.collection("privateChats").doc(room).collection("messages")
-.add({
-text:privateInput.value,
-user:currentUser.email,
-created:Date.now()
-});
-privateInput.value="";
-}
-
 </script>
 
 </body>
