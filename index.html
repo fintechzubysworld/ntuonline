@@ -7,49 +7,28 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-body{
-margin:0;
-font-family:Arial;
-background:linear-gradient(135deg,#0f172a,#1e293b);
-color:white;
+/* (styles unchanged, add some for delete button) */
+.delete-btn {
+  background: transparent;
+  color: #ef4444;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 10px;
 }
-header{
-background:#0ea5e9;
-padding:15px;
-display:flex;
-justify-content:space-between;
-align-items:center;
+.delete-btn:hover {
+  color: #dc2626;
 }
-.section{padding:20px;}
-.card{
-background:#1e293b;
-padding:15px;
-border-radius:15px;
-margin-bottom:20px;
+.item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-button{
-padding:6px 12px;
-border:none;
-border-radius:20px;
-background:#f97316;
-color:white;
-cursor:pointer;
-margin-top:5px;
-}
-input,textarea{
-width:100%;
-padding:8px;
-margin-top:6px;
-border-radius:8px;
-border:none;
-}
-.replyBox{margin-left:20px;margin-top:10px;}
-.small{font-size:12px;color:#94a3b8;}
-.onlineDot{color:#22c55e;}
 </style>
 </head>
 <body>
@@ -138,9 +117,11 @@ border:none;
 
   const auth = firebase.auth();
   const db = firebase.firestore();
+  const storage = firebase.storage(); // Added
   let currentUser = null;
+  let currentUserIsAdmin = false; // global admin flag
 
-  // ---------- Helper: show error to user ----------
+  // ---------- Helper: show error ----------
   function showError(message) {
     alert("Error: " + message);
     console.error(message);
@@ -178,7 +159,8 @@ border:none;
           name, kindred, email,
           online: true,
           lastSeen: null,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          isAdmin: false
         }))
         .then(() => {
           alert("Registered successfully");
@@ -219,14 +201,21 @@ border:none;
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
+      // Update online status and fetch admin flag
       db.collection("users").doc(user.uid).update({ online: true }).catch(showError);
-      navArea.innerHTML = `
-        <span class="onlineDot">● Online</span>
-        <button onclick="logout()">Logout</button>
-        ${user.email === "fintech.zubysworld@gmail.com" ?
-          `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
-      `;
+      db.collection("users").doc(user.uid).get()
+        .then(doc => {
+          const userData = doc.data();
+          currentUserIsAdmin = userData?.isAdmin || false;
+          navArea.innerHTML = `
+            <span class="onlineDot">● Online</span>
+            <button onclick="logout()">Logout</button>
+            ${currentUserIsAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
+          `;
+        })
+        .catch(showError);
     } else {
+      currentUserIsAdmin = false;
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
     }
   });
@@ -239,6 +228,72 @@ border:none;
       }).catch(showError);
     }
   });
+
+  // ---------- RECURSIVE DELETE FUNCTION ----------
+  // Deletes a document and all documents in its subcollections
+  async function deleteDocAndSubcollections(docRef) {
+    const collections = await docRef.listCollections();
+    for (const collection of collections) {
+      const snapshot = await collection.get();
+      for (const subDoc of snapshot.docs) {
+        await deleteDocAndSubcollections(subDoc.ref); // recursive
+      }
+    }
+    await docRef.delete();
+  }
+
+  // ---------- DELETE FUNCTIONS (admin only) ----------
+  window.deleteFeedPost = function(postId) {
+    if (!currentUserIsAdmin) return alert("Admin privileges required");
+    if (!confirm("Delete this post and all replies?")) return;
+    const docRef = db.collection("feed").doc(postId);
+    deleteDocAndSubcollections(docRef).catch(showError);
+  };
+
+  window.deleteFeedReply = function(postId, replyId) {
+    if (!currentUserIsAdmin) return alert("Admin privileges required");
+    if (!confirm("Delete this reply?")) return;
+    db.collection("feed").doc(postId).collection("replies").doc(replyId).delete().catch(showError);
+  };
+
+  window.deleteChatMessage = function(chatId) {
+    if (!currentUserIsAdmin) return alert("Admin privileges required");
+    if (!confirm("Delete this chat message and its replies?")) return;
+    const docRef = db.collection("chat").doc(chatId);
+    deleteDocAndSubcollections(docRef).catch(showError);
+  };
+
+  window.deleteChatReply = function(chatId, replyId) {
+    if (!currentUserIsAdmin) return alert("Admin privileges required");
+    if (!confirm("Delete this reply?")) return;
+    db.collection("chat").doc(chatId).collection("replies").doc(replyId).delete().catch(showError);
+  };
+
+  window.deleteGoodwillMessage = function(goodwillId) {
+    if (!currentUserIsAdmin) return alert("Admin privileges required");
+    if (!confirm("Delete this goodwill message and its replies?")) return;
+    const docRef = db.collection("goodwill").doc(goodwillId);
+    deleteDocAndSubcollections(docRef).catch(showError);
+  };
+
+  window.deleteGoodwillReply = function(goodwillId, replyId) {
+    if (!currentUserIsAdmin) return alert("Admin privileges required");
+    if (!confirm("Delete this reply?")) return;
+    db.collection("goodwill").doc(goodwillId).collection("replies").doc(replyId).delete().catch(showError);
+  };
+
+  window.deleteLiveComment = function(commentId) {
+    if (!currentUserIsAdmin) return alert("Admin privileges required");
+    if (!confirm("Delete this live comment and its replies?")) return;
+    const docRef = db.collection("live").doc("current").collection("comments").doc(commentId);
+    deleteDocAndSubcollections(docRef).catch(showError);
+  };
+
+  window.deleteLiveReply = function(commentId, replyId) {
+    if (!currentUserIsAdmin) return alert("Admin privileges required");
+    if (!confirm("Delete this reply?")) return;
+    db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").doc(replyId).delete().catch(showError);
+  };
 
   // ---------- FEED (with replies) ----------
   window.postFeed = function () {
@@ -260,13 +315,18 @@ border:none;
 
   db.collection("feed").orderBy("created", "desc")
     .onSnapshot(s => {
-      document.getElementById("feedArea").innerHTML = "";
+      const feedArea = document.getElementById("feedArea");
+      feedArea.innerHTML = "";
       s.forEach(doc => {
         const p = doc.data();
         const feedId = doc.id;
-        document.getElementById("feedArea").innerHTML += `
+        const deleteButton = currentUserIsAdmin ? `<button class="delete-btn" onclick="deleteFeedPost('${feedId}')"><i class="fa-solid fa-trash"></i></button>` : "";
+        feedArea.innerHTML += `
           <div class="card" style="margin-bottom:10px;">
-            <strong>${p.name ?? 'null'} (${p.kindred ?? 'null'})</strong>
+            <div class="item-header">
+              <strong>${p.name ?? 'null'} (${p.kindred ?? 'null'})</strong>
+              ${deleteButton}
+            </div>
             <p>${p.text ?? 'null'}</p>
             <div id="feedReplies${feedId}"></div>
             <input id="replyFeed${feedId}" placeholder="Reply">
@@ -303,10 +363,16 @@ border:none;
         if (!box) return;
         box.innerHTML = "";
         s.forEach(r => {
+          const replyId = r.id;
+          const replyData = r.data();
+          const deleteReplyButton = currentUserIsAdmin ? `<button class="delete-btn" onclick="deleteFeedReply('${id}', '${replyId}')"><i class="fa-solid fa-trash"></i></button>` : "";
           box.innerHTML += `
             <div class="replyBox">
-              <strong>${r.data().name ?? 'null'} (${r.data().kindred ?? 'null'})</strong>
-              <p>${r.data().text ?? 'null'}</p>
+              <div class="item-header">
+                <strong>${replyData.name ?? 'null'} (${replyData.kindred ?? 'null'})</strong>
+                ${deleteReplyButton}
+              </div>
+              <p>${replyData.text ?? 'null'}</p>
             </div>
           `;
         });
@@ -338,9 +404,14 @@ border:none;
       s.forEach(doc => {
         const m = doc.data();
         const chatId = doc.id;
+        const deleteButton = currentUserIsAdmin ? `<button class="delete-btn" onclick="deleteChatMessage('${chatId}')"><i class="fa-solid fa-trash"></i></button>` : "";
         chatArea.innerHTML += `
           <div class="card" style="margin-bottom:10px;">
-            <strong>${m.name ?? 'null'} (${m.kindred ?? 'null'})</strong>: ${m.text ?? 'null'}
+            <div class="item-header">
+              <strong>${m.name ?? 'null'} (${m.kindred ?? 'null'})</strong>
+              ${deleteButton}
+            </div>
+            <p>${m.text ?? 'null'}</p>
             <div id="chatReplies${chatId}"></div>
             <input id="chatReplyInput${chatId}" placeholder="Reply to this message">
             <button onclick="replyChat('${chatId}')">Reply</button>
@@ -378,9 +449,15 @@ border:none;
         container.innerHTML = "";
         s.forEach(doc => {
           const r = doc.data();
+          const replyId = doc.id;
+          const deleteReplyButton = currentUserIsAdmin ? `<button class="delete-btn" onclick="deleteChatReply('${chatId}', '${replyId}')"><i class="fa-solid fa-trash"></i></button>` : "";
           container.innerHTML += `
             <div class="replyBox">
-              <strong>${r.name ?? 'null'} (${r.kindred ?? 'null'})</strong>: ${r.text ?? 'null'}
+              <div class="item-header">
+                <strong>${r.name ?? 'null'} (${r.kindred ?? 'null'})</strong>
+                ${deleteReplyButton}
+              </div>
+              <p>${r.text ?? 'null'}</p>
             </div>
           `;
         });
@@ -412,9 +489,13 @@ border:none;
       s.forEach(doc => {
         const g = doc.data();
         const goodwillId = doc.id;
+        const deleteButton = currentUserIsAdmin ? `<button class="delete-btn" onclick="deleteGoodwillMessage('${goodwillId}')"><i class="fa-solid fa-trash"></i></button>` : "";
         goodwillArea.innerHTML += `
           <div class="card" style="margin-bottom:10px;">
-            <strong>${g.name ?? 'null'} (${g.kindred ?? 'null'})</strong>
+            <div class="item-header">
+              <strong>${g.name ?? 'null'} (${g.kindred ?? 'null'})</strong>
+              ${deleteButton}
+            </div>
             <p>${g.text ?? 'null'}</p>
             <div id="goodwillReplies${goodwillId}"></div>
             <input id="goodwillReplyInput${goodwillId}" placeholder="Reply to this message">
@@ -453,9 +534,15 @@ border:none;
         container.innerHTML = "";
         s.forEach(doc => {
           const r = doc.data();
+          const replyId = doc.id;
+          const deleteReplyButton = currentUserIsAdmin ? `<button class="delete-btn" onclick="deleteGoodwillReply('${goodwillId}', '${replyId}')"><i class="fa-solid fa-trash"></i></button>` : "";
           container.innerHTML += `
             <div class="replyBox">
-              <strong>${r.name ?? 'null'} (${r.kindred ?? 'null'})</strong>: ${r.text ?? 'null'}
+              <div class="item-header">
+                <strong>${r.name ?? 'null'} (${r.kindred ?? 'null'})</strong>
+                ${deleteReplyButton}
+              </div>
+              <p>${r.text ?? 'null'}</p>
             </div>
           `;
         });
@@ -506,9 +593,14 @@ border:none;
       s.forEach(doc => {
         const c = doc.data();
         const commentId = doc.id;
+        const deleteButton = currentUserIsAdmin ? `<button class="delete-btn" onclick="deleteLiveComment('${commentId}')"><i class="fa-solid fa-trash"></i></button>` : "";
         liveComments.innerHTML += `
           <div class="card" style="margin-bottom:10px;">
-            <strong>${c.name ?? 'null'} (${c.kindred ?? 'null'})</strong>: ${c.text ?? 'null'}
+            <div class="item-header">
+              <strong>${c.name ?? 'null'} (${c.kindred ?? 'null'})</strong>
+              ${deleteButton}
+            </div>
+            <p>${c.text ?? 'null'}</p>
             <div id="liveReplies${commentId}"></div>
             <input id="liveReplyInput${commentId}" placeholder="Reply to this comment">
             <button onclick="replyLiveComment('${commentId}')">Reply</button>
@@ -548,9 +640,15 @@ border:none;
         container.innerHTML = "";
         s.forEach(doc => {
           const r = doc.data();
+          const replyId = doc.id;
+          const deleteReplyButton = currentUserIsAdmin ? `<button class="delete-btn" onclick="deleteLiveReply('${commentId}', '${replyId}')"><i class="fa-solid fa-trash"></i></button>` : "";
           container.innerHTML += `
             <div class="replyBox">
-              <strong>${r.name ?? 'null'} (${r.kindred ?? 'null'})</strong>: ${r.text ?? 'null'}
+              <div class="item-header">
+                <strong>${r.name ?? 'null'} (${r.kindred ?? 'null'})</strong>
+                ${deleteReplyButton}
+              </div>
+              <p>${r.text ?? 'null'}</p>
             </div>
           `;
         });
