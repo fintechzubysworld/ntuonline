@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Admin Control Center</title>
+<title>Ntudioka Community</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
@@ -14,27 +14,16 @@
 body{
 margin:0;
 font-family:Arial;
-background:#0f172a;
+background:linear-gradient(135deg,#0f172a,#1e293b);
 color:white;
 }
 
 header{
-background:#1e293b;
+background:#0ea5e9;
 padding:15px;
 display:flex;
 justify-content:space-between;
 align-items:center;
-}
-
-.section{
-padding:20px;
-}
-
-.card{
-background:#1e293b;
-padding:15px;
-border-radius:15px;
-margin-bottom:20px;
 }
 
 button{
@@ -44,10 +33,20 @@ border-radius:20px;
 background:#f97316;
 color:white;
 cursor:pointer;
-margin-top:5px;
 }
 
-button:hover{opacity:0.85;}
+button:hover{opacity:0.9;}
+
+.section{
+padding:20px;
+}
+
+.card{
+background:#1e293b;
+padding:15px;
+border-radius:15px;
+margin-bottom:15px;
+}
 
 input,textarea{
 width:100%;
@@ -57,9 +56,18 @@ border-radius:8px;
 border:none;
 }
 
-.stat{
-font-size:18px;
+.chatBox{
+height:250px;
+overflow-y:auto;
+background:#111827;
+padding:10px;
+border-radius:10px;
 margin-bottom:10px;
+}
+
+.online{
+color:#22c55e;
+font-size:12px;
 }
 </style>
 </head>
@@ -67,63 +75,65 @@ margin-bottom:10px;
 <body>
 
 <header>
-<h2><i class="fa-solid fa-shield"></i> Admin Control Center</h2>
-<button onclick="logout()">Logout</button>
+<h2><i class="fa-solid fa-globe"></i> Ntudioka Community</h2>
+
+<div id="navArea">
+<button onclick="showLogin()">Login</button>
+<button onclick="showRegister()">Register</button>
+</div>
+
 </header>
 
 <div class="section">
 
-<!-- DASHBOARD -->
+<!-- LIVE STREAM -->
 <div class="card">
-<h3>📊 Dashboard Stats</h3>
-<div id="stats"></div>
+<h3>🔴 Live Stream</h3>
+<div id="liveArea">Loading...</div>
 </div>
 
-<!-- LIVE CONTROL -->
+<!-- EVENTS -->
 <div class="card">
-<h3>🔴 Live Stream Control</h3>
-<input id="liveId" placeholder="YouTube Video ID">
-<input id="liveTitle" placeholder="Live Title">
-<input id="liveDuration" type="number" placeholder="Auto End (minutes)">
-<button onclick="startLive()">Start Live</button>
-<button onclick="endLive()">End Live</button>
-<div id="liveStatus"></div>
+<h3>📅 Events</h3>
+<div id="eventArea"></div>
 </div>
 
-<!-- EVENT MANAGEMENT -->
+<!-- FEED -->
 <div class="card">
-<h3>📅 Event Management</h3>
+<h3>📰 Community Feed</h3>
 
-<input id="eventTitle" placeholder="Title">
-<textarea id="eventDesc" placeholder="Description"></textarea>
-<input id="eventDate" type="date">
-<input id="eventImage" placeholder="Image URL">
-<input id="eventVideo" placeholder="Video URL">
-<input id="eventAudio" placeholder="Audio URL">
-<button onclick="createEvent()">Create Event</button>
+<textarea id="feedInput" placeholder="Share something..."></textarea>
+<button onclick="postFeed()">Post</button>
 
-<div id="eventList"></div>
+<div id="feedArea"></div>
 </div>
 
-<!-- FEED MODERATION -->
+<!-- GLOBAL CHAT -->
 <div class="card">
-<h3>📰 Feed Moderation</h3>
-<div id="feedList"></div>
+<h3>💬 Community Chat</h3>
+
+<div class="chatBox" id="chatMessages"></div>
+<input id="chatInput" placeholder="Type message">
+<button onclick="sendChat()">Send</button>
 </div>
 
-<!-- CHAT MODERATION -->
+<!-- PRIVATE CHAT -->
 <div class="card">
-<h3>💬 Global Chat Moderation</h3>
-<div id="chatList"></div>
-<button onclick="clearChat()">Clear All Chat</button>
+<h3>📩 Private Messages</h3>
+<input id="privateEmail" placeholder="Enter user email">
+<div class="chatBox" id="privateMessages"></div>
+<input id="privateInput" placeholder="Type private message">
+<button onclick="sendPrivate()">Send</button>
 </div>
 
-<!-- USERS -->
-<div class="card">
-<h3>👥 Users</h3>
-<div id="userList"></div>
 </div>
 
+<!-- AUTH MODAL -->
+<div id="authBox" style="display:none;padding:20px;">
+<h3 id="authTitle"></h3>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="submitAuth()">Submit</button>
 </div>
 
 <script>
@@ -138,8 +148,11 @@ margin-bottom:10px;
   };
 firebase.initializeApp(firebaseConfig);
 
-const auth=firebase.auth();
-const db=firebase.firestore();
+
+/* ========= AUTH FIXED MODULE ========= */
+
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 
 /* ===============================
@@ -209,176 +222,281 @@ document.addEventListener("visibilitychange", function(){
     }
 });
 
+let currentUser = null;
+let authMode = "login";
 
-//////////////// ACCESS CONTROL //////////////////
+/* Cache Elements */
+const navArea = document.getElementById("navArea");
+const authBox = document.getElementById("authBox");
+const authTitle = document.getElementById("authTitle");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+
+/* Show Login */
+function showLogin(){
+    authMode = "login";
+    authTitle.innerText = "Login";
+    authBox.style.display = "block";
+}
+
+/* Show Register */
+function showRegister(){
+    authMode = "register";
+    authTitle.innerText = "Register";
+    authBox.style.display = "block";
+}
+
+/* Submit Auth */
+function submitAuth(){
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if(!email || !password){
+        alert("Please enter email and password.");
+        return;
+    }
+
+    if(authMode === "register"){
+        auth.createUserWithEmailAndPassword(email,password)
+        .then(()=>{
+            alert("Registration successful!");
+            clearAuthInputs();
+        })
+        .catch(err=>{
+            alert(err.message);
+        });
+    } else {
+        auth.signInWithEmailAndPassword(email,password)
+        .then(()=>{
+            alert("Login successful!");
+            clearAuthInputs();
+        })
+        .catch(err=>{
+            alert(err.message);
+        });
+    }
+}
+
+/* Clear Inputs */
+function clearAuthInputs(){
+    emailInput.value = "";
+    passwordInput.value = "";
+    authBox.style.display = "none";
+}
+
+/* Logout */
+function logout(){
+    auth.signOut();
+}
+
+/* Toggle Navigation Based On Login */
+auth.onAuthStateChanged(user=>{
+    currentUser = user;
+
+    if(user){
+
+        navArea.innerHTML = `
+            <span style="color:#22c55e;">● Online</span>
+            <button onclick="logout()">Logout</button>
+            ${user.email === "fintech.zubysworld@gmail.com" ?
+            `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
+        `;
+
+        // Update user online status
+        db.collection("users").doc(user.uid).set({
+            email:user.email,
+            online:true,
+            lastActive:Date.now()
+        },{merge:true});
+
+    } else {
+
+        navArea.innerHTML = `
+            <button onclick="showLogin()">Login</button>
+            <button onclick="showRegister()">Register</button>
+        `;
+    }
+});
+
+/* Optional: Hide modal if clicked outside */
+window.onclick = function(e){
+    if(e.target === authBox){
+        authBox.style.display = "none";
+    }
+};
 
 auth.onAuthStateChanged(user=>{
-if(!user || user.email!=="fintech.zubysworld@gmail.com"){
-alert("Unauthorized Access");
-window.location="index.html";
+currentUser=user;
+
+if(user){
+
+navArea.innerHTML=`
+<span class="online">● Online</span>
+<button onclick="logout()">Logout</button>
+${user.email==="fintech.zubysworld@gmail.com" ? 
+`<button onclick="window.location='ntuonline.html'">Admin</button>`:""}
+`;
+
+db.collection("users").doc(user.uid).set({
+email:user.email,
+online:true
+},{merge:true});
+
+}else{
+navArea.innerHTML=`
+<button onclick="showLogin()">Login</button>
+<button onclick="showRegister()">Register</button>
+`;
 }
 });
 
 function logout(){
-auth.signOut().then(()=>{
-window.location="index.html";
-});
+auth.signOut();
 }
 
-//////////////// DASHBOARD STATS //////////////////
-
-function loadStats(){
-Promise.all([
-db.collection("users").get(),
-db.collection("feed").get(),
-db.collection("events").get(),
-db.collection("chat").get()
-]).then(([users,feed,events,chat])=>{
-stats.innerHTML=`
-<div class="stat">Total Users: ${users.size}</div>
-<div class="stat">Total Posts: ${feed.size}</div>
-<div class="stat">Total Events: ${events.size}</div>
-<div class="stat">Total Chat Messages: ${chat.size}</div>
-`;
-});
-}
-
-loadStats();
-
-//////////////// LIVE //////////////////
-
-function startLive(){
-db.collection("live").doc("current").set({
-videoId:liveId.value,
-title:liveTitle.value,
-created:Date.now()
-});
-
-if(liveDuration.value){
-setTimeout(()=>{
-endLive();
-},liveDuration.value*60000);
-}
-}
-
-function endLive(){
-db.collection("live").doc("current").delete();
-}
+//////////////// LIVE STREAM //////////////////
 
 db.collection("live").doc("current")
 .onSnapshot(doc=>{
 if(doc.exists){
-liveStatus.innerHTML="Live is Active";
+const d=doc.data();
+liveArea.innerHTML=`
+<h4>${d.title}</h4>
+<iframe width="100%" height="315"
+src="https://www.youtube.com/embed/${d.videoId}"
+allowfullscreen></iframe>
+`;
 }else{
-liveStatus.innerHTML="Live is Offline";
+liveArea.innerHTML="Currently Offline";
 }
 });
 
 //////////////// EVENTS //////////////////
 
-function createEvent(){
-db.collection("events").add({
-title:eventTitle.value,
-description:eventDesc.value,
-date:eventDate.value,
-image:eventImage.value||null,
-video:eventVideo.value||null,
-audio:eventAudio.value||null,
-created:Date.now()
-});
-eventTitle.value="";
-eventDesc.value="";
-eventDate.value="";
-eventImage.value="";
-eventVideo.value="";
-eventAudio.value="";
-}
-
 db.collection("events").orderBy("created","desc")
 .onSnapshot(snapshot=>{
-eventList.innerHTML="";
+eventArea.innerHTML="";
 snapshot.forEach(doc=>{
 const e=doc.data();
-eventList.innerHTML+=`
+eventArea.innerHTML+=`
 <div class="card">
 <h4>${e.title}</h4>
-<button onclick="deleteEvent('${doc.id}')">Delete</button>
+<p>${e.description}</p>
+${e.image?`<img src="${e.image}" width="100%">`:""}
+${e.video?`<iframe width="100%" height="315" src="${e.video}"></iframe>`:""}
+${e.audio?`<audio controls style="width:100%"><source src="${e.audio}"></audio>`:""}
+
+<button onclick="rsvp('${doc.id}')">RSVP</button>
+<div id="comments${doc.id}"></div>
+<textarea id="comment${doc.id}" placeholder="Comment"></textarea>
+<button onclick="commentEvent('${doc.id}')">Comment</button>
 </div>
 `;
+
+db.collection("events").doc(doc.id).collection("comments")
+.onSnapshot(cs=>{
+let html="";
+cs.forEach(c=>{
+html+=`<p>💬 ${c.data().text}</p>`;
+});
+document.getElementById("comments"+doc.id).innerHTML=html;
+});
 });
 });
 
-function deleteEvent(id){
-db.collection("events").doc(id).delete();
+function rsvp(id){
+if(!currentUser) return alert("Login required");
+db.collection("events").doc(id).collection("rsvp")
+.doc(currentUser.uid).set({
+user:currentUser.email
+});
+alert("RSVP confirmed");
+}
+
+function commentEvent(id){
+if(!currentUser) return alert("Login required");
+const text=document.getElementById("comment"+id).value;
+db.collection("events").doc(id).collection("comments")
+.add({text:text,user:currentUser.email});
+document.getElementById("comment"+id).value="";
 }
 
 //////////////// FEED //////////////////
 
+function postFeed(){
+if(!currentUser) return alert("Login required");
+
+db.collection("feed").add({
+text:feedInput.value,
+user:currentUser.email,
+created:Date.now(),
+likes:0
+});
+feedInput.value="";
+}
+
 db.collection("feed").orderBy("created","desc")
 .onSnapshot(snapshot=>{
-feedList.innerHTML="";
+feedArea.innerHTML="";
 snapshot.forEach(doc=>{
 const f=doc.data();
-feedList.innerHTML+=`
+feedArea.innerHTML+=`
 <div class="card">
 <p>${f.text}</p>
-<small>${f.user}</small><br>
-<button onclick="deletePost('${doc.id}')">Delete</button>
+<small>By ${f.user}</small><br>
+<button onclick="likePost('${doc.id}')">👍</button>
+<span>${f.likes||0}</span>
 </div>
 `;
 });
 });
 
-function deletePost(id){
-db.collection("feed").doc(id).delete();
+function likePost(id){
+if(!currentUser) return alert("Login required");
+db.collection("feed").doc(id)
+.update({likes:firebase.firestore.FieldValue.increment(1)});
 }
 
-//////////////// CHAT //////////////////
+//////////////// GLOBAL CHAT //////////////////
+
+function sendChat(){
+if(!currentUser) return alert("Login required");
+
+db.collection("chat").add({
+text:chatInput.value,
+user:currentUser.email,
+created:Date.now()
+});
+chatInput.value="";
+}
 
 db.collection("chat").orderBy("created")
 .onSnapshot(snapshot=>{
-chatList.innerHTML="";
+chatMessages.innerHTML="";
 snapshot.forEach(doc=>{
 const m=doc.data();
-chatList.innerHTML+=`
-<p><b>${m.user}</b>: ${m.text}
-<button onclick="deleteChat('${doc.id}')">X</button></p>
-`;
+chatMessages.innerHTML+=`<p><b>${m.user}:</b> ${m.text}</p>`;
 });
 });
 
-function deleteChat(id){
-db.collection("chat").doc(id).delete();
+//////////////// PRIVATE CHAT //////////////////
+
+function sendPrivate(){
+if(!currentUser) return alert("Login required");
+
+const other=privateEmail.value;
+const room=[currentUser.email,other].sort().join("_");
+
+db.collection("privateChats").doc(room).collection("messages")
+.add({
+text:privateInput.value,
+user:currentUser.email,
+created:Date.now()
+});
+privateInput.value="";
 }
 
-function clearChat(){
-db.collection("chat").get().then(snapshot=>{
-snapshot.forEach(doc=>{
-doc.ref.delete();
-});
-});
-}
-
-//////////////// USERS //////////////////
-
-db.collection("users").onSnapshot(snapshot=>{
-    snapshot.forEach(doc=>{
-        const user = doc.data();
-
-        let status = "";
-
-        if(user.online){
-            status = "🟢 Online";
-        } else if(user.lastSeen){
-            const date = user.lastSeen.toDate();
-            status = "Last seen: " + date.toLocaleString();
-        } else {
-            status = "Offline";
-        }
-
-        console.log(user.email + " - " + status);
-    });
-});
 </script>
 
 </body>
