@@ -346,7 +346,7 @@
 
   // ---------- HELPER: parse content for media ----------
   function parseContent(text) {
-    if (!text) return text;
+    if (!text) return '';
     // Regexes
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
@@ -371,18 +371,19 @@
       if (ytMatch) {
         const videoId = ytMatch[1];
         parts.push({ type: 'youtube', content: videoId });
+        lastIndex = index + url.length;
         continue;
       }
 
       // Check if it's an image
       if (imageRegex.test(url)) {
         parts.push({ type: 'image', content: url });
+        lastIndex = index + url.length;
         continue;
       }
 
       // Otherwise, it's a regular link
       parts.push({ type: 'link', content: url });
-
       lastIndex = index + url.length;
     }
 
@@ -392,7 +393,7 @@
     }
 
     // If no matches, return the original text (as plain)
-    if (parts.length === 0) return text;
+    if (parts.length === 0) return escapeHtml(text);
 
     // Build HTML
     let html = '';
@@ -473,7 +474,8 @@
     if (user) {
       db.collection("users").doc(user.uid).update({ online: true }).catch(showError);
       db.collection("users").doc(user.uid).get().then(doc => {
-        const isAdmin = doc.data()?.isAdmin || false;
+        const userData = doc.data() || {};
+        const isAdmin = userData.isAdmin || false;
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
           <button onclick="logout()">Logout</button>
@@ -499,7 +501,15 @@
     const input = document.getElementById("feedInput");
     if (!input.value.trim()) return;
     db.collection("users").doc(currentUser.uid).get()
-      .then(u => db.collection("feed").add({ text: input.value, name: u.data().name, kindred: u.data().kindred, created: Date.now() }))
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("feed").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          created: Date.now()
+        });
+      })
       .then(() => { input.value = ""; })
       .catch(showError);
   };
@@ -512,7 +522,7 @@
       const feedId = doc.id;
       feedArea.innerHTML += `
         <div class="feed-item" id="feed-${feedId}">
-          <strong>${p.name || '?'} (${p.kindred || '?'})</strong>
+          <strong>${p.name ?? '?'} (${p.kindred ?? '?'})</strong>
           <div>${parseContent(p.text)}</div>
           <div id="feedReplies${feedId}" class="replies"></div>
           <input id="replyFeed${feedId}" placeholder="Reply...">
@@ -528,7 +538,15 @@
     const input = document.getElementById("replyFeed" + id);
     if (!input || !input.value.trim()) return;
     db.collection("users").doc(currentUser.uid).get()
-      .then(u => db.collection("feed").doc(id).collection("replies").add({ text: input.value, name: u.data().name, kindred: u.data().kindred, created: Date.now() }))
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("feed").doc(id).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          created: Date.now()
+        });
+      })
       .then(() => { input.value = ""; })
       .catch(showError);
   };
@@ -539,10 +557,11 @@
       if (!box) return;
       box.innerHTML = "";
       s.forEach(r => {
+        const replyData = r.data();
         box.innerHTML += `
           <div class="replyBox">
-            <strong>${r.data().name} (${r.data().kindred})</strong>
-            <div>${parseContent(r.data().text)}</div>
+            <strong>${replyData.name ?? '?'} (${replyData.kindred ?? '?'})</strong>
+            <div>${parseContent(replyData.text)}</div>
           </div>
         `;
       });
@@ -555,7 +574,15 @@
     const input = document.getElementById("chatInput");
     if (!input.value.trim()) return;
     db.collection("users").doc(currentUser.uid).get()
-      .then(u => db.collection("chat").add({ text: input.value, name: u.data().name, kindred: u.data().kindred, created: Date.now() }))
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("chat").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          created: Date.now()
+        });
+      })
       .then(() => { input.value = ""; })
       .catch(showError);
   };
@@ -568,7 +595,7 @@
       const chatId = doc.id;
       chatArea.innerHTML += `
         <div class="chat-item" id="chat-${chatId}">
-          <strong>${m.name} (${m.kindred})</strong>: <span>${parseContent(m.text)}</span>
+          <strong>${m.name ?? '?'} (${m.kindred ?? '?'})</strong>: <span>${parseContent(m.text)}</span>
           <div id="chatReplies${chatId}" class="replies"></div>
           <input id="chatReplyInput${chatId}" placeholder="Reply...">
           <button onclick="replyChat('${chatId}')">Reply</button>
@@ -583,7 +610,15 @@
     const input = document.getElementById("chatReplyInput" + chatId);
     if (!input || !input.value.trim()) return;
     db.collection("users").doc(currentUser.uid).get()
-      .then(u => db.collection("chat").doc(chatId).collection("replies").add({ text: input.value, name: u.data().name, kindred: u.data().kindred, created: Date.now() }))
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("chat").doc(chatId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          created: Date.now()
+        });
+      })
       .then(() => { input.value = ""; })
       .catch(showError);
   };
@@ -595,7 +630,7 @@
       container.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
-        container.innerHTML += `<div class="replyBox"><strong>${r.name} (${r.kindred})</strong>: ${parseContent(r.text)}</div>`;
+        container.innerHTML += `<div class="replyBox"><strong>${r.name ?? '?'} (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}</div>`;
       });
     }, showError);
   }
@@ -606,7 +641,15 @@
     const input = document.getElementById("goodwillInput");
     if (!input.value.trim()) return;
     db.collection("users").doc(currentUser.uid).get()
-      .then(u => db.collection("goodwill").add({ text: input.value, name: u.data().name, kindred: u.data().kindred, created: Date.now() }))
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("goodwill").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          created: Date.now()
+        });
+      })
       .then(() => { input.value = ""; })
       .catch(showError);
   };
@@ -619,7 +662,7 @@
       const goodwillId = doc.id;
       goodwillArea.innerHTML += `
         <div class="goodwill-item" id="goodwill-${goodwillId}">
-          <strong>${g.name} (${g.kindred})</strong>
+          <strong>${g.name ?? '?'} (${g.kindred ?? '?'})</strong>
           <div>${parseContent(g.text)}</div>
           <div id="goodwillReplies${goodwillId}" class="replies"></div>
           <input id="goodwillReplyInput${goodwillId}" placeholder="Reply...">
@@ -635,7 +678,15 @@
     const input = document.getElementById("goodwillReplyInput" + goodwillId);
     if (!input || !input.value.trim()) return;
     db.collection("users").doc(currentUser.uid).get()
-      .then(u => db.collection("goodwill").doc(goodwillId).collection("replies").add({ text: input.value, name: u.data().name, kindred: u.data().kindred, created: Date.now() }))
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("goodwill").doc(goodwillId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          created: Date.now()
+        });
+      })
       .then(() => { input.value = ""; })
       .catch(showError);
   };
@@ -647,7 +698,7 @@
       container.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
-        container.innerHTML += `<div class="replyBox"><strong>${r.name} (${r.kindred})</strong>: ${parseContent(r.text)}</div>`;
+        container.innerHTML += `<div class="replyBox"><strong>${r.name ?? '?'} (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}</div>`;
       });
     }, showError);
   }
@@ -671,7 +722,15 @@
     const input = document.getElementById("liveCommentInput");
     if (!input.value.trim()) return;
     db.collection("users").doc(currentUser.uid).get()
-      .then(u => db.collection("live").doc("current").collection("comments").add({ text: input.value, name: u.data().name, kindred: u.data().kindred, created: Date.now() }))
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("live").doc("current").collection("comments").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          created: Date.now()
+        });
+      })
       .then(() => { input.value = ""; })
       .catch(showError);
   };
@@ -684,7 +743,7 @@
       const commentId = doc.id;
       liveComments.innerHTML += `
         <div class="live-comment-item" id="liveComment-${commentId}">
-          <strong>${c.name} (${c.kindred})</strong>: ${parseContent(c.text)}
+          <strong>${c.name ?? '?'} (${c.kindred ?? '?'})</strong>: ${parseContent(c.text)}
           <div id="liveReplies${commentId}" class="replies"></div>
           <input id="liveReplyInput${commentId}" placeholder="Reply...">
           <button onclick="replyLiveComment('${commentId}')">Reply</button>
@@ -699,7 +758,15 @@
     const input = document.getElementById("liveReplyInput" + commentId);
     if (!input || !input.value.trim()) return;
     db.collection("users").doc(currentUser.uid).get()
-      .then(u => db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").add({ text: input.value, name: u.data().name, kindred: u.data().kindred, created: Date.now() }))
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          created: Date.now()
+        });
+      })
       .then(() => { input.value = ""; })
       .catch(showError);
   };
@@ -711,7 +778,7 @@
       container.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
-        container.innerHTML += `<div class="replyBox"><strong>${r.name} (${r.kindred})</strong>: ${parseContent(r.text)}</div>`;
+        container.innerHTML += `<div class="replyBox"><strong>${r.name ?? '?'} (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}</div>`;
       });
     }, showError);
   }
