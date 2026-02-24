@@ -578,6 +578,19 @@ border:none;
     }, showError);
 
 </script>
+<script>
+    const data = { name: someVariable, ... };
+console.log('Data to send:', data);
+
+   function cleanObject(obj) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined)
+  );
+}
+
+const cleanData = cleanObject(rawData);
+await addDoc(collectionRef, cleanData);
+</script>
 
 </body>
 </html>
