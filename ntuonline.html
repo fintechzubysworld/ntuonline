@@ -1,106 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Admin Dashboard - Ntudioka</title>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - Ntudioka</title>
 
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-<style>
-/* (styles unchanged) */
-body {
-  margin: 0;
-  font-family: Arial;
-  background: linear-gradient(135deg,#0f172a,#1e293b);
-  color: white;
-  padding: 20px;
-}
-header {
-  background: #0ea5e9;
-  padding: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 10px;
-  margin-bottom: 20px;
-}
-.card {
-  background: #1e293b;
-  padding: 20px;
-  border-radius: 15px;
-  margin-bottom: 20px;
-}
-input, textarea {
-  width: 100%;
-  padding: 10px;
-  margin: 8px 0;
-  border-radius: 8px;
-  border: none;
-  box-sizing: border-box;
-}
-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 20px;
-  background: #f97316;
-  color: white;
-  cursor: pointer;
-  margin-right: 10px;
-  margin-top: 10px;
-}
-button.secondary {
-  background: #64748b;
-}
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
-th, td {
-  text-align: left;
-  padding: 12px;
-  border-bottom: 1px solid #334155;
-}
-th {
-  background: #0f172a;
-  color: #f97316;
-}
-.admin-badge {
-  background: #22c55e;
-  color: black;
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: bold;
-}
-.user-badge {
-  background: #64748b;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 12px;
-}
-.message {
-  padding: 10px;
-  border-radius: 8px;
-  margin: 10px 0;
-  display: none;
-}
-.success {
-  background: #22c55e;
-  color: black;
-  display: block;
-}
-.error {
-  background: #ef4444;
-  color: white;
-  display: block;
-}
-</style>
+  <style>
+    /* Same enhanced styles as index, plus admin-specific */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(145deg, #0b1120, #1a2639);
+      color: #e2e8f0;
+      padding: 20px;
+    }
+    header {
+      background: rgba(14,165,233,0.9);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      border-radius: 60px;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 20px 30px -10px #0ea5e9;
+    }
+    .card {
+      background: rgba(30,41,59,0.8);
+      backdrop-filter: blur(8px);
+      border-radius: 30px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 25px 40px -15px black;
+    }
+    h3 { color:#f97316; margin-bottom:15px; display:flex; align-items:center; gap:10px; }
+    input, textarea, select {
+      width:100%; padding:12px 15px; margin:8px 0; border-radius:40px; border:none;
+      background:#0f172a; color:white;
+    }
+    button {
+      background:#f97316; border:none; padding:10px 25px; border-radius:40px;
+      color:white; font-weight:600; cursor:pointer; margin-right:10px;
+    }
+    button.secondary { background:#475569; }
+    table { width:100%; border-collapse:collapse; margin-top:15px; }
+    th, td { text-align:left; padding:12px; border-bottom:1px solid #334155; }
+    th { background:#0f172a; color:#f97316; }
+    .admin-badge { background:#22c55e; color:black; padding:4px 8px; border-radius:20px; }
+    .user-badge { background:#64748b; padding:4px 8px; border-radius:20px; }
+    .message { padding:10px; border-radius:8px; margin:10px 0; display:none; }
+    .success { background:#22c55e; color:black; display:block; }
+    .error { background:#ef4444; color:white; display:block; }
+    .moderation-item {
+      background:#0f172a; border-radius:20px; padding:15px; margin:10px 0;
+      border-left:5px solid #f97316;
+    }
+    .moderation-meta { font-size:0.9rem; color:#94a3b8; margin-bottom:5px; }
+    .delete-btn { background:#ef4444; padding:5px 15px; font-size:0.9rem; }
+    .tab-buttons { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+    .tab-btn { background:#334155; color:white; border:none; padding:10px 20px; border-radius:40px; cursor:pointer; }
+    .tab-btn.active { background:#f97316; }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+  </style>
 </head>
 <body>
 
@@ -113,28 +80,26 @@ th {
   </div>
 </header>
 
-<div id="authCheck" style="display:none; text-align:center; padding:50px;">
-  <h3>Checking authorization...</h3>
-</div>
+<div id="authCheck" style="display:none; text-align:center; padding:50px;"><h3>Checking authorization...</h3></div>
 
 <div id="dashboard" style="display:none;">
 
   <!-- PUBLISH EVENT -->
   <div class="card">
-    <h3>📅 Publish New Event</h3>
+    <h3><i class="fa-regular fa-calendar-plus"></i> Publish New Event</h3>
     <input type="text" id="eventTitle" placeholder="Event Title" required>
-    <textarea id="eventDesc" placeholder="Description (optional)"></textarea>
+    <textarea id="eventDesc" placeholder="Description"></textarea>
     <input type="text" id="eventDate" placeholder="Date (e.g., March 15, 2025)">
-    <input type="url" id="eventImage" placeholder="Image URL (optional)">
-    <input type="url" id="eventVideo" placeholder="Video URL (optional)">
-    <input type="url" id="eventAudio" placeholder="Audio URL (optional)">
+    <input type="url" id="eventImage" placeholder="Image URL">
+    <input type="url" id="eventVideo" placeholder="Video URL">
+    <input type="url" id="eventAudio" placeholder="Audio URL">
     <button onclick="publishEvent()">Publish Event</button>
     <div id="eventMessage" class="message"></div>
   </div>
 
   <!-- CHANGE PASSWORD -->
   <div class="card">
-    <h3>🔐 Change Your Password</h3>
+    <h3><i class="fa-solid fa-key"></i> Change Password</h3>
     <input type="password" id="currentPass" placeholder="Current Password">
     <input type="password" id="newPass" placeholder="New Password">
     <input type="password" id="confirmNewPass" placeholder="Confirm New Password">
@@ -142,19 +107,48 @@ th {
     <div id="passMessage" class="message"></div>
   </div>
 
-  <!-- PROMOTE USER -->
+  <!-- MANAGE ADMINS -->
   <div class="card">
-    <h3>👥 Manage Administrators</h3>
-    <p>Toggle admin status for any user.</p>
-    <table id="userTable">
-      <thead>
-        <tr><th>Name</th><th>Email</th><th>Kindred</th><th>Role</th><th>Action</th></tr>
-      </thead>
+    <h3><i class="fa-solid fa-user-tie"></i> Manage Administrators</h3>
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Kindred</th><th>Role</th><th>Action</th></tr></thead>
       <tbody id="userList"></tbody>
     </table>
     <div id="adminMessage" class="message"></div>
   </div>
 
+  <!-- MODERATION PANEL -->
+  <div class="card">
+    <h3><i class="fa-solid fa-gavel"></i> Moderate Content</h3>
+    <div class="tab-buttons">
+      <button class="tab-btn active" data-tab="feed">Feed</button>
+      <button class="tab-btn" data-tab="chat">Chat</button>
+      <button class="tab-btn" data-tab="goodwill">Goodwill</button>
+      <button class="tab-btn" data-tab="live">Live Comments</button>
+      <button class="tab-btn" data-tab="replies">All Replies</button>
+    </div>
+
+    <!-- Feed Tab -->
+    <div id="tab-feed" class="tab-content active">
+      <div id="moderateFeed"></div>
+    </div>
+    <!-- Chat Tab -->
+    <div id="tab-chat" class="tab-content">
+      <div id="moderateChat"></div>
+    </div>
+    <!-- Goodwill Tab -->
+    <div id="tab-goodwill" class="tab-content">
+      <div id="moderateGoodwill"></div>
+    </div>
+    <!-- Live Comments Tab -->
+    <div id="tab-live" class="tab-content">
+      <div id="moderateLive"></div>
+    </div>
+    <!-- All Replies Tab -->
+    <div id="tab-replies" class="tab-content">
+      <div id="moderateReplies"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -168,196 +162,253 @@ th {
     measurementId: "G-JPVKYQRKEB"
   };
   firebase.initializeApp(firebaseConfig);
-
   const auth = firebase.auth();
   const db = firebase.firestore();
 
-  // Hardcoded superadmin email (the one you used in index.html)
-  const SUPER_ADMIN_EMAIL = "fintech.zubysworld@gmail.com";
+  const SUPER_ADMIN_EMAIL = "fintech.zubysworld@gmail.com"; // change as needed
 
   let currentUser = null;
 
-  // UI elements
   const authCheckDiv = document.getElementById('authCheck');
   const dashboardDiv = document.getElementById('dashboard');
   const userEmailSpan = document.getElementById('userEmail');
 
-  // Helper: show error
-  function showError(message) {
-    alert("Error: " + message);
-    console.error(message);
-  }
-
-  // Helper to show messages in specific div
-  function showMessage(elementId, text, type) {
-    const div = document.getElementById(elementId);
+  function showError(err) { alert("Error: " + err.message); console.error(err); }
+  function showMessage(elId, text, type) {
+    const div = document.getElementById(elId);
     div.textContent = text;
     div.className = `message ${type}`;
-    setTimeout(() => {
-      div.style.display = 'none';
-    }, 5000);
+    setTimeout(() => { div.style.display = 'none'; }, 5000);
   }
 
-  // Check if user is admin
+  // ---------- AUTH & ADMIN CHECK ----------
   auth.onAuthStateChanged(user => {
     if (user) {
       userEmailSpan.textContent = user.email;
-      // Fetch user doc to check admin status
       db.collection('users').doc(user.uid).get()
         .then(doc => {
           let isAdmin = doc.exists && doc.data().isAdmin === true;
-
-          // Superadmin fallback: if email matches and not already admin, set them as admin
           if (!isAdmin && user.email === SUPER_ADMIN_EMAIL) {
-            return db.collection('users').doc(user.uid).set({
-              isAdmin: true
-            }, { merge: true }).then(() => {
-              isAdmin = true;
-            });
+            return db.collection('users').doc(user.uid).set({ isAdmin: true }, { merge: true })
+              .then(() => db.collection('users').doc(user.uid).get())
+              .then(newDoc => { isAdmin = newDoc.data().isAdmin; });
           }
         })
-        .then(() => {
-          // Re-fetch the doc to confirm admin status after potential update
-          return db.collection('users').doc(user.uid).get();
-        })
+        .then(() => db.collection('users').doc(user.uid).get())
         .then(doc => {
-          const isAdmin = doc.exists && doc.data().isAdmin === true;
-          if (isAdmin) {
-            // Authorized: show dashboard
+          if (doc.exists && doc.data().isAdmin === true) {
             currentUser = user;
             authCheckDiv.style.display = 'none';
             dashboardDiv.style.display = 'block';
-            loadUsers(); // load user list for promotion
+            loadUsers();
+            loadAllContent(); // load moderation data
           } else {
-            // Not admin
             authCheckDiv.innerHTML = '<h3>Access Denied. You are not an administrator.</h3><button onclick="window.location=\'index.html\'">Go Home</button>';
             authCheckDiv.style.display = 'block';
           }
         })
-        .catch(err => {
-          showError(err.message);
-          authCheckDiv.innerHTML = '<h3>Error checking permissions.</h3>';
-          authCheckDiv.style.display = 'block';
-        });
+        .catch(showError);
     } else {
-      // Not logged in, redirect to index
       window.location.href = 'index.html';
     }
   });
 
-  // Logout
-  window.logout = function() {
-    auth.signOut().then(() => {
-      window.location.href = 'index.html';
+  window.logout = function() { auth.signOut().then(() => window.location.href='index.html').catch(showError); };
+
+  // ---------- MANAGE ADMINS ----------
+  function loadUsers() {
+    db.collection('users').get().then(snapshot => {
+      const tbody = document.getElementById('userList');
+      tbody.innerHTML = '';
+      snapshot.forEach(doc => {
+        const user = doc.data(); const uid = doc.id; const isAdmin = user.isAdmin || false;
+        tbody.innerHTML += `<tr>
+          <td>${user.name || '?'}</td><td>${user.email || '?'}</td><td>${user.kindred || '?'}</td>
+          <td><span class="${isAdmin ? 'admin-badge' : 'user-badge'}">${isAdmin ? 'ADMIN' : 'USER'}</span></td>
+          <td><button class="secondary" onclick="toggleAdmin('${uid}', ${isAdmin})">${isAdmin ? 'Revoke' : 'Make Admin'}</button></td>
+        </tr>`;
+      });
     }).catch(showError);
+  }
+
+  window.toggleAdmin = function(uid, currentStatus) {
+    if (!confirm(`Are you sure you want to ${currentStatus ? 'revoke admin from' : 'grant admin to'} this user?`)) return;
+    db.collection('users').doc(uid).update({ isAdmin: !currentStatus })
+      .then(() => { showMessage('adminMessage', 'User role updated', 'success'); loadUsers(); })
+      .catch(err => showMessage('adminMessage', err.message, 'error'));
   };
 
   // ---------- PUBLISH EVENT ----------
   window.publishEvent = function() {
     const title = document.getElementById('eventTitle').value.trim();
-    if (!title) {
-      showMessage('eventMessage', 'Event title is required', 'error');
-      return;
-    }
-
-    const eventData = {
-      title: title,
+    if (!title) return showMessage('eventMessage', 'Title required', 'error');
+    const data = {
+      title, created: Date.now(),
       description: document.getElementById('eventDesc').value.trim() || null,
       date: document.getElementById('eventDate').value.trim() || null,
       image: document.getElementById('eventImage').value.trim() || null,
       video: document.getElementById('eventVideo').value.trim() || null,
-      audio: document.getElementById('eventAudio').value.trim() || null,
-      created: Date.now()
+      audio: document.getElementById('eventAudio').value.trim() || null
     };
-
-    db.collection('events').add(eventData)
+    db.collection('events').add(data)
       .then(() => {
-        showMessage('eventMessage', 'Event published successfully!', 'success');
-        // Clear form
-        document.getElementById('eventTitle').value = '';
-        document.getElementById('eventDesc').value = '';
-        document.getElementById('eventDate').value = '';
-        document.getElementById('eventImage').value = '';
-        document.getElementById('eventVideo').value = '';
-        document.getElementById('eventAudio').value = '';
+        showMessage('eventMessage', 'Event published', 'success');
+        ['eventTitle','eventDesc','eventDate','eventImage','eventVideo','eventAudio'].forEach(id => document.getElementById(id).value = '');
       })
       .catch(err => showMessage('eventMessage', err.message, 'error'));
   };
 
   // ---------- CHANGE PASSWORD ----------
   window.changePassword = function() {
-    const currentPass = document.getElementById('currentPass').value;
-    const newPass = document.getElementById('newPass').value;
-    const confirmPass = document.getElementById('confirmNewPass').value;
-
-    if (!currentPass || !newPass || !confirmPass) {
-      showMessage('passMessage', 'All fields are required', 'error');
-      return;
-    }
-    if (newPass !== confirmPass) {
-      showMessage('passMessage', 'New passwords do not match', 'error');
-      return;
-    }
-    if (newPass.length < 6) {
-      showMessage('passMessage', 'Password must be at least 6 characters', 'error');
-      return;
-    }
-
+    const curr = document.getElementById('currentPass').value;
+    const newp = document.getElementById('newPass').value;
+    const conf = document.getElementById('confirmNewPass').value;
+    if (!curr || !newp || !conf) return showMessage('passMessage', 'All fields required', 'error');
+    if (newp !== conf) return showMessage('passMessage', 'Passwords do not match', 'error');
+    if (newp.length < 6) return showMessage('passMessage', 'Password too short', 'error');
     const user = auth.currentUser;
-    const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPass);
-
-    user.reauthenticateWithCredential(credential)
-      .then(() => user.updatePassword(newPass))
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, curr);
+    user.reauthenticateWithCredential(cred)
+      .then(() => user.updatePassword(newp))
       .then(() => {
-        showMessage('passMessage', 'Password updated successfully!', 'success');
-        document.getElementById('currentPass').value = '';
-        document.getElementById('newPass').value = '';
-        document.getElementById('confirmNewPass').value = '';
+        showMessage('passMessage', 'Password updated', 'success');
+        document.getElementById('currentPass').value = document.getElementById('newPass').value = document.getElementById('confirmNewPass').value = '';
       })
       .catch(err => showMessage('passMessage', err.message, 'error'));
   };
 
-  // ---------- PROMOTE USER ----------
-  function loadUsers() {
-    db.collection('users').get()
-      .then(snapshot => {
-        const tbody = document.getElementById('userList');
-        tbody.innerHTML = '';
-        snapshot.forEach(doc => {
-          const user = doc.data();
-          const uid = doc.id;
-          const isAdmin = user.isAdmin || false;
-
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${user.name || '?'}</td>
-            <td>${user.email || '?'}</td>
-            <td>${user.kindred || '?'}</td>
-            <td><span class="${isAdmin ? 'admin-badge' : 'user-badge'}">${isAdmin ? 'ADMIN' : 'USER'}</span></td>
-            <td>
-              <button class="secondary" onclick="toggleAdmin('${uid}', ${isAdmin})">
-                ${isAdmin ? 'Revoke Admin' : 'Make Admin'}
-              </button>
-            </td>
-          `;
-          tbody.appendChild(row);
-        });
-      })
-      .catch(err => showMessage('adminMessage', err.message, 'error'));
+  // ---------- MODERATION: DELETE FUNCTIONS (recursive) ----------
+  async function deleteDocumentAndSubcollections(docRef) {
+    const collections = await docRef.listCollections();
+    for (const subcol of collections) {
+      const snapshot = await subcol.get();
+      for (const subDoc of snapshot.docs) {
+        await deleteDocumentAndSubcollections(subDoc.ref);
+      }
+    }
+    await docRef.delete();
   }
 
-  window.toggleAdmin = function(uid, currentStatus) {
-    if (!confirm(`Are you sure you want to ${currentStatus ? 'revoke admin from' : 'grant admin to'} this user?`)) return;
-
-    db.collection('users').doc(uid).update({
-      isAdmin: !currentStatus
-    })
-    .then(() => {
-      showMessage('adminMessage', 'User role updated successfully!', 'success');
-      loadUsers(); // refresh table
-    })
-    .catch(err => showMessage('adminMessage', err.message, 'error'));
+  window.deleteItem = function(path) {
+    if (!confirm('Permanently delete this item and all its replies?')) return;
+    const docRef = db.doc(path);
+    deleteDocumentAndSubcollections(docRef)
+      .then(() => alert('Deleted successfully'))
+      .catch(showError);
   };
+
+  // ---------- LOAD ALL CONTENT FOR MODERATION ----------
+  function loadAllContent() {
+    // Feed
+    db.collection('feed').orderBy('created', 'desc').get().then(snap => {
+      const container = document.getElementById('moderateFeed');
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">📰 Feed | ${d.name} (${d.kindred}) | ${new Date(d.created).toLocaleString()}</div>
+            <div>${d.text || ''}</div>
+            <button class="delete-btn" onclick="deleteItem('feed/${doc.id}')"><i class="fa-regular fa-trash-can"></i> Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
+
+    // Chat
+    db.collection('chat').orderBy('created', 'desc').get().then(snap => {
+      const container = document.getElementById('moderateChat');
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">💬 Chat | ${d.name} (${d.kindred}) | ${new Date(d.created).toLocaleString()}</div>
+            <div>${d.text || ''}</div>
+            <button class="delete-btn" onclick="deleteItem('chat/${doc.id}')">Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
+
+    // Goodwill
+    db.collection('goodwill').orderBy('created', 'desc').get().then(snap => {
+      const container = document.getElementById('moderateGoodwill');
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">🤝 Goodwill | ${d.name} (${d.kindred}) | ${new Date(d.created).toLocaleString()}</div>
+            <div>${d.text || ''}</div>
+            <button class="delete-btn" onclick="deleteItem('goodwill/${doc.id}')">Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
+
+    // Live comments
+    db.collection('live').doc('current').collection('comments').orderBy('created', 'desc').get().then(snap => {
+      const container = document.getElementById('moderateLive');
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">🔴 Live Comment | ${d.name} (${d.kindred}) | ${new Date(d.created).toLocaleString()}</div>
+            <div>${d.text || ''}</div>
+            <button class="delete-btn" onclick="deleteItem('live/current/comments/${doc.id}')">Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
+
+    // All replies (collect from each collection's subcollection)
+    const replyPromises = [];
+    const replyContainer = document.getElementById('moderateReplies');
+    replyContainer.innerHTML = 'Loading replies...';
+
+    function loadRepliesForCollection(parentCol, parentField) {
+      return db.collection(parentCol).get().then(parentSnap => {
+        const promises = [];
+        parentSnap.forEach(parentDoc => {
+          promises.push(
+            parentDoc.ref.collection('replies').orderBy('created', 'desc').get().then(replySnap => {
+              replySnap.forEach(replyDoc => {
+                const r = replyDoc.data();
+                replyContainer.innerHTML += `
+                  <div class="moderation-item">
+                    <div class="moderation-meta">↳ Reply in ${parentCol} | ${r.name} (${r.kindred}) | ${new Date(r.created).toLocaleString()}</div>
+                    <div>${r.text || ''}</div>
+                    <button class="delete-btn" onclick="deleteItem('${parentCol}/${parentDoc.id}/replies/${replyDoc.id}')">Delete</button>
+                  </div>
+                `;
+              });
+            })
+          );
+        });
+        return Promise.all(promises);
+      });
+    }
+
+    replyContainer.innerHTML = '';
+    Promise.all([
+      loadRepliesForCollection('feed'),
+      loadRepliesForCollection('chat'),
+      loadRepliesForCollection('goodwill'),
+      loadRepliesForCollection('live/current/comments') // replies to live comments
+    ]).catch(showError);
+  }
+
+  // ---------- TAB SWITCHING ----------
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
 </script>
 
 </body>
