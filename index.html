@@ -7,6 +7,19 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script>
+    const data = { name: someVariable, ... };
+console.log('Data to send:', data);
+
+   function cleanObject(obj) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined)
+  );
+}
+
+const cleanData = cleanObject(rawData);
+await addDoc(collectionRef, cleanData);
+</script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -578,19 +591,7 @@ border:none;
     }, showError);
 
 </script>
-<script>
-    const data = { name: someVariable, ... };
-console.log('Data to send:', data);
 
-   function cleanObject(obj) {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([_, v]) => v !== undefined)
-  );
-}
-
-const cleanData = cleanObject(rawData);
-await addDoc(collectionRef, cleanData);
-</script>
 
 </body>
 </html>
