@@ -1,12 +1,12 @@
 {
-"name":"Ntudioka Community",
-"short_name":"Ntudioka",
-"start_url":"/index.html",
-"display":"standalone",
-"background_color":"#ffffff",
-"theme_color":"#ff9800",
-"icons":[
-{"src":"icon-192.png","sizes":"192x192","type":"image/png"},
-{"src":"icon-512.png","sizes":"512x512","type":"image/png"}
-]
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "fintechzubysworld.github",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "fintechzubysworld.github",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "description": "Ntu global communication platform. live stream, event and news hub, social messaging, personal messaging service. newsroom. powered by Zuby's World IT solutions"
 }
