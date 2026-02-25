@@ -161,7 +161,7 @@
     }
 
     /* ===== POST / COMMENT STYLES ===== */
-    .feed-item, .chat-item, .goodwill-item, .live-comment-item {
+    .feed-item, .chat-item, .goodwill-item, .live-comment-item, .event-item {
       background: #0f172a;
       border-radius: 20px;
       padding: 15px;
@@ -187,9 +187,10 @@
       font-size: 0.95rem;
     }
 
-    .small, .timestamp {
-      font-size: 0.8rem;
+    .timestamp {
+      font-size: 0.7rem;
       color: #94a3b8;
+      margin-top: 4px;
     }
 
     /* Embedded media */
@@ -220,13 +221,6 @@
     }
 
     /* Events grid inside card */
-    .event-item {
-      background: #1e293b;
-      border-radius: 20px;
-      padding: 15px;
-      margin: 15px 0;
-    }
-
     .event-item h4 {
       color: #facc15;
     }
@@ -237,27 +231,126 @@
       margin: 10px 0;
     }
 
-    /* Auth container */
-    #authContainer {
-      max-width: 400px;
-      margin: 20px auto;
-      background: #1e293b;
-      border-radius: 40px;
-      padding: 30px;
-      box-shadow: 0 30px 50px -20px black;
-      border: 1px solid #f97316;
+    /* Reaction bar */
+    .reaction-bar {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+    }
+    .reaction-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      margin-right: 15px;
+      font-size: 0.9rem;
+      padding: 4px 10px;
+      border-radius: 30px;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .reaction-btn:hover {
+      background: #334155;
+      color: #f97316;
+    }
+    .reaction-btn.liked {
+      color: #f97316;
+    }
+    .reaction-count {
+      font-weight: bold;
     }
 
-    /* Responsive */
-    @media (max-width: 700px) {
-      .section {
-        grid-template-columns: 1fr;
-      }
-      header {
-        flex-direction: column;
-        gap: 10px;
-        text-align: center;
-      }
+    /* Clickable name */
+    .clickable-name {
+      cursor: pointer;
+      color: #0ea5e9;
+      text-decoration: underline dotted;
+    }
+    .clickable-name:hover {
+      color: #f97316;
+    }
+
+    /* Modals */
+    .modal {
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: #1e293b;
+      padding: 30px;
+      border-radius: 40px;
+      width: 90%;
+      max-width: 500px;
+      color: white;
+      border: 2px solid #f97316;
+      box-shadow: 0 30px 50px black;
+      position: relative;
+    }
+    .chat-modal {
+      max-width: 600px;
+    }
+    .close {
+      position: absolute;
+      top: 15px; right: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #94a3b8;
+    }
+    .close:hover { color: #f97316; }
+
+    .chat-messages {
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 15px 0;
+      padding: 10px;
+      background: #0f172a;
+      border-radius: 20px;
+    }
+    .chat-message {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 18px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .chat-message.sent {
+      background: #f97316;
+      color: white;
+      margin-left: auto;
+    }
+    .chat-message.received {
+      background: #334155;
+      color: white;
+      margin-right: auto;
+    }
+    .chat-message small {
+      display: block;
+      font-size: 0.65rem;
+      color: #cbd5e1;
+      margin-top: 4px;
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 10px;
+    }
+    .chat-input-area input {
+      flex: 1;
+      margin: 0;
+    }
+
+    #profileInfo p {
+      margin: 10px 0;
     }
   </style>
 </head>
@@ -276,7 +369,7 @@
     <div id="liveArea">Loading...</div>
     <textarea id="liveCommentInput" placeholder="Write a comment..."></textarea>
     <button onclick="commentLive()"><i class="fa-regular fa-comment"></i> Comment</button>
-    <div id="liveComments" class="mt-3"></div>
+    <div id="liveComments"></div>
   </div>
 
   <!-- EVENTS -->
@@ -328,8 +421,31 @@
   <div id="authMessage"></div>
 </div>
 
+<!-- Profile Modal -->
+<div id="profileModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeProfileModal()">&times;</span>
+    <h3><i class="fa-regular fa-user"></i> User Profile</h3>
+    <div id="profileInfo"></div>
+    <button id="startPrivateChatBtn" onclick="startPrivateChatFromProfile()">💬 Private Chat</button>
+  </div>
+</div>
+
+<!-- Private Chat Modal -->
+<div id="chatModal" class="modal" style="display:none;">
+  <div class="modal-content chat-modal">
+    <span class="close" onclick="closeChatModal()">&times;</span>
+    <h3 id="chatWith"></h3>
+    <div id="privateChatMessages" class="chat-messages"></div>
+    <div class="chat-input-area">
+      <input type="text" id="privateChatInput" placeholder="Type a message...">
+      <button onclick="sendPrivateMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
 <script>
-  // Firebase config (same as before)
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -347,7 +463,6 @@
   // ---------- HELPER: parse content for media ----------
   function parseContent(text) {
     if (!text) return '';
-    // Regexes
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
     const imageRegex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|bmp|svg))(?:\?.*)?/gi;
@@ -356,46 +471,27 @@
     let lastIndex = 0;
     let match;
 
-    // Find all URLs
     while ((match = urlRegex.exec(text)) !== null) {
       const url = match[0];
       const index = match.index;
-
-      // Add text before URL
       if (index > lastIndex) {
         parts.push({ type: 'text', content: text.substring(lastIndex, index) });
       }
-
-      // Check if it's a YouTube link
       let ytMatch = youtubeRegex.exec(url);
       if (ytMatch) {
-        const videoId = ytMatch[1];
-        parts.push({ type: 'youtube', content: videoId });
-        lastIndex = index + url.length;
-        continue;
-      }
-
-      // Check if it's an image
-      if (imageRegex.test(url)) {
+        parts.push({ type: 'youtube', content: ytMatch[1] });
+      } else if (imageRegex.test(url)) {
         parts.push({ type: 'image', content: url });
-        lastIndex = index + url.length;
-        continue;
+      } else {
+        parts.push({ type: 'link', content: url });
       }
-
-      // Otherwise, it's a regular link
-      parts.push({ type: 'link', content: url });
       lastIndex = index + url.length;
     }
-
-    // Add remaining text
     if (lastIndex < text.length) {
       parts.push({ type: 'text', content: text.substring(lastIndex) });
     }
-
-    // If no matches, return the original text (as plain)
     if (parts.length === 0) return escapeHtml(text);
 
-    // Build HTML
     let html = '';
     parts.forEach(part => {
       if (part.type === 'text') {
@@ -415,6 +511,89 @@
     return unsafe.replace(/[&<>"']/g, function(m) {
       if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
     });
+  }
+
+  // ---------- TIMESTAMP FORMATTER ----------
+  function formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  }
+
+  // ---------- REACTIONS (likes) ----------
+  function addReactionUI(targetType, targetId, container) {
+    // targetType can be a path like 'feed', 'chat', 'goodwill', 'live', 'events/xxx/comments', etc.
+    const reactDiv = document.createElement('div');
+    reactDiv.className = 'reaction-bar';
+    reactDiv.innerHTML = `
+      <button class="reaction-btn like-btn" data-type="${targetType}" data-id="${targetId}">
+        <i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">0</span>
+      </button>
+    `;
+    container.appendChild(reactDiv);
+
+    const likeBtn = reactDiv.querySelector('.like-btn');
+    const countSpan = likeBtn.querySelector('.reaction-count');
+    const userId = currentUser?.uid;
+
+    // Build reference: reactions are stored in a subcollection "reactions" of the target document
+    // For nested paths like "events/xxx/comments", we need to split. We'll assume targetType is the full collection path.
+    // But for simplicity, we'll store reactions at the document's subcollection.
+    // We'll construct the reference: db.collection(targetType).doc(targetId).collection('reactions')
+    // However targetType might contain slashes (e.g., 'events/123/comments') – Firestore can handle that path.
+    let docRef;
+    if (targetType.includes('/')) {
+      // Assume it's a path like "events/123/comments/456" – we need the document reference.
+      // For simplicity, we'll pass the full path to the document as targetType, and targetId is empty.
+      // But we'll use a different approach: we'll store reactions in a subcollection of the comment document.
+      // Let's keep it simple: targetType = full path to document, targetId = ''.
+      // Then we do db.doc(targetType).collection('reactions')
+      if (!targetId) {
+        docRef = db.doc(targetType);
+      } else {
+        // fallback: assume targetType is collection name and targetId is doc id
+        docRef = db.collection(targetType).doc(targetId);
+      }
+    } else {
+      docRef = db.collection(targetType).doc(targetId);
+    }
+    const reactionsRef = docRef.collection('reactions');
+
+    const unsubscribe = reactionsRef.onSnapshot(snapshot => {
+      let count = 0;
+      let userLiked = false;
+      snapshot.forEach(doc => {
+        if (doc.data().type === 'like') {
+          count++;
+          if (userId && doc.id === userId) userLiked = true;
+        }
+      });
+      countSpan.textContent = count;
+      if (userLiked) {
+        likeBtn.classList.add('liked');
+        likeBtn.innerHTML = `<i class="fa-solid fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
+      } else {
+        likeBtn.classList.remove('liked');
+        likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
+      }
+    });
+
+    likeBtn.addEventListener('click', async () => {
+      if (!currentUser) return alert('Login required');
+      const reactionDoc = reactionsRef.doc(currentUser.uid);
+      const doc = await reactionDoc.get();
+      if (doc.exists) {
+        await reactionDoc.delete();
+      } else {
+        await reactionDoc.set({
+          type: 'like',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    });
+
+    // Return unsubscribe function in case we need to clean up later (optional)
+    return unsubscribe;
   }
 
   // ---------- AUTH ----------
@@ -507,6 +686,7 @@
           text: input.value,
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
           created: Date.now()
         });
       })
@@ -520,15 +700,19 @@
     s.forEach(doc => {
       const p = doc.data();
       const feedId = doc.id;
-      feedArea.innerHTML += `
-        <div class="feed-item" id="feed-${feedId}">
-          <strong>${p.name ?? '?'} (${p.kindred ?? '?'})</strong>
-          <div>${parseContent(p.text)}</div>
-          <div id="feedReplies${feedId}" class="replies"></div>
-          <input id="replyFeed${feedId}" placeholder="Reply...">
-          <button onclick="replyFeed('${feedId}')">Reply</button>
-        </div>
+      const feedDiv = document.createElement('div');
+      feedDiv.className = "feed-item";
+      feedDiv.id = `feed-${feedId}`;
+      feedDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${p.userId || ''}')">${p.name ?? '?'}</span> (${p.kindred ?? '?'})</strong>
+        <div>${parseContent(p.text)}</div>
+        <div class="timestamp">${formatTimestamp(p.created)}</div>
+        <div id="feedReplies${feedId}" class="replies"></div>
+        <input id="replyFeed${feedId}" placeholder="Reply...">
+        <button onclick="replyFeed('${feedId}')">Reply</button>
       `;
+      feedArea.appendChild(feedDiv);
+      addReactionUI('feed', feedId, feedDiv);
       loadReplies("feed", feedId, "feedReplies");
     });
   }, showError);
@@ -544,6 +728,7 @@
           text: input.value,
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
           created: Date.now()
         });
       })
@@ -556,14 +741,17 @@
       const box = document.getElementById(containerPrefix + id);
       if (!box) return;
       box.innerHTML = "";
-      s.forEach(r => {
-        const replyData = r.data();
-        box.innerHTML += `
-          <div class="replyBox">
-            <strong>${replyData.name ?? '?'} (${replyData.kindred ?? '?'})</strong>
-            <div>${parseContent(replyData.text)}</div>
-          </div>
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>
+          <div>${parseContent(r.text)}</div>
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
         `;
+        box.appendChild(replyDiv);
+        addReactionUI(`${collection}/${id}/replies`, doc.id, replyDiv);
       });
     }, showError);
   }
@@ -580,6 +768,7 @@
           text: input.value,
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
           created: Date.now()
         });
       })
@@ -593,14 +782,18 @@
     s.forEach(doc => {
       const m = doc.data();
       const chatId = doc.id;
-      chatArea.innerHTML += `
-        <div class="chat-item" id="chat-${chatId}">
-          <strong>${m.name ?? '?'} (${m.kindred ?? '?'})</strong>: <span>${parseContent(m.text)}</span>
-          <div id="chatReplies${chatId}" class="replies"></div>
-          <input id="chatReplyInput${chatId}" placeholder="Reply...">
-          <button onclick="replyChat('${chatId}')">Reply</button>
-        </div>
+      const chatDiv = document.createElement('div');
+      chatDiv.className = "chat-item";
+      chatDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${m.userId || ''}')">${m.name ?? '?'}</span> (${m.kindred ?? '?'})</strong>
+        <span>: ${parseContent(m.text)}</span>
+        <div class="timestamp">${formatTimestamp(m.created)}</div>
+        <div id="chatReplies${chatId}" class="replies"></div>
+        <input id="chatReplyInput${chatId}" placeholder="Reply...">
+        <button onclick="replyChat('${chatId}')">Reply</button>
       `;
+      chatArea.appendChild(chatDiv);
+      addReactionUI('chat', chatId, chatDiv);
       loadChatReplies(chatId);
     });
   }, showError);
@@ -616,6 +809,7 @@
           text: input.value,
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
           created: Date.now()
         });
       })
@@ -630,7 +824,14 @@
       container.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
-        container.innerHTML += `<div class="replyBox"><strong>${r.name ?? '?'} (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}</div>`;
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`chat/${chatId}/replies`, doc.id, replyDiv);
       });
     }, showError);
   }
@@ -647,6 +848,7 @@
           text: input.value,
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
           created: Date.now()
         });
       })
@@ -660,15 +862,18 @@
     s.forEach(doc => {
       const g = doc.data();
       const goodwillId = doc.id;
-      goodwillArea.innerHTML += `
-        <div class="goodwill-item" id="goodwill-${goodwillId}">
-          <strong>${g.name ?? '?'} (${g.kindred ?? '?'})</strong>
-          <div>${parseContent(g.text)}</div>
-          <div id="goodwillReplies${goodwillId}" class="replies"></div>
-          <input id="goodwillReplyInput${goodwillId}" placeholder="Reply...">
-          <button onclick="replyGoodwill('${goodwillId}')">Reply</button>
-        </div>
+      const goodwillDiv = document.createElement('div');
+      goodwillDiv.className = "goodwill-item";
+      goodwillDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${g.userId || ''}')">${g.name ?? '?'}</span> (${g.kindred ?? '?'})</strong>
+        <div>${parseContent(g.text)}</div>
+        <div class="timestamp">${formatTimestamp(g.created)}</div>
+        <div id="goodwillReplies${goodwillId}" class="replies"></div>
+        <input id="goodwillReplyInput${goodwillId}" placeholder="Reply...">
+        <button onclick="replyGoodwill('${goodwillId}')">Reply</button>
       `;
+      goodwillArea.appendChild(goodwillDiv);
+      addReactionUI('goodwill', goodwillId, goodwillDiv);
       loadGoodwillReplies(goodwillId);
     });
   }, showError);
@@ -684,6 +889,7 @@
           text: input.value,
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
           created: Date.now()
         });
       })
@@ -698,12 +904,19 @@
       container.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
-        container.innerHTML += `<div class="replyBox"><strong>${r.name ?? '?'} (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}</div>`;
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
       });
     }, showError);
   }
 
-  // ---------- LIVE ----------
+  // ---------- LIVE STREAM ----------
   db.collection("live").doc("current").onSnapshot(doc => {
     const liveArea = document.getElementById("liveArea");
     if (doc.exists) {
@@ -728,6 +941,7 @@
           text: input.value,
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
           created: Date.now()
         });
       })
@@ -741,14 +955,17 @@
     s.forEach(doc => {
       const c = doc.data();
       const commentId = doc.id;
-      liveComments.innerHTML += `
-        <div class="live-comment-item" id="liveComment-${commentId}">
-          <strong>${c.name ?? '?'} (${c.kindred ?? '?'})</strong>: ${parseContent(c.text)}
-          <div id="liveReplies${commentId}" class="replies"></div>
-          <input id="liveReplyInput${commentId}" placeholder="Reply...">
-          <button onclick="replyLiveComment('${commentId}')">Reply</button>
-        </div>
+      const commentDiv = document.createElement('div');
+      commentDiv.className = "live-comment-item";
+      commentDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>: ${parseContent(c.text)}
+        <div class="timestamp">${formatTimestamp(c.created)}</div>
+        <div id="liveReplies${commentId}" class="replies"></div>
+        <input id="liveReplyInput${commentId}" placeholder="Reply...">
+        <button onclick="replyLiveComment('${commentId}')">Reply</button>
       `;
+      liveComments.appendChild(commentDiv);
+      addReactionUI('live/current/comments', commentId, commentDiv);
       loadLiveReplies(commentId);
     });
   }, showError);
@@ -764,6 +981,7 @@
           text: input.value,
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
           created: Date.now()
         });
       })
@@ -778,17 +996,25 @@
       container.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
-        container.innerHTML += `<div class="replyBox"><strong>${r.name ?? '?'} (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}</div>`;
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`live/current/comments/${commentId}/replies`, doc.id, replyDiv);
       });
     }, showError);
   }
 
-  // ---------- EVENTS ----------
+  // ---------- EVENTS (with comments) ----------
   db.collection("events").orderBy("created", "desc").onSnapshot(s => {
     const eventArea = document.getElementById("eventArea");
     eventArea.innerHTML = "";
     s.forEach(doc => {
       const e = doc.data();
+      const eventId = doc.id;
       let mediaHtml = '';
       if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
       if (e.video) {
@@ -798,14 +1024,20 @@
       }
       if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
 
-      eventArea.innerHTML += `
-        <div class="event-item">
-          <h4>${e.title || 'Untitled'}</h4>
-          <p>${e.description ? parseContent(e.description) : ''}</p>
-          <p><small>${e.date || ''}</small></p>
-          ${mediaHtml}
-        </div>
+      const eventDiv = document.createElement('div');
+      eventDiv.className = "event-item";
+      eventDiv.id = `event-${eventId}`;
+      eventDiv.innerHTML = `
+        <h4>${e.title || 'Untitled'}</h4>
+        <p>${e.description ? parseContent(e.description) : ''}</p>
+        <p><small>${e.date || ''}</small></p>
+        ${mediaHtml}
+        <div id="eventComments${eventId}" class="replies"></div>
+        <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
+        <button onclick="commentEvent('${eventId}')">Comment</button>
       `;
+      eventArea.appendChild(eventDiv);
+      loadEventComments(eventId);
     });
   }, showError);
 
@@ -813,6 +1045,199 @@
     const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     return match ? match[1] : null;
   }
+
+  window.commentEvent = function(eventId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("eventCommentInput" + eventId);
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("events").doc(eventId).collection("comments").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadEventComments(eventId) {
+    db.collection("events").doc(eventId).collection("comments").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("eventComments" + eventId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const c = doc.data();
+        const commentId = doc.id;
+        const commentDiv = document.createElement('div');
+        commentDiv.className = "replyBox";
+        commentDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>
+          <div>${parseContent(c.text)}</div>
+          <div class="timestamp">${formatTimestamp(c.created)}</div>
+          <div id="eventCommentReplies${commentId}"></div>
+          <input id="eventCommentReplyInput${commentId}" placeholder="Reply...">
+          <button onclick="replyEventComment('${eventId}', '${commentId}')">Reply</button>
+        `;
+        container.appendChild(commentDiv);
+        addReactionUI(`events/${eventId}/comments`, commentId, commentDiv);
+        loadEventCommentReplies(eventId, commentId);
+      });
+    }, showError);
+  }
+
+  window.replyEventComment = function(eventId, commentId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("eventCommentReplyInput" + commentId);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("events").doc(eventId).collection("comments").doc(commentId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadEventCommentReplies(eventId, commentId) {
+    db.collection("events").doc(eventId).collection("comments").doc(commentId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("eventCommentReplies" + commentId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`events/${eventId}/comments/${commentId}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
+
+  // ---------- USER PROFILES ----------
+  let currentProfileUserId = null;
+
+  window.showProfile = function(userId) {
+    if (!userId) return;
+    db.collection('users').doc(userId).get().then(doc => {
+      if (!doc.exists) return;
+      const user = doc.data();
+      document.getElementById('profileInfo').innerHTML = `
+        <p><strong>Name:</strong> ${user.name || '?'}</p>
+        <p><strong>Kindred:</strong> ${user.kindred || '?'}</p>
+        <p><strong>Email:</strong> ${user.email || '?'}</p>
+        <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
+      `;
+      currentProfileUserId = userId;
+      document.getElementById('profileModal').style.display = 'flex';
+    }).catch(showError);
+  };
+
+  window.closeProfileModal = function() {
+    document.getElementById('profileModal').style.display = 'none';
+    currentProfileUserId = null;
+  };
+
+  window.startPrivateChatFromProfile = function() {
+    if (currentProfileUserId) {
+      startPrivateChat(currentProfileUserId);
+      closeProfileModal();
+    }
+  };
+
+  // ---------- PRIVATE CHAT ----------
+  let activeChatUserId = null;
+  let unsubscribeChat = null;
+
+  window.startPrivateChat = function(otherUserId) {
+    if (!currentUser) return alert('Login required');
+    if (otherUserId === currentUser.uid) return alert('Cannot chat with yourself');
+    activeChatUserId = otherUserId;
+
+    db.collection('users').doc(otherUserId).get().then(doc => {
+      const otherUser = doc.data();
+      document.getElementById('chatWith').innerHTML = `Chat with ${otherUser.name || 'User'}`;
+    });
+
+    document.getElementById('chatModal').style.display = 'flex';
+    document.getElementById('privateChatInput').focus();
+
+    const messagesRef = db.collection('privateMessages')
+      .where('participants', 'array-contains', currentUser.uid)
+      .orderBy('timestamp', 'asc');
+
+    if (unsubscribeChat) unsubscribeChat();
+    unsubscribeChat = messagesRef.onSnapshot(snapshot => {
+      const container = document.getElementById('privateChatMessages');
+      container.innerHTML = '';
+      snapshot.forEach(doc => {
+        const msg = doc.data();
+        const participants = msg.participants || [];
+        if (participants.includes(otherUserId) && participants.includes(currentUser.uid)) {
+          const div = document.createElement('div');
+          div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
+          div.innerHTML = `
+            <div>${parseContent(msg.text)}</div>
+            <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
+          `;
+          container.appendChild(div);
+        }
+      });
+      container.scrollTop = container.scrollHeight;
+    }, showError);
+  };
+
+  window.sendPrivateMessage = function() {
+    const input = document.getElementById('privateChatInput');
+    const text = input.value.trim();
+    if (!text || !activeChatUserId) return;
+
+    db.collection('privateMessages').add({
+      from: currentUser.uid,
+      to: activeChatUserId,
+      participants: [currentUser.uid, activeChatUserId],
+      text: text,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      read: false
+    }).then(() => {
+      input.value = '';
+    }).catch(showError);
+  };
+
+  window.closeChatModal = function() {
+    document.getElementById('chatModal').style.display = 'none';
+    if (unsubscribeChat) {
+      unsubscribeChat();
+      unsubscribeChat = null;
+    }
+    activeChatUserId = null;
+  };
+
+  // Click outside modal to close (optional)
+  window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+      event.target.style.display = 'none';
+      if (event.target.id === 'chatModal' && unsubscribeChat) {
+        unsubscribeChat();
+        unsubscribeChat = null;
+        activeChatUserId = null;
+      }
+    }
+  };
 </script>
 
 </body>
