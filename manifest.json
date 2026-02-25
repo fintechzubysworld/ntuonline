@@ -1,13 +1,18 @@
 {
   "background_color": "#ffffff",
-  "dir": "ltr",
+  "dir": "auto",
   "display": "standalone",
   "name": "Ntuconnect",
-  "orientation": "any",
-  "scope": "/",
+  "orientation": "portrait-primary",
+  "scope": "fintechzubysworld.github",
   "short_name": "Ntuconnect",
-  "start_url": "/",
+  "start_url": "https://fintechzubysworld.github.io/ntuonline/index.html",
   "theme_color": "#ffffff",
-  "description": "Ntu global communication platform. live stream, event and news hub, social messaging, personal messaging service. newsroom. powered by Zuby's World IT solutions"
+  "id": "https://fintechzubysworld.github.io/ntuonline/index.html",
+  "description": "Ntu global communication platform. live stream, event and news hub, social messaging, personal messaging service. newsroom. powered by Zuby's World IT solutions",
+  "lang": "en",
+  "categories": [
+    "news",
+    "social"
+  ]
 }
-
