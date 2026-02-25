@@ -396,27 +396,25 @@
       font-size: 0.7rem;
       color: #64748b;
     }
-    .marquee {
-  width: 100%;
-  overflow: hidden;           /* hides the text when it goes outside the container */
-  white-space: nowrap;        /* keeps the text on a single line */
-  border: 1px solid #ccc;     /* optional – just to see the container boundaries */
-  background: #f9f9f9;        /* optional */
-}
-
-.marquee h6 {
-  display: inline-block;      /* allows the text to be moved with transforms */
-  animation: scrollText 8s linear infinite;
-}
-
-@keyframes scrollText {
-  0% {
-    transform: translateX(100%);   /* start off-screen to the right */
-  }
-  100% {
-    transform: translateX(-100%);  /* end off-screen to the left */
-  }
-}
+  .marquee {
+      width: 40%;
+      overflow: hidden;
+      white-space: nowrap;
+      border: 1px solid #ccc;
+      padding: 5px 0;
+      background: black
+    }
+    .marquee h6 {
+      display: inline-block;
+      margin: 0;
+      font-size: 1.2rem;
+      color: yellowgreen;
+      animation: scrollText 18s linear infinite;
+    }
+    @keyframes scrollText {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
   </style>
 </head>
 <body>
@@ -426,7 +424,7 @@
   <div id="navArea"></div>
 </header>
   <div class="marquee">
-  <h6>Powered by Zuby's World IT solutions</h6>
+  <h6>Powered by Zuby's World IT solutions contact: fintech.zubysworld@gmail.com</h6>
 </div>
 
 <div class="section">
@@ -1411,5 +1409,6 @@
 
 </body>
 </html>
+
 
 
