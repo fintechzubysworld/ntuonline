@@ -522,7 +522,6 @@
 
   // ---------- REACTIONS (likes) ----------
   function addReactionUI(targetType, targetId, container) {
-    // targetType can be a path like 'feed', 'chat', 'goodwill', 'live', 'events/xxx/comments', etc.
     const reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
     reactDiv.innerHTML = `
@@ -536,22 +535,11 @@
     const countSpan = likeBtn.querySelector('.reaction-count');
     const userId = currentUser?.uid;
 
-    // Build reference: reactions are stored in a subcollection "reactions" of the target document
-    // For nested paths like "events/xxx/comments", we need to split. We'll assume targetType is the full collection path.
-    // But for simplicity, we'll store reactions at the document's subcollection.
-    // We'll construct the reference: db.collection(targetType).doc(targetId).collection('reactions')
-    // However targetType might contain slashes (e.g., 'events/123/comments') – Firestore can handle that path.
     let docRef;
     if (targetType.includes('/')) {
-      // Assume it's a path like "events/123/comments/456" – we need the document reference.
-      // For simplicity, we'll pass the full path to the document as targetType, and targetId is empty.
-      // But we'll use a different approach: we'll store reactions in a subcollection of the comment document.
-      // Let's keep it simple: targetType = full path to document, targetId = ''.
-      // Then we do db.doc(targetType).collection('reactions')
       if (!targetId) {
         docRef = db.doc(targetType);
       } else {
-        // fallback: assume targetType is collection name and targetId is doc id
         docRef = db.collection(targetType).doc(targetId);
       }
     } else {
@@ -592,7 +580,6 @@
       }
     });
 
-    // Return unsubscribe function in case we need to clean up later (optional)
     return unsubscribe;
   }
 
@@ -1198,7 +1185,15 @@
         }
       });
       container.scrollTop = container.scrollHeight;
-    }, showError);
+    }, error => {
+      // Handle index error gracefully
+      console.error('Private chat error:', error);
+      let errorMsg = error.message;
+      if (error.message.includes('index')) {
+        errorMsg += '\n\nYou need to create a Firestore index. Check the console for a link to create it automatically.';
+      }
+      alert('Error loading private chat: ' + errorMsg);
+    });
   };
 
   window.sendPrivateMessage = function() {
