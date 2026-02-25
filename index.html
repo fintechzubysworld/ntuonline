@@ -396,6 +396,27 @@
       font-size: 0.7rem;
       color: #64748b;
     }
+    .marquee {
+  width: 100%;
+  overflow: hidden;           /* hides the text when it goes outside the container */
+  white-space: nowrap;        /* keeps the text on a single line */
+  border: 1px solid #ccc;     /* optional – just to see the container boundaries */
+  background: #f9f9f9;        /* optional */
+}
+
+.marquee h6 {
+  display: inline-block;      /* allows the text to be moved with transforms */
+  animation: scrollText 8s linear infinite;
+}
+
+@keyframes scrollText {
+  0% {
+    transform: translateX(100%);   /* start off-screen to the right */
+  }
+  100% {
+    transform: translateX(-100%);  /* end off-screen to the left */
+  }
+}
   </style>
 </head>
 <body>
@@ -404,7 +425,9 @@
   <h2><i class="fa-solid fa-globe"></i> Ntuconnect</h2>
   <div id="navArea"></div>
 </header>
-  <h4>Powered by Zuby's World IT solutions</h4>
+  <div class="marquee">
+  <h6>Powered by Zuby's World IT solutions</h6>
+</div>
 
 <div class="section">
 
@@ -1388,4 +1411,5 @@
 
 </body>
 </html>
+
 
