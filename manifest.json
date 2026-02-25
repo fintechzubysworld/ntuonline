@@ -6,6 +6,7 @@
   "orientation": "any",
   "scope": "/",
   "short_name": "Ntuconnect",
-  "start_url": "/Ntu global communication platform. live stream, event and news hub, social messaging, personal messaging service. newsroom. powered by Zuby's World IT solutions",
-  "theme_color": "#ffffff"
+  "start_url": "https://fintechzubysworld.github.io/ntuonline/index.html",
+  "theme_color": "#ffffff",
+  "description": "Ntu global communication platform. live stream, event and news hub, social messaging, personal messaging service. newsroom. powered by Zuby's World IT solutions"
 }
