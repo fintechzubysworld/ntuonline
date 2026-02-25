@@ -56,6 +56,13 @@
       text-shadow: 0 0 10px #fbbf24;
     }
 
+    #navArea {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     #navArea button {
       background: #f97316;
       border: none;
@@ -66,7 +73,6 @@
       cursor: pointer;
       transition: all 0.2s;
       box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);
-      margin-left: 10px;
     }
 
     #navArea button:hover {
@@ -158,6 +164,15 @@
     button:hover {
       background: #fb923c;
       transform: scale(1.02);
+    }
+
+    button.secondary {
+      background: #475569;
+      box-shadow: none;
+    }
+
+    button.secondary:hover {
+      background: #64748b;
     }
 
     /* ===== POST / COMMENT STYLES ===== */
@@ -289,14 +304,11 @@
       padding: 30px;
       border-radius: 40px;
       width: 90%;
-      max-width: 500px;
+      max-width: 600px;
       color: white;
       border: 2px solid #f97316;
       box-shadow: 0 30px 50px black;
       position: relative;
-    }
-    .chat-modal {
-      max-width: 600px;
     }
     .close {
       position: absolute;
@@ -308,6 +320,7 @@
     }
     .close:hover { color: #f97316; }
 
+    /* Chat modal */
     .chat-messages {
       max-height: 300px;
       overflow-y: auto;
@@ -339,7 +352,6 @@
       color: #cbd5e1;
       margin-top: 4px;
     }
-
     .chat-input-area {
       display: flex;
       gap: 10px;
@@ -349,8 +361,40 @@
       margin: 0;
     }
 
-    #profileInfo p {
-      margin: 10px 0;
+    /* Inbox modal */
+    .inbox-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .inbox-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      background: #0f172a;
+      border-radius: 30px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .inbox-item:hover {
+      background: #1e293b;
+      transform: scale(1.02);
+    }
+    .inbox-item-info {
+      flex: 1;
+    }
+    .inbox-item-name {
+      font-weight: bold;
+      color: #f97316;
+    }
+    .inbox-item-preview {
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
+    .inbox-item-time {
+      font-size: 0.7rem;
+      color: #64748b;
     }
   </style>
 </head>
@@ -428,6 +472,15 @@
     <h3><i class="fa-regular fa-user"></i> User Profile</h3>
     <div id="profileInfo"></div>
     <button id="startPrivateChatBtn" onclick="startPrivateChatFromProfile()">💬 Private Chat</button>
+  </div>
+</div>
+
+<!-- Inbox Modal -->
+<div id="inboxModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeInboxModal()">&times;</span>
+    <h3><i class="fa-regular fa-envelope"></i> Inbox</h3>
+    <div id="inboxList" class="inbox-list">Loading...</div>
   </div>
 </div>
 
@@ -518,6 +571,17 @@
     if (!timestamp) return '';
     const date = new Date(timestamp);
     return date.toLocaleString();
+  }
+
+  function formatRelativeTime(timestamp) {
+    if (!timestamp) return '';
+    const now = new Date();
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const diff = Math.floor((now - date) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff/60)} minutes ago`;
+    if (diff < 86400) return `${Math.floor(diff/3600)} hours ago`;
+    return `${Math.floor(diff/86400)} days ago`;
   }
 
   // ---------- REACTIONS (likes) ----------
@@ -644,6 +708,7 @@
         const isAdmin = userData.isAdmin || false;
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
+          <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
           <button onclick="logout()">Logout</button>
           ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
         `;
@@ -1146,90 +1211,168 @@
     }
   };
 
-  // ---------- PRIVATE CHAT ----------
-  let activeChatUserId = null;
-  let unsubscribeChat = null;
+  // ---------- PRIVATE CHAT (Room-based) ----------
+  let activeChatRoomId = null;
+  let activeChatOtherUserId = null;
+  let unsubscribeRoomMessages = null;
 
-  window.startPrivateChat = function(otherUserId) {
+  // Generate a consistent room ID from two user IDs
+  function getChatRoomId(uid1, uid2) {
+    return [uid1, uid2].sort().join('_');
+  }
+
+  // Start or open a private chat with another user
+  window.startPrivateChat = async function(otherUserId) {
     if (!currentUser) return alert('Login required');
     if (otherUserId === currentUser.uid) return alert('Cannot chat with yourself');
-    activeChatUserId = otherUserId;
 
+    const roomId = getChatRoomId(currentUser.uid, otherUserId);
+    activeChatRoomId = roomId;
+    activeChatOtherUserId = otherUserId;
+
+    // Ensure room document exists
+    const roomRef = db.collection('privateChatRooms').doc(roomId);
+    const roomDoc = await roomRef.get();
+    if (!roomDoc.exists) {
+      await roomRef.set({
+        participants: [currentUser.uid, otherUserId],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    // Get other user's name for header
     db.collection('users').doc(otherUserId).get().then(doc => {
       const otherUser = doc.data();
       document.getElementById('chatWith').innerHTML = `Chat with ${otherUser.name || 'User'}`;
     });
 
+    // Open modal
     document.getElementById('chatModal').style.display = 'flex';
     document.getElementById('privateChatInput').focus();
 
-    const messagesRef = db.collection('privateMessages')
-      .where('participants', 'array-contains', currentUser.uid)
-      .orderBy('timestamp', 'asc');
-
-    if (unsubscribeChat) unsubscribeChat();
-    unsubscribeChat = messagesRef.onSnapshot(snapshot => {
+    // Listen for messages in this room
+    const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
+    if (unsubscribeRoomMessages) unsubscribeRoomMessages();
+    unsubscribeRoomMessages = messagesRef.onSnapshot(snapshot => {
       const container = document.getElementById('privateChatMessages');
       container.innerHTML = '';
       snapshot.forEach(doc => {
         const msg = doc.data();
-        const participants = msg.participants || [];
-        if (participants.includes(otherUserId) && participants.includes(currentUser.uid)) {
-          const div = document.createElement('div');
-          div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
-          div.innerHTML = `
-            <div>${parseContent(msg.text)}</div>
-            <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
-          `;
-          container.appendChild(div);
-        }
+        const div = document.createElement('div');
+        div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
+        div.innerHTML = `
+          <div>${parseContent(msg.text)}</div>
+          <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
+        `;
+        container.appendChild(div);
       });
       container.scrollTop = container.scrollHeight;
-    }, error => {
-      // Handle index error gracefully
-      console.error('Private chat error:', error);
-      let errorMsg = error.message;
-      if (error.message.includes('index')) {
-        errorMsg += '\n\nYou need to create a Firestore index. Check the console for a link to create it automatically.';
-      }
-      alert('Error loading private chat: ' + errorMsg);
-    });
+    }, showError);
+
+    // Update room's updatedAt when new message arrives? We'll do that on send.
   };
 
   window.sendPrivateMessage = function() {
     const input = document.getElementById('privateChatInput');
     const text = input.value.trim();
-    if (!text || !activeChatUserId) return;
+    if (!text || !activeChatRoomId) return;
 
-    db.collection('privateMessages').add({
+    const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
+    roomRef.collection('messages').add({
       from: currentUser.uid,
-      to: activeChatUserId,
-      participants: [currentUser.uid, activeChatUserId],
       text: text,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       read: false
     }).then(() => {
+      // Update room's updatedAt
+      roomRef.update({
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(showError);
       input.value = '';
     }).catch(showError);
   };
 
   window.closeChatModal = function() {
     document.getElementById('chatModal').style.display = 'none';
-    if (unsubscribeChat) {
-      unsubscribeChat();
-      unsubscribeChat = null;
+    if (unsubscribeRoomMessages) {
+      unsubscribeRoomMessages();
+      unsubscribeRoomMessages = null;
     }
-    activeChatUserId = null;
+    activeChatRoomId = null;
+    activeChatOtherUserId = null;
   };
 
-  // Click outside modal to close (optional)
+  // ---------- INBOX ----------
+  window.showInbox = function() {
+    document.getElementById('inboxModal').style.display = 'flex';
+    loadInbox();
+  };
+
+  window.closeInboxModal = function() {
+    document.getElementById('inboxModal').style.display = 'none';
+  };
+
+  function loadInbox() {
+    if (!currentUser) return;
+    const inboxList = document.getElementById('inboxList');
+    inboxList.innerHTML = 'Loading...';
+
+    db.collection('privateChatRooms')
+      .where('participants', 'array-contains', currentUser.uid)
+      .orderBy('updatedAt', 'desc')
+      .onSnapshot(snapshot => {
+        inboxList.innerHTML = '';
+        if (snapshot.empty) {
+          inboxList.innerHTML = '<p>No conversations yet.</p>';
+          return;
+        }
+
+        snapshot.forEach(async doc => {
+          const room = doc.data();
+          const otherUid = room.participants.find(uid => uid !== currentUser.uid);
+          // Fetch other user's name
+          const userDoc = await db.collection('users').doc(otherUid).get();
+          const otherUser = userDoc.data() || { name: 'Unknown' };
+
+          // Get last message preview
+          const lastMsgSnap = await doc.ref.collection('messages').orderBy('timestamp', 'desc').limit(1).get();
+          let preview = 'No messages';
+          let time = '';
+          if (!lastMsgSnap.empty) {
+            const lastMsg = lastMsgSnap.docs[0].data();
+            preview = lastMsg.text.length > 30 ? lastMsg.text.substring(0, 30) + '…' : lastMsg.text;
+            if (lastMsg.timestamp) {
+              time = formatRelativeTime(lastMsg.timestamp);
+            }
+          }
+
+          const item = document.createElement('div');
+          item.className = 'inbox-item';
+          item.onclick = () => {
+            closeInboxModal();
+            startPrivateChat(otherUid);
+          };
+          item.innerHTML = `
+            <div class="inbox-item-info">
+              <div class="inbox-item-name">${otherUser.name || 'User'}</div>
+              <div class="inbox-item-preview">${preview}</div>
+            </div>
+            <div class="inbox-item-time">${time}</div>
+          `;
+          inboxList.appendChild(item);
+        });
+      }, showError);
+  }
+
+  // Click outside modal to close
   window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
       event.target.style.display = 'none';
-      if (event.target.id === 'chatModal' && unsubscribeChat) {
-        unsubscribeChat();
-        unsubscribeChat = null;
-        activeChatUserId = null;
+      if (event.target.id === 'chatModal' && unsubscribeRoomMessages) {
+        unsubscribeRoomMessages();
+        unsubscribeRoomMessages = null;
+        activeChatRoomId = null;
       }
     }
   };
