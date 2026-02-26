@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ntuconnect – aquamarine professional</title>
+  <title>Ntuconnect</title>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
@@ -226,6 +226,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
     .reaction-btn {
       background: none;
@@ -394,13 +395,33 @@
       text-decoration: none;
     }
 
-    /* mobile touchups */
+    /* ===== MOBILE OPTIMIZATIONS ===== */
     @media (max-width: 480px) {
       body { padding: 10px; }
       header { padding: 0.7rem 1.2rem; }
       .card { padding: 18px; }
       .section { gap: 16px; }
+      button { width: 100%; } /* full-width buttons for easy tapping */
+      .embedded-media iframe { height: 200px; } /* smaller video on mobile */
+      .modal-content { padding: 20px; } /* more space-efficient modal */
     }
+
+    @media (max-width: 360px) {
+      .card h3 { font-size: 1.2rem; }
+      .feed-item, .chat-item, .goodwill-item { padding: 12px; }
+      .reaction-btn { padding: 6px 12px; }
+    }
+
+    .unread-badge {
+  background: #ff6b4a;
+  color: white;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  margin-left: 8px;
+  display: inline-block;
+  font-weight: 600;
+}
   </style>
 </head>
 <body>
@@ -752,7 +773,6 @@ function formatRelativeTime(ts) {
 
   // ---------- ALL EXISTING FUNCTIONS BELOW (feed, chat, goodwill, live, events, profile, inbox, private chat) are kept exactly as in original ----------
   // (Space constraint – they are identical to original, so I'm including a placeholder to indicate they remain)
-  // For brevity in this answer, I'll include them all, but they are unchanged from the original.
   // Copy-paste of all functions from original (postFeed, replyFeed, sendChat, replyChat, postGoodwill, replyGoodwill, commentLive, replyLiveComment, showProfile, startPrivateChat, etc.) would be here.
   // To ensure no feature loss, I'll keep them exactly as provided. In the final output, they will be present.
   // Below is a condensed representation; the actual final code includes all original functions.
@@ -1283,6 +1303,9 @@ function formatRelativeTime(ts) {
     document.getElementById('chatModal').style.display = 'flex';
     document.getElementById('privateChatInput').focus();
 
+    const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
+    if (unsubscribeRoomMessages) unsubscribeRoomMessages();
+
     // Mark all messages from the other user as read
 const unreadQuery = roomRef.collection('messages')
   .where('from', '==', otherUserId)
@@ -1292,9 +1315,6 @@ unreadQuery.get().then(snapshot => {
   snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
   return batch.commit();
 }).catch(showError);
-    
-    const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
-    if (unsubscribeRoomMessages) unsubscribeRoomMessages();
     unsubscribeRoomMessages = messagesRef.onSnapshot(snapshot => {
       const container = document.getElementById('privateChatMessages');
       container.innerHTML = '';
@@ -1352,7 +1372,7 @@ unreadQuery.get().then(snapshot => {
     document.getElementById('inboxModal').style.display = 'none';
   };
 
- function loadInbox() {
+  function loadInbox() {
   if (!currentUser) return;
   const inboxList = document.getElementById('inboxList');
   inboxList.innerHTML = 'Loading...';
@@ -1409,15 +1429,14 @@ unreadQuery.get().then(snapshot => {
 
         // Build badge HTML if there are unread messages
         const unreadBadge = r.unreadCount > 0 
-          ? `<span class="unread-badge" style="background:#ff6b4a; color:white; border-radius:20px; padding:2px 8px; font-size:0.8rem; margin-left:8px;">${r.unreadCount}</span>` 
+          ? `<span class="unread-badge">${r.unreadCount}</span>` 
           : '';
 
         item.innerHTML = `
-          <div style="display:flex; align-items:center;">
-            <div class="inbox-item-name">${r.otherName}</div>
-            ${unreadBadge}
-          </div>
-          <div class="inbox-item-info" style="flex:1; margin-left:10px;">
+          <div class="inbox-item-info">
+            <div class="inbox-item-name">
+              ${r.otherName} ${unreadBadge}
+            </div>
             <div class="inbox-item-preview">${r.preview}</div>
           </div>
           <div class="inbox-item-time">${r.time}</div>
@@ -1430,7 +1449,6 @@ unreadQuery.get().then(snapshot => {
       inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
     });
 }
-
   // Click outside modal to close
   window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
@@ -1450,5 +1468,3 @@ unreadQuery.get().then(snapshot => {
 </script>
 </body>
 </html>
-
-
