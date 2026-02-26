@@ -2,17 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="description" content="Ntu global communication platform. live stream, event and news hub, social messaging, personal messaging service. newsroom. powered by Zuby's World IT solutions.">
-  <title>Ntuconnect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ntuconnect – Mobile</title>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <!-- Preconnect to critical origins for faster loading -->
+  <link rel="preconnect" href="https://www.gstatic.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link rel="preconnect" href="https://firestore.googleapis.com">
 
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="manifest" href="manifest.json">
+  <!-- Font Awesome (preload then apply asynchronously) -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+
+  <!-- Firebase (deferred to not block rendering) -->
+  <script defer src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+
   <style>
     /* ===== GLOBAL STYLES (mobile first) ===== */
     * {
@@ -60,7 +67,7 @@
     }
 
     #navArea button {
-      background: #c2410c;
+      background: #f97316;
       border: none;
       padding: 8px 14px;
       border-radius: 40px;
@@ -100,7 +107,7 @@
     }
 
     .card h3 {
-      color: #c2410c;
+      color: #f97316;
       margin-bottom: 12px;
       font-size: 1.3rem;
       display: flex;
@@ -131,7 +138,7 @@
     }
 
     button {
-      background: #c2410c;
+      background: #f97316;
       border: none;
       padding: 12px 20px;
       border-radius: 40px;
@@ -159,7 +166,7 @@
       border-radius: 20px;
       padding: 15px;
       margin: 15px 0;
-      border-left: 5px solid #c2410c;
+      border-left: 5px solid #f97316;
       word-break: break-word;
     }
 
@@ -191,7 +198,7 @@
     }
 
     .embedded-media iframe {
-      height: 100px; /* smaller on mobile */
+      height: 200px; /* smaller on mobile */
     }
 
     /* Reaction bar */
@@ -221,7 +228,7 @@
     }
 
     .reaction-btn.liked {
-      color: #c2410c;
+      color: #f97316;
     }
 
     /* Modals */
@@ -247,7 +254,7 @@
       max-height: 90vh;
       overflow-y: auto;
       color: white;
-      border: 2px solid #c2410c;
+      border: 2px solid #f97316;
       box-shadow: 0 30px 50px black;
       position: relative;
     }
@@ -262,7 +269,7 @@
       line-height: 1;
     }
 
-    .close:hover { color: #c2410c; }
+    .close:hover { color: #f97316; }
 
     /* Chat modal */
     .chat-messages {
@@ -283,7 +290,7 @@
     }
 
     .chat-message.sent {
-      background: #c2410c;
+      background: #f97316;
       color: white;
       margin-left: auto;
     }
@@ -334,7 +341,7 @@
 
     .inbox-item-name {
       font-weight: bold;
-      color: #c2410c;
+      color: #f97316;
     }
 
     .inbox-item-preview {
@@ -386,40 +393,6 @@
       #navArea button { width: auto; } /* keep nav buttons inline */
       .reaction-bar { flex-wrap: wrap; }
     }
-    /* Modal styles (add to existing styles) */
-.modal {
-  position: fixed;
-  z-index: 1000;
-  left: 0; top: 0;
-  width: 100%; height: 100%;
-  background-color: rgba(0,0,0,0.8);
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-}
-.modal-content {
-  background: #1e293b;
-  padding: 24px 20px;
-  border-radius: 40px;
-  width: 100%;
-  max-width: 400px;
-  color: white;
-  border: 2px solid #f97316;
-  box-shadow: 0 30px 50px black;
-  position: relative;
-}
-.close {
-  position: absolute;
-  top: 12px; right: 16px;
-  font-size: 30px;
-  font-weight: bold;
-  cursor: pointer;
-  color: #94a3b8;
-  line-height: 1;
-}
-.close:hover { color: #f97316; }
   </style>
 </head>
 <body>
@@ -428,10 +401,10 @@
   <h2><i class="fa-solid fa-globe"></i> Ntuconnect</h2>
   <div id="navArea"></div>
 </header>
-  <div class="marquee">
+
+<div class="marquee">
   <h6>Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
 </div>
-<main>
 
 <div class="section">
 
@@ -476,23 +449,26 @@
 
 </div>
 
-<!-- AUTH MODAL-
-<div id="authContainer" style="display:none;">
-  <h3 id="authHeader">Login</h3>
-  <div id="registerFields" style="display:none;">
-    <input id="regName" placeholder="Full Name">
-    <input id="regKindred" placeholder="Kindred Name">
+<!-- LOGIN/REGISTER MODAL (replaces old inline auth container) -->
+<div id="authModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeAuthModal()">&times;</span>
+    <h3 id="authHeader">Login</h3>
+    <div id="registerFields" style="display:none;">
+      <input id="regName" placeholder="Full Name">
+      <input id="regKindred" placeholder="Kindred Name">
+    </div>
+    <input id="authEmail" placeholder="Email">
+    <input id="authPassword" type="password" placeholder="Password">
+    <button id="authSubmitBtn">Login</button>
+    <p>
+      <span id="toggleText">Don't have an account?</span>
+      <a href="#" onclick="toggleAuthMode(event)" style="color:#f97316;">Click here</a>
+    </p>
+    <div id="authMessage"></div>
   </div>
-  <input id="authEmail" placeholder="Email">
-  <input id="authPassword" type="password" placeholder="Password">
-  <button id="authSubmitBtn">Login</button>
-  <p>
-    <span id="toggleText">Don't have an account?</span>
-    <a href="#" onclick="toggleAuthMode(event)" style="color:#c2410c;">Click here</a>
-  </p>
-  <div id="authMessage"></div>
 </div>
--->
+
 <!-- Profile Modal -->
 <div id="profileModal" class="modal" style="display:none;">
   <div class="modal-content">
@@ -525,8 +501,6 @@
   </div>
 </div>
 
-</main>
-
 <script>
   // Firebase config
   const firebaseConfig = {
@@ -542,7 +516,6 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   let currentUser = null;
-
 
   // ---------- HELPER: parse content for media ----------
   function parseContent(text) {
@@ -581,7 +554,7 @@
       if (part.type === 'text') {
         html += escapeHtml(part.content);
       } else if (part.type === 'link') {
-        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#c2410c;">${part.content}</a>`;
+        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#f97316;">${part.content}</a>`;
       } else if (part.type === 'image') {
         html += `<div class="embedded-media"><img src="${part.content}" alt="embedded image" loading="lazy"></div>`;
       } else if (part.type === 'youtube') {
@@ -598,17 +571,17 @@
   }
 
   // ---------- TIMESTAMP FORMATTER ----------
- function formatTimestamp(timestamp) {
-  if (!timestamp) return '';
-  let date;
-  // Check if it's a Firestore Timestamp (has toDate method)
-  if (timestamp.toDate) {
-    date = timestamp.toDate();
-  } else {
-    date = new Date(timestamp);
+  function formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    let date;
+    // Check if it's a Firestore Timestamp (has toDate method)
+    if (timestamp.toDate) {
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
+    return date.toLocaleString();
   }
-  return date.toLocaleString();
-}
 
   function formatRelativeTime(timestamp) {
     if (!timestamp) return '';
@@ -684,32 +657,49 @@
     return unsubscribe;
   }
 
-  // ---------- AUTH ----------
+  // ---------- AUTH (now using modal) ----------
   let authMode = "login";
   const navArea = document.getElementById("navArea");
-  const authContainer = document.getElementById("authContainer");
 
- // Replace the old showAuth() function
-window.showAuth = function() {
-  document.getElementById('authModal').style.display = 'flex';
-};
+  function showAuth() {
+    document.getElementById('authModal').style.display = 'flex';
+  }
 
-window.closeAuthModal = function() {
-  document.getElementById('authModal').style.display = 'none';
-  clearAuth(); // optional: clear form fields
-};
+  window.closeAuthModal = function() {
+    document.getElementById('authModal').style.display = 'none';
+    clearAuth();
+  };
 
-// Modify the existing toggleAuthMode to work with the new modal
-window.toggleAuthMode = function(e) {
-  e.preventDefault();
-  authMode = authMode === "login" ? "register" : "login";
-  document.getElementById("registerFields").style.display = authMode === "register" ? "block" : "none";
-  document.getElementById("authHeader").innerText = authMode === "login" ? "Login" : "Register";
-  document.getElementById("authSubmitBtn").innerText = authMode === "login" ? "Login" : "Register";
-  document.getElementById("toggleText").innerText = authMode === "login" ? "Don't have an account?" : "Already have an account?";
-};
+  window.toggleAuthMode = function (e) {
+    e.preventDefault();
+    authMode = authMode === "login" ? "register" : "login";
+    document.getElementById("registerFields").style.display = authMode === "register" ? "block" : "none";
+    document.getElementById("authHeader").innerText = authMode === "login" ? "Login" : "Register";
+    document.getElementById("authSubmitBtn").innerText = authMode === "login" ? "Login" : "Register";
+    document.getElementById("toggleText").innerText = authMode === "login" ? "Don't have an account?" : "Already have an account?";
+  };
 
-// Also ensure the auth submit button works with the modal (already does via onclick)
+  document.getElementById("authSubmitBtn").onclick = function () {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value.trim();
+    if (authMode === "register") {
+      const name = document.getElementById("regName").value.trim();
+      const kindred = document.getElementById("regKindred").value.trim();
+      if (!name || !kindred || !email || !password) return alert("All fields required");
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(cred => db.collection("users").doc(cred.user.uid).set({
+          name, kindred, email, online: true, lastSeen: null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          isAdmin: false
+        }))
+        .then(() => { alert("Registered"); closeAuthModal(); clearAuth(); })
+        .catch(showError);
+    } else {
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => { alert("Login successful"); closeAuthModal(); clearAuth(); })
+        .catch(showError);
+    }
+  };
 
   function clearAuth() {
     document.getElementById("authEmail").value = "";
@@ -725,6 +715,57 @@ window.toggleAuthMode = function(e) {
     auth.signOut().catch(showError);
   };
 
+  // ---------- PUSH NOTIFICATIONS ----------
+  function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+      console.log("This browser does not support notifications.");
+      return;
+    }
+    if (Notification.permission === "granted") {
+      // already granted
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          console.log("Notification permission granted.");
+        }
+      });
+    }
+  }
+
+  function setupPrivateChatNotifications(userId) {
+    const roomsQuery = db.collection('privateChatRooms')
+      .where('participants', 'array-contains', userId);
+
+    roomsQuery.onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const room = change.doc.data();
+          const otherUid = room.participants.find(uid => uid !== userId);
+          db.collection('privateChatRooms').doc(change.doc.id)
+            .collection('messages')
+            .orderBy('timestamp', 'desc')
+            .limit(1)
+            .onSnapshot(msgSnapshot => {
+              msgSnapshot.docChanges().forEach(msgChange => {
+                if (msgChange.type === 'added') {
+                  const msg = msgChange.doc.data();
+                  if (msg.from === otherUid && Notification.permission === "granted") {
+                    db.collection('users').doc(otherUid).get().then(userDoc => {
+                      const otherName = userDoc.data()?.name || 'User';
+                      new Notification(`New message from ${otherName}`, {
+                        body: msg.text.substring(0, 50) + (msg.text.length > 50 ? '…' : ''),
+                        icon: '/ntuonline/icon-192.png'
+                      });
+                    });
+                  }
+                }
+              });
+            });
+        }
+      });
+    });
+  }
+
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -739,6 +780,9 @@ window.toggleAuthMode = function(e) {
           ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
         `;
       }).catch(showError);
+      // Request notification permission and set up listeners
+      requestNotificationPermission();
+      setupPrivateChatNotifications(user.uid);
     } else {
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
     }
@@ -1098,7 +1142,7 @@ window.toggleAuthMode = function(e) {
       if (e.video) {
         const videoId = extractYoutubeId(e.video);
         if (videoId) mediaHtml += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
-        else mediaHtml += `<p><a href="${e.video}" target="_blank" style="color:#c2410c;">Watch Video</a></p>`;
+        else mediaHtml += `<p><a href="${e.video}" target="_blank" style="color:#f97316;">Watch Video</a></p>`;
       }
       if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
 
@@ -1304,7 +1348,6 @@ window.toggleAuthMode = function(e) {
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       read: false
     }).then(() => {
-      // Update room's last message field (for inbox)
       roomRef.update({
         lastMessage: text,
         lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
@@ -1338,7 +1381,6 @@ window.toggleAuthMode = function(e) {
     const inboxList = document.getElementById('inboxList');
     inboxList.innerHTML = 'Loading...';
 
-    // Query rooms where current user is a participant – this uses array-contains but without orderBy, so no composite index needed.
     db.collection('privateChatRooms')
       .where('participants', 'array-contains', currentUser.uid)
       .get()
@@ -1352,11 +1394,9 @@ window.toggleAuthMode = function(e) {
         for (const doc of snapshot.docs) {
           const room = doc.data();
           const otherUid = room.participants.find(uid => uid !== currentUser.uid);
-          // Fetch other user's name
           const userDoc = await db.collection('users').doc(otherUid).get();
           const otherUser = userDoc.data() || { name: 'Unknown' };
 
-          // Use lastMessage and lastMessageTime from room document
           let preview = room.lastMessage || 'No messages';
           if (preview.length > 30) preview = preview.substring(0, 30) + '…';
           let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
@@ -1371,7 +1411,6 @@ window.toggleAuthMode = function(e) {
           });
         }
 
-        // Sort by lastMessageTime descending (client-side)
         rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
 
         inboxList.innerHTML = '';
@@ -1407,34 +1446,18 @@ window.toggleAuthMode = function(e) {
         unsubscribeRoomMessages = null;
         activeChatRoomId = null;
       }
+      if (event.target.id === 'authModal') {
+        closeAuthModal();
+      }
     }
   };
 </script>
 <script>
-  if ('serviceWorker' in navigator) {
+  if (typeof navigator.serviceWorker !== 'undefined') {
     navigator.serviceWorker.register('service-worker.js')
       .then(reg => console.log('Service Worker registered:', reg))
       .catch(err => console.error('Service Worker registration failed:', err));
   }
 </script>
-<!-- Login/Register Modal -->
-<div id="authModal" class="modal" style="display: none;">
-  <div class="modal-content">
-    <span class="close" onclick="closeAuthModal()">&times;</span>
-    <h3 id="authHeader">Login</h3>
-    <div id="registerFields" style="display:none;">
-      <input id="regName" placeholder="Full Name">
-      <input id="regKindred" placeholder="Kindred Name">
-    </div>
-    <input id="authEmail" placeholder="Email">
-    <input id="authPassword" type="password" placeholder="Password">
-    <button id="authSubmitBtn">Login</button>
-    <p>
-      <span id="toggleText">Don't have an account?</span>
-      <a href="#" onclick="toggleAuthMode(event)" style="color:#f97316;">Click here</a>
-    </p>
-    <div id="authMessage"></div>
-  </div>
-</div>
 </body>
 </html>
