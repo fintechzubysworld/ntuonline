@@ -3,7 +3,7 @@
 "protocol_handlers": [{"protocol":"mailto","url":"/newEmail?to=%s"}], 
 "name": "Ntuconnect",
 "short_name": "Ntuconnect",
-"start_url": "/index.html",
+"start_url": "https://fintechzubysworld.github.io/ntuonline/index.html",
 "display": "standalone",
 "description": "Ntu global communication platform. live stream, event and news hub, social messaging, personal messaging service. newsroom. powered by Zuby's World IT solutions",
 "lang": "English",
@@ -12,19 +12,19 @@
 "background_color": "#000000",
 "orientation": "any",
 "icons": [
-    {
-        "src": "https://fintechzubysworld.github.io/ntuonline/index/blob/main/launchericon-512x512.png",
-        "sizes": "512x512",
-        "type": "image/png",
-        "purpose": "maskable"
-    },
-    {
-        "src": "https://fintechzubysworld.github.io/ntuonline/index/blob/main/launchericon-192x192.png",
-        "sizes": "192x192",
-        "type": "image/png",
-        "purpose": "any"
-    }
-],
+  {
+    "src": "icon-192.png",
+    "sizes": "192x192",
+    "type": "image/png",
+    "purpose": "any"
+  },
+  {
+    "src": "icon-512.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "maskable"
+  }
+]
 "screenshots": [
     {
         "src": "https://fintechzubysworld.github.io/ntuonline/index.html",
@@ -48,4 +48,3 @@
     }
 ]
 }
-
