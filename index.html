@@ -39,6 +39,28 @@
   <h2><i class="fa-solid fa-globe"></i> Ntuconnect</h2>
   <div id="navArea"></div>
 </header>
+
+<!-- Login/Register Modal -->
+<div id="authModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeAuthModal()">&times;</span>
+    <h3 id="authHeader">Login</h3>
+    <div id="registerFields" style="display:none;">
+      <input id="regName" placeholder="Full Name">
+      <input id="regKindred" placeholder="Kindred Name">
+    </div>
+    <input id="authEmail" placeholder="Email">
+    <input id="authPassword" type="password" placeholder="Password">
+    <button id="authSubmitBtn">Login</button>
+    <p>
+      <span id="toggleText">Don't have an account?</span>
+      <a href="#" onclick="toggleAuthMode(event)" style="color:#f97316;">Click here</a>
+    </p>
+    <div id="authMessage"></div>
+  </div>
+</div>
+
+</div>
   <div class="marquee">
   <h6>Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
 </div>
@@ -94,22 +116,6 @@
 
 </div>
 
-<!-- AUTH MODAL -->
-<div id="authContainer" style="display:none;">
-  <h3 id="authHeader">Login</h3>
-  <div id="registerFields" style="display:none;">
-    <input id="regName" placeholder="Full Name">
-    <input id="regKindred" placeholder="Kindred Name">
-  </div>
-  <input id="authEmail" placeholder="Email">
-  <input id="authPassword" type="password" placeholder="Password">
-  <button id="authSubmitBtn">Login</button>
-  <p>
-    <span id="toggleText">Don't have an account?</span>
-    <a href="#" onclick="toggleAuthMode(event)" style="color:#c2410c;">Click here</a>
-  </p>
-  <div id="authMessage"></div>
-</div>
 
 <!-- Profile Modal -->
 <div id="profileModal" class="modal" style="display:none;">
@@ -307,39 +313,58 @@
   const navArea = document.getElementById("navArea");
   const authContainer = document.getElementById("authContainer");
 
-  function showAuth() { authContainer.style.display = "block"; }
+ // Replace the old showAuth() (if any) with:
+// Show/hide modal
+window.showAuth = function() {
+  document.getElementById('authModal').style.display = 'flex';
+};
 
-  window.toggleAuthMode = function (e) {
-    e.preventDefault();
-    authMode = authMode === "login" ? "register" : "login";
-    document.getElementById("registerFields").style.display = authMode === "register" ? "block" : "none";
-    document.getElementById("authHeader").innerText = authMode === "login" ? "Login" : "Register";
-    document.getElementById("authSubmitBtn").innerText = authMode === "login" ? "Login" : "Register";
-    document.getElementById("toggleText").innerText = authMode === "login" ? "Don't have an account?" : "Already have an account?";
-  };
+window.closeAuthModal = function() {
+  document.getElementById('authModal').style.display = 'none';
+  clearAuth();
+};
 
-  document.getElementById("authSubmitBtn").onclick = function () {
-    const email = document.getElementById("authEmail").value.trim();
-    const password = document.getElementById("authPassword").value.trim();
-    if (authMode === "register") {
-      const name = document.getElementById("regName").value.trim();
-      const kindred = document.getElementById("regKindred").value.trim();
-      if (!name || !kindred || !email || !password) return alert("All fields required");
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(cred => db.collection("users").doc(cred.user.uid).set({
-          name, kindred, email, online: true, lastSeen: null,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          isAdmin: false
-        }))
-        .then(() => { alert("Registered"); authContainer.style.display = "none"; clearAuth(); })
-        .catch(showError);
-    } else {
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => { alert("Login successful"); authContainer.style.display = "none"; clearAuth(); })
-        .catch(showError);
-    }
-  };
+// Make sure toggleAuthMode is defined (it likely already is)
+// If not, add this:
+window.toggleAuthMode = function(e) {
+  e.preventDefault();
+  authMode = authMode === "login" ? "register" : "login";
+  document.getElementById("registerFields").style.display = authMode === "register" ? "block" : "none";
+  document.getElementById("authHeader").innerText = authMode === "login" ? "Login" : "Register";
+  document.getElementById("authSubmitBtn").innerText = authMode === "login" ? "Login" : "Register";
+  document.getElementById("toggleText").innerText = authMode === "login" ? "Don't have an account?" : "Already have an account?";
+};
 
+// Update the submit button handler (replace the old one)
+document.getElementById("authSubmitBtn").onclick = function() {
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value.trim();
+  if (authMode === "register") {
+    const name = document.getElementById("regName").value.trim();
+    const kindred = document.getElementById("regKindred").value.trim();
+    if (!name || !kindred || !email || !password) return alert("All fields required");
+    auth.createUserWithEmailAndPassword(email, password)
+      .then(cred => db.collection("users").doc(cred.user.uid).set({
+        name, kindred, email, online: true, lastSeen: null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        isAdmin: false
+      }))
+      .then(() => { alert("Registered"); closeAuthModal(); clearAuth(); })
+      .catch(showError);
+  } else {
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => { alert("Login successful"); closeAuthModal(); clearAuth(); })
+      .catch(showError);
+  }
+};
+
+// Ensure clearAuth clears the modal fields
+function clearAuth() {
+  document.getElementById("authEmail").value = "";
+  document.getElementById("authPassword").value = "";
+  if (document.getElementById("regName")) document.getElementById("regName").value = "";
+  if (document.getElementById("regKindred")) document.getElementById("regKindred").value = "";
+}
   function clearAuth() {
     document.getElementById("authEmail").value = "";
     document.getElementById("authPassword").value = "";
