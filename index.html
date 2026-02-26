@@ -1,142 +1,497 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Ntudioka Community</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ntuconnect – Mobile</title>
 
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-<style>
-body{
-margin:0;
-font-family:Arial;
-background:linear-gradient(135deg,#0f172a,#1e293b);
-color:white;
-}
+  <style>
+    /* ===== GLOBAL STYLES (mobile first) ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-header{
-background:#0ea5e9;
-padding:15px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
+    body {
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      background: linear-gradient(145deg, #0b1120 0%, #1a2639 100%);
+      color: #e2e8f0;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 12px;
+    }
 
-button{
-padding:6px 12px;
-border:none;
-border-radius:20px;
-background:#f97316;
-color:white;
-cursor:pointer;
-}
+    /* ===== HEADER ===== */
+    header {
+      background: rgba(14, 165, 233, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 0.8rem 1.2rem;
+      border-radius: 50px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 20px 30px -10px rgba(0, 150, 255, 0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
 
-button:hover{opacity:0.9;}
+    header h2 {
+      font-weight: 600;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-.section{
-padding:20px;
-}
+    #navArea {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
-.card{
-background:#1e293b;
-padding:15px;
-border-radius:15px;
-margin-bottom:15px;
-}
+    #navArea button {
+      background: #f97316;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 40px;
+      color: white;
+      font-weight: bold;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 10px rgba(249, 115, 22, 0.4);
+      min-height: 44px;
+    }
 
-input,textarea{
-width:100%;
-padding:8px;
-margin-top:6px;
-border-radius:8px;
-border:none;
-}
+    .onlineDot {
+      color: #4ade80;
+      font-weight: bold;
+      margin-right: 4px;
+      font-size: 0.9rem;
+    }
 
-.chatBox{
-height:250px;
-overflow-y:auto;
-background:#111827;
-padding:10px;
-border-radius:10px;
-margin-bottom:10px;
-}
+    /* ===== SECTION & CARDS ===== */
+    .section {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
 
-.online{
-color:#22c55e;
-font-size:12px;
-}
-</style>
+    .card {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(8px);
+      border-radius: 28px;
+      padding: 20px;
+      box-shadow: 0 25px 40px -15px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: transform 0.2s;
+    }
+
+    .card h3 {
+      color: #f97316;
+      margin-bottom: 12px;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid #334155;
+      padding-bottom: 8px;
+    }
+
+    input, textarea, button {
+      font-size: 16px; /* prevents zoom on mobile */
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border-radius: 40px;
+      border: none;
+      background: #0f172a;
+      color: white;
+      transition: 0.2s;
+    }
+
+    textarea {
+      border-radius: 25px;
+      resize: vertical;
+    }
+
+    button {
+      background: #f97316;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 40px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 4px 10px rgba(249,115,22,0.3);
+      min-height: 48px;
+      width: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button.secondary {
+      background: #475569;
+      box-shadow: none;
+    }
+
+    /* ===== POST / COMMENT STYLES ===== */
+    .feed-item, .chat-item, .goodwill-item, .live-comment-item, .event-item {
+      background: #0f172a;
+      border-radius: 20px;
+      padding: 15px;
+      margin: 15px 0;
+      border-left: 5px solid #f97316;
+      word-break: break-word;
+    }
+
+    .replyBox {
+      margin-left: 12px;
+      padding-left: 12px;
+      border-left: 3px solid #334155;
+      margin-top: 8px;
+    }
+
+    .timestamp {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    /* Embedded media */
+    .embedded-media {
+      margin: 10px 0;
+      border-radius: 15px;
+      overflow: hidden;
+      max-width: 100%;
+    }
+
+    .embedded-media img,
+    .embedded-media iframe {
+      max-width: 100%;
+      border-radius: 15px;
+    }
+
+    .embedded-media iframe {
+      height: 200px; /* smaller on mobile */
+    }
+
+    /* Reaction bar */
+    .reaction-bar {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .reaction-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 8px 14px;
+      border-radius: 30px;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+    }
+
+    .reaction-btn:hover {
+      background: #334155;
+    }
+
+    .reaction-btn.liked {
+      color: #f97316;
+    }
+
+    /* Modals */
+    .modal {
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      padding: 24px 20px;
+      border-radius: 40px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: white;
+      border: 2px solid #f97316;
+      box-shadow: 0 30px 50px black;
+      position: relative;
+    }
+
+    .close {
+      position: absolute;
+      top: 12px; right: 16px;
+      font-size: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #94a3b8;
+      line-height: 1;
+    }
+
+    .close:hover { color: #f97316; }
+
+    /* Chat modal */
+    .chat-messages {
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 15px 0;
+      padding: 10px;
+      background: #0f172a;
+      border-radius: 20px;
+    }
+
+    .chat-message {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 18px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+
+    .chat-message.sent {
+      background: #f97316;
+      color: white;
+      margin-left: auto;
+    }
+
+    .chat-message.received {
+      background: #334155;
+      color: white;
+      margin-right: auto;
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chat-input-area input {
+      flex: 1 1 200px;
+      margin: 0;
+    }
+
+    .chat-input-area button {
+      flex: 0 0 auto;
+    }
+
+    /* Inbox modal */
+    .inbox-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .inbox-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      background: #0f172a;
+      border-radius: 30px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      gap: 10px;
+    }
+
+    .inbox-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .inbox-item-name {
+      font-weight: bold;
+      color: #f97316;
+    }
+
+    .inbox-item-preview {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .inbox-item-time {
+      font-size: 0.7rem;
+      color: #64748b;
+      white-space: nowrap;
+    }
+
+    /* Marquee */
+    .marquee {
+      width: 100%;
+      overflow: hidden;
+      background: black;
+      padding: 4px 0;
+      margin-bottom: 12px;
+      border-radius: 30px;
+    }
+
+    .marquee h6 {
+      display: inline-block;
+      margin: 0;
+      font-size: 0.8rem;
+      color: yellowgreen;
+      animation: scrollText 18s linear infinite;
+      white-space: nowrap;
+    }
+
+    @keyframes scrollText {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* Mobile fine-tuning */
+    @media (max-width: 480px) {
+      body { padding: 8px; }
+      header { padding: 0.6rem 1rem; }
+      header h2 { font-size: 1.2rem; }
+      .section { gap: 12px; }
+      .card { padding: 16px; }
+      button { width: 100%; } /* full-width buttons on very small screens */
+      #navArea button { width: auto; } /* keep nav buttons inline */
+      .reaction-bar { flex-wrap: wrap; }
+    }
+  </style>
 </head>
-
 <body>
 
 <header>
-<h2><i class="fa-solid fa-globe"></i> Ntudioka Community</h2>
-
-<div id="navArea">
-<button onclick="showLogin()">Login</button>
-<button onclick="showRegister()">Register</button>
-</div>
-
+  <h2><i class="fa-solid fa-globe"></i> Ntuconnect</h2>
+  <div id="navArea"></div>
 </header>
+  <div class="marquee">
+  <h6>Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
+</div>
 
 <div class="section">
 
-<!-- LIVE STREAM -->
-<div class="card">
-<h3>🔴 Live Stream</h3>
-<div id="liveArea">Loading...</div>
-</div>
+  <!-- LIVE STREAM -->
+  <div class="card">
+    <h3><i class="fa-solid fa-circle" style="color:#f87171;"></i> Live Stream</h3>
+    <div id="liveArea">Loading...</div>
+    <textarea id="liveCommentInput" placeholder="Write a comment..."></textarea>
+    <button onclick="commentLive()"><i class="fa-regular fa-comment"></i> Comment</button>
+    <div id="liveComments"></div>
+  </div>
 
-<!-- EVENTS -->
-<div class="card">
-<h3>📅 Events</h3>
-<div id="eventArea"></div>
-</div>
+  <!-- EVENTS -->
+  <div class="card">
+    <h3><i class="fa-regular fa-calendar"></i> Events</h3>
+    <div id="eventArea"></div>
+  </div>
 
-<!-- FEED -->
-<div class="card">
-<h3>📰 Community Feed</h3>
+  <!-- FEED -->
+  <div class="card">
+    <h3><i class="fa-regular fa-newspaper"></i> Community Feed</h3>
+    <textarea id="feedInput" placeholder="Share something..."></textarea>
+    <button onclick="postFeed()"><i class="fa-regular fa-paper-plane"></i> Post</button>
+    <div id="feedArea"></div>
+  </div>
 
-<textarea id="feedInput" placeholder="Share something..."></textarea>
-<button onclick="postFeed()">Post</button>
+  <!-- CHAT -->
+  <div class="card">
+    <h3><i class="fa-regular fa-message"></i> Community Chat</h3>
+    <div id="chatArea"></div>
+    <input id="chatInput" placeholder="Type a message...">
+    <button onclick="sendChat()"><i class="fa-regular fa-paper-plane"></i> Send</button>
+  </div>
 
-<div id="feedArea"></div>
-</div>
-
-<!-- GLOBAL CHAT -->
-<div class="card">
-<h3>💬 Community Chat</h3>
-
-<div class="chatBox" id="chatMessages"></div>
-<input id="chatInput" placeholder="Type message">
-<button onclick="sendChat()">Send</button>
-</div>
-
-<!-- PRIVATE CHAT -->
-<div class="card">
-<h3>📩 Private Messages</h3>
-<input id="privateEmail" placeholder="Enter user email">
-<div class="chatBox" id="privateMessages"></div>
-<input id="privateInput" placeholder="Type private message">
-<button onclick="sendPrivate()">Send</button>
-</div>
+  <!-- GOODWILL -->
+  <div class="card">
+    <h3><i class="fa-regular fa-handshake"></i> Goodwill Messages</h3>
+    <textarea id="goodwillInput" placeholder="Write a goodwill message..."></textarea>
+    <button onclick="postGoodwill()"><i class="fa-regular fa-heart"></i> Post</button>
+    <div id="goodwillArea"></div>
+  </div>
 
 </div>
 
 <!-- AUTH MODAL -->
-<div id="authBox" style="display:none;padding:20px;">
-<h3 id="authTitle"></h3>
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<button onclick="submitAuth()">Submit</button>
+<div id="authContainer" style="display:none;">
+  <h3 id="authHeader">Login</h3>
+  <div id="registerFields" style="display:none;">
+    <input id="regName" placeholder="Full Name">
+    <input id="regKindred" placeholder="Kindred Name">
+  </div>
+  <input id="authEmail" placeholder="Email">
+  <input id="authPassword" type="password" placeholder="Password">
+  <button id="authSubmitBtn">Login</button>
+  <p>
+    <span id="toggleText">Don't have an account?</span>
+    <a href="#" onclick="toggleAuthMode(event)" style="color:#f97316;">Click here</a>
+  </p>
+  <div id="authMessage"></div>
+</div>
+
+<!-- Profile Modal -->
+<div id="profileModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeProfileModal()">&times;</span>
+    <h3><i class="fa-regular fa-user"></i> User Profile</h3>
+    <div id="profileInfo"></div>
+    <button id="startPrivateChatBtn" onclick="startPrivateChatFromProfile()">💬 Private Chat</button>
+  </div>
+</div>
+
+<!-- Inbox Modal -->
+<div id="inboxModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeInboxModal()">&times;</span>
+    <h3><i class="fa-regular fa-envelope"></i> Inbox</h3>
+    <div id="inboxList" class="inbox-list">Loading...</div>
+  </div>
+</div>
+
+<!-- Private Chat Modal -->
+<div id="chatModal" class="modal" style="display:none;">
+  <div class="modal-content chat-modal">
+    <span class="close" onclick="closeChatModal()">&times;</span>
+    <h3 id="chatWith"></h3>
+    <div id="privateChatMessages" class="chat-messages"></div>
+    <div class="chat-input-area">
+      <input type="text" id="privateChatInput" placeholder="Type a message...">
+      <button onclick="sendPrivateMessage()">Send</button>
+    </div>
+  </div>
 </div>
 
 <script>
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -146,423 +501,892 @@ font-size:12px;
     appId: "1:1015621578149:web:c755b458e505fd32928c4c",
     measurementId: "G-JPVKYQRKEB"
   };
-firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  let currentUser = null;
 
-/* ========= AUTH FIXED MODULE ========= */
+  // ---------- HELPER: parse content for media ----------
+  function parseContent(text) {
+    if (!text) return '';
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
+    const imageRegex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|bmp|svg))(?:\?.*)?/gi;
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-  
-/* ===============================
-   USER PRESENCE SYSTEM
-   =============================== */
+    let parts = [];
+    let lastIndex = 0;
+    let match;
 
-const usersCollection = db.collection("users");
-
-/* Mark User Online */
-function setUserOnline(user){
-    if(!user) return;
-
-    usersCollection.doc(user.uid).set({
-        email: user.email,
-        online: true,
-        lastSeen: null,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-}
-
-/* Mark User Offline */
-function setUserOffline(user){
-    if(!user) return;
-
-    usersCollection.doc(user.uid).set({
-        online: false,
-        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-}
-
-/* Auth State Listener */
-auth.onAuthStateChanged(user=>{
-    if(user){
-        setUserOnline(user);
+    while ((match = urlRegex.exec(text)) !== null) {
+      const url = match[0];
+      const index = match.index;
+      if (index > lastIndex) {
+        parts.push({ type: 'text', content: text.substring(lastIndex, index) });
+      }
+      let ytMatch = youtubeRegex.exec(url);
+      if (ytMatch) {
+        parts.push({ type: 'youtube', content: ytMatch[1] });
+      } else if (imageRegex.test(url)) {
+        parts.push({ type: 'image', content: url });
+      } else {
+        parts.push({ type: 'link', content: url });
+      }
+      lastIndex = index + url.length;
     }
-});
-
-/* Logout Override */
-function logout(){
-    const user = auth.currentUser;
-
-    if(user){
-        setUserOffline(user);
+    if (lastIndex < text.length) {
+      parts.push({ type: 'text', content: text.substring(lastIndex) });
     }
+    if (parts.length === 0) return escapeHtml(text);
 
-    auth.signOut();
-}
+    let html = '';
+    parts.forEach(part => {
+      if (part.type === 'text') {
+        html += escapeHtml(part.content);
+      } else if (part.type === 'link') {
+        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#f97316;">${part.content}</a>`;
+      } else if (part.type === 'image') {
+        html += `<div class="embedded-media"><img src="${part.content}" alt="embedded image" loading="lazy"></div>`;
+      } else if (part.type === 'youtube') {
+        html += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${part.content}" allowfullscreen></iframe></div>`;
+      }
+    });
+    return html;
+  }
 
-/* Detect Tab / Browser Close */
-window.addEventListener("beforeunload", function () {
-    const user = auth.currentUser;
-    if(user){
-        setUserOffline(user);
-    }
-});
+  function escapeHtml(unsafe) {
+    return unsafe.replace(/[&<>"']/g, function(m) {
+      if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
+    });
+  }
 
-/* Optional: Detect Page Visibility Change (Tab Switch) */
-document.addEventListener("visibilitychange", function(){
-    const user = auth.currentUser;
-    if(!user) return;
+  // ---------- TIMESTAMP FORMATTER ----------
+  function formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+  }
 
-    if(document.visibilityState === "hidden"){
-        setUserOffline(user);
+  function formatRelativeTime(timestamp) {
+    if (!timestamp) return '';
+    const now = new Date();
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const diff = Math.floor((now - date) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff/60)} minutes ago`;
+    if (diff < 86400) return `${Math.floor(diff/3600)} hours ago`;
+    return `${Math.floor(diff/86400)} days ago`;
+  }
+
+  // ---------- REACTIONS (likes) ----------
+  function addReactionUI(targetType, targetId, container) {
+    const reactDiv = document.createElement('div');
+    reactDiv.className = 'reaction-bar';
+    reactDiv.innerHTML = `
+      <button class="reaction-btn like-btn" data-type="${targetType}" data-id="${targetId}">
+        <i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">0</span>
+      </button>
+    `;
+    container.appendChild(reactDiv);
+
+    const likeBtn = reactDiv.querySelector('.like-btn');
+    const countSpan = likeBtn.querySelector('.reaction-count');
+    const userId = currentUser?.uid;
+
+    let docRef;
+    if (targetType.includes('/')) {
+      if (!targetId) {
+        docRef = db.doc(targetType);
+      } else {
+        docRef = db.collection(targetType).doc(targetId);
+      }
     } else {
-        setUserOnline(user);
+      docRef = db.collection(targetType).doc(targetId);
     }
-});
+    const reactionsRef = docRef.collection('reactions');
 
-let currentUser = null;
-let authMode = "login";
+    const unsubscribe = reactionsRef.onSnapshot(snapshot => {
+      let count = 0;
+      let userLiked = false;
+      snapshot.forEach(doc => {
+        if (doc.data().type === 'like') {
+          count++;
+          if (userId && doc.id === userId) userLiked = true;
+        }
+      });
+      countSpan.textContent = count;
+      if (userLiked) {
+        likeBtn.classList.add('liked');
+        likeBtn.innerHTML = `<i class="fa-solid fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
+      } else {
+        likeBtn.classList.remove('liked');
+        likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
+      }
+    });
 
-/* Cache Elements */
-const navArea = document.getElementById("navArea");
-const authBox = document.getElementById("authBox");
-const authTitle = document.getElementById("authTitle");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-
-/* Show Login */
-function showLogin(){
-    authMode = "login";
-    authTitle.innerText = "Login";
-    authBox.style.display = "block";
-}
-
-/* Show Register */
-function showRegister(){
-    authMode = "register";
-    authTitle.innerText = "Register";
-    authBox.style.display = "block";
-}
-
-/* Submit Auth */
-function submitAuth(){
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-
-    if(!email || !password){
-        alert("Please enter email and password.");
-        return;
-    }
-
-    if(authMode === "register"){
-        auth.createUserWithEmailAndPassword(email,password)
-        .then(()=>{
-            alert("Registration successful!");
-            clearAuthInputs();
-        })
-        .catch(err=>{
-            alert(err.message);
+    likeBtn.addEventListener('click', async () => {
+      if (!currentUser) return alert('Login required');
+      const reactionDoc = reactionsRef.doc(currentUser.uid);
+      const doc = await reactionDoc.get();
+      if (doc.exists) {
+        await reactionDoc.delete();
+      } else {
+        await reactionDoc.set({
+          type: 'like',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+      }
+    });
+
+    return unsubscribe;
+  }
+
+  // ---------- AUTH ----------
+  let authMode = "login";
+  const navArea = document.getElementById("navArea");
+  const authContainer = document.getElementById("authContainer");
+
+  function showAuth() { authContainer.style.display = "block"; }
+
+  window.toggleAuthMode = function (e) {
+    e.preventDefault();
+    authMode = authMode === "login" ? "register" : "login";
+    document.getElementById("registerFields").style.display = authMode === "register" ? "block" : "none";
+    document.getElementById("authHeader").innerText = authMode === "login" ? "Login" : "Register";
+    document.getElementById("authSubmitBtn").innerText = authMode === "login" ? "Login" : "Register";
+    document.getElementById("toggleText").innerText = authMode === "login" ? "Don't have an account?" : "Already have an account?";
+  };
+
+  document.getElementById("authSubmitBtn").onclick = function () {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value.trim();
+    if (authMode === "register") {
+      const name = document.getElementById("regName").value.trim();
+      const kindred = document.getElementById("regKindred").value.trim();
+      if (!name || !kindred || !email || !password) return alert("All fields required");
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(cred => db.collection("users").doc(cred.user.uid).set({
+          name, kindred, email, online: true, lastSeen: null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          isAdmin: false
+        }))
+        .then(() => { alert("Registered"); authContainer.style.display = "none"; clearAuth(); })
+        .catch(showError);
     } else {
-        auth.signInWithEmailAndPassword(email,password)
-        .then(()=>{
-            alert("Login successful!");
-            clearAuthInputs();
-        })
-        .catch(err=>{
-            alert(err.message);
-        });
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => { alert("Login successful"); authContainer.style.display = "none"; clearAuth(); })
+        .catch(showError);
     }
-}
+  };
 
-/* Clear Inputs */
-function clearAuthInputs(){
-    emailInput.value = "";
-    passwordInput.value = "";
-    authBox.style.display = "none";
-}
+  function clearAuth() {
+    document.getElementById("authEmail").value = "";
+    document.getElementById("authPassword").value = "";
+    if (document.getElementById("regName")) document.getElementById("regName").value = "";
+    if (document.getElementById("regKindred")) document.getElementById("regKindred").value = "";
+  }
 
-/* Logout */
-function logout(){
-    auth.signOut();
-}
+  window.logout = function () {
+    if (currentUser) {
+      db.collection("users").doc(currentUser.uid).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
+    }
+    auth.signOut().catch(showError);
+  };
 
-/* Toggle Navigation Based On Login */
-auth.onAuthStateChanged(user=>{
+  auth.onAuthStateChanged(user => {
     currentUser = user;
-
-    if(user){
-
+    if (user) {
+      db.collection("users").doc(user.uid).update({ online: true }).catch(showError);
+      db.collection("users").doc(user.uid).get().then(doc => {
+        const userData = doc.data() || {};
+        const isAdmin = userData.isAdmin || false;
         navArea.innerHTML = `
-            <span style="color:#22c55e;">● Online</span>
-            <button onclick="logout()">Logout</button>
-            ${user.email === "fintech.zubysworld@gmail.com" ?
-            `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
+          <span class="onlineDot">● Online</span>
+          <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
+          <button onclick="logout()">Logout</button>
+          ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
         `;
-
-        // Update user online status
-        db.collection("users").doc(user.uid).set({
-            email:user.email,
-            online:true,
-            lastActive:Date.now()
-        },{merge:true});
-
+      }).catch(showError);
     } else {
+      navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
+    }
+  });
 
-        navArea.innerHTML = `
-            <button onclick="showLogin()">Login</button>
-            <button onclick="showRegister()">Register</button>
+  window.addEventListener("beforeunload", () => {
+    if (currentUser) {
+      db.collection("users").doc(currentUser.uid).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
+    }
+  });
+
+  function showError(err) { alert("Error: " + err.message); console.error(err); }
+
+  // ---------- FEED ----------
+  window.postFeed = function () {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("feedInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("feed").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
+    const feedArea = document.getElementById("feedArea");
+    feedArea.innerHTML = "";
+    s.forEach(doc => {
+      const p = doc.data();
+      const feedId = doc.id;
+      const feedDiv = document.createElement('div');
+      feedDiv.className = "feed-item";
+      feedDiv.id = `feed-${feedId}`;
+      feedDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${p.userId || ''}')">${p.name ?? '?'}</span> (${p.kindred ?? '?'})</strong>
+        <div>${parseContent(p.text)}</div>
+        <div class="timestamp">${formatTimestamp(p.created)}</div>
+        <div id="feedReplies${feedId}" class="replies"></div>
+        <input id="replyFeed${feedId}" placeholder="Reply...">
+        <button onclick="replyFeed('${feedId}')">Reply</button>
+      `;
+      feedArea.appendChild(feedDiv);
+      addReactionUI('feed', feedId, feedDiv);
+      loadReplies("feed", feedId, "feedReplies");
+    });
+  }, showError);
+
+  window.replyFeed = function (id) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("replyFeed" + id);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("feed").doc(id).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadReplies(collection, id, containerPrefix) {
+    db.collection(collection).doc(id).collection("replies").orderBy("created").onSnapshot(s => {
+      const box = document.getElementById(containerPrefix + id);
+      if (!box) return;
+      box.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>
+          <div>${parseContent(r.text)}</div>
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
         `;
-    }
-});
+        box.appendChild(replyDiv);
+        addReactionUI(`${collection}/${id}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
 
-/* Optional: Hide modal if clicked outside */
-window.onclick = function(e){
-    if(e.target === authBox){
-        authBox.style.display = "none";
-    }
-};
+  // ---------- CHAT ----------
+  window.sendChat = function () {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("chatInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("chat").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
 
-auth.onAuthStateChanged(user=>{
-currentUser=user;
+  db.collection("chat").orderBy("created").onSnapshot(s => {
+    const chatArea = document.getElementById("chatArea");
+    chatArea.innerHTML = "";
+    s.forEach(doc => {
+      const m = doc.data();
+      const chatId = doc.id;
+      const chatDiv = document.createElement('div');
+      chatDiv.className = "chat-item";
+      chatDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${m.userId || ''}')">${m.name ?? '?'}</span> (${m.kindred ?? '?'})</strong>
+        <span>: ${parseContent(m.text)}</span>
+        <div class="timestamp">${formatTimestamp(m.created)}</div>
+        <div id="chatReplies${chatId}" class="replies"></div>
+        <input id="chatReplyInput${chatId}" placeholder="Reply...">
+        <button onclick="replyChat('${chatId}')">Reply</button>
+      `;
+      chatArea.appendChild(chatDiv);
+      addReactionUI('chat', chatId, chatDiv);
+      loadChatReplies(chatId);
+    });
+  }, showError);
 
-if(user){
+  window.replyChat = function (chatId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("chatReplyInput" + chatId);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("chat").doc(chatId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
 
-navArea.innerHTML=`
-<span class="online">● Online</span>
-<button onclick="logout()">Logout</button>
-${user.email==="fintech.zubysworld@gmail.com" ? 
-`<button onclick="window.location='ntuonline.html'">Admin</button>`:""}
-`;
+  function loadChatReplies(chatId) {
+    db.collection("chat").doc(chatId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("chatReplies" + chatId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`chat/${chatId}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
 
-db.collection("users").doc(user.uid).set({
-email:user.email,
-online:true
-},{merge:true});
+  // ---------- GOODWILL ----------
+  window.postGoodwill = function () {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("goodwillInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("goodwill").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
 
-}else{
-navArea.innerHTML=`
-<button onclick="showLogin()">Login</button>
-<button onclick="showRegister()">Register</button>
-`;
-}
-});
+  db.collection("goodwill").orderBy("created", "desc").onSnapshot(s => {
+    const goodwillArea = document.getElementById("goodwillArea");
+    goodwillArea.innerHTML = "";
+    s.forEach(doc => {
+      const g = doc.data();
+      const goodwillId = doc.id;
+      const goodwillDiv = document.createElement('div');
+      goodwillDiv.className = "goodwill-item";
+      goodwillDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${g.userId || ''}')">${g.name ?? '?'}</span> (${g.kindred ?? '?'})</strong>
+        <div>${parseContent(g.text)}</div>
+        <div class="timestamp">${formatTimestamp(g.created)}</div>
+        <div id="goodwillReplies${goodwillId}" class="replies"></div>
+        <input id="goodwillReplyInput${goodwillId}" placeholder="Reply...">
+        <button onclick="replyGoodwill('${goodwillId}')">Reply</button>
+      `;
+      goodwillArea.appendChild(goodwillDiv);
+      addReactionUI('goodwill', goodwillId, goodwillDiv);
+      loadGoodwillReplies(goodwillId);
+    });
+  }, showError);
 
-function logout(){
-auth.signOut();
-}
+  window.replyGoodwill = function (goodwillId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("goodwillReplyInput" + goodwillId);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("goodwill").doc(goodwillId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
 
-//////////////// LIVE STREAM //////////////////
+  function loadGoodwillReplies(goodwillId) {
+    db.collection("goodwill").doc(goodwillId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("goodwillReplies" + goodwillId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
 
-db.collection("live").doc("current")
-.onSnapshot(doc=>{
-if(doc.exists){
-const d=doc.data();
-liveArea.innerHTML=`
-<h4>${d.title}</h4>
-<iframe width="100%" height="315"
-src="https://www.youtube.com/embed/${d.videoId}"
-allowfullscreen></iframe>
-`;
-}else{
-liveArea.innerHTML="Currently Offline";
-}
-});
-
-//////////////// EVENTS //////////////////
-
-db.collection("events").orderBy("created","desc")
-.onSnapshot(snapshot=>{
-eventArea.innerHTML="";
-snapshot.forEach(doc=>{
-const e=doc.data();
-eventArea.innerHTML+=`
-<div class="card">
-<h4>${e.title}</h4>
-<p>${e.description}</p>
-${e.image?`<img src="${e.image}" width="100%">`:""}
-${e.video?`<iframe width="100%" height="315" src="${e.video}"></iframe>`:""}
-${e.audio?`<audio controls style="width:100%"><source src="${e.audio}"></audio>`:""}
-
-<button onclick="rsvp('${doc.id}')">RSVP</button>
-<div id="comments${doc.id}"></div>
-<textarea id="comment${doc.id}" placeholder="Comment"></textarea>
-<button onclick="commentEvent('${doc.id}')">Comment</button>
-</div>
-`;
-
-db.collection("events").doc(doc.id).collection("comments")
-.onSnapshot(cs=>{
-let html="";
-cs.forEach(c=>{
-html+=`<p>💬 ${c.data().text}</p>`;
-});
-document.getElementById("comments"+doc.id).innerHTML=html;
-});
-});
-});
-
-function rsvp(id){
-if(!currentUser) return alert("Login required");
-db.collection("events").doc(id).collection("rsvp")
-.doc(currentUser.uid).set({
-user:currentUser.email
-});
-alert("RSVP confirmed");
-}
-
-function commentEvent(id){
-if(!currentUser) return alert("Login required");
-const text=document.getElementById("comment"+id).value;
-db.collection("events").doc(id).collection("comments")
-.add({text:text,user:currentUser.email});
-document.getElementById("comment"+id).value="";
-}
-
-//////////////// FEED //////////////////
-
-function postFeed(){
-if(!currentUser) return alert("Login required");
-
-db.collection("feed").add({
-text:feedInput.value,
-user:currentUser.email,
-created:Date.now(),
-likes:0
-});
-feedInput.value="";
-}
-
-db.collection("feed").orderBy("created","desc")
-.onSnapshot(snapshot=>{
-feedArea.innerHTML="";
-snapshot.forEach(doc=>{
-const f=doc.data();
-feedArea.innerHTML+=`
-<div class="card">
-<p>${f.text}</p>
-<small>By ${f.user}</small><br>
-<button onclick="likePost('${doc.id}')">👍</button>
-<span>${f.likes||0}</span>
-</div>
-`;
-});
-});
-
-function likePost(id){
-if(!currentUser) return alert("Login required");
-db.collection("feed").doc(id)
-.update({likes:firebase.firestore.FieldValue.increment(1)});
-}
-
-//////////////// GLOBAL CHAT //////////////////
-
-function sendChat(){
-if(!currentUser) return alert("Login required");
-
-db.collection("chat").add({
-text:chatInput.value,
-user:currentUser.email,
-created:Date.now()
-});
-chatInput.value="";
-}
-
-db.collection("chat").orderBy("created")
-.onSnapshot(snapshot=>{
-chatMessages.innerHTML="";
-snapshot.forEach(doc=>{
-const m=doc.data();
-chatMessages.innerHTML+=`<p><b>${m.user}:</b> ${m.text}</p>`;
-});
-});
-
-//////////////// PRIVATE CHAT //////////////////
-
-function sendPrivate(){
-if(!currentUser) return alert("Login required");
-
-const other=privateEmail.value;
-const room=[currentUser.email,other].sort().join("_");
-
-db.collection("privateChats").doc(room).collection("messages")
-.add({
-text:privateInput.value,
-user:currentUser.email,
-created:Date.now()
-});
-privateInput.value="";
-}
-
-/* ===============================
-   USER PRESENCE SYSTEM
-   =============================== */
-
-const usersCollection = db.collection("users");
-
-/* Mark User Online */
-function setUserOnline(user){
-    if(!user) return;
-
-    usersCollection.doc(user.uid).set({
-        email: user.email,
-        online: true,
-        lastSeen: null,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-}
-
-/* Mark User Offline */
-function setUserOffline(user){
-    if(!user) return;
-
-    usersCollection.doc(user.uid).set({
-        online: false,
-        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-}
-
-/* Auth State Listener */
-auth.onAuthStateChanged(user=>{
-    if(user){
-        setUserOnline(user);
-    }
-});
-
-/* Logout Override */
-function logout(){
-    const user = auth.currentUser;
-
-    if(user){
-        setUserOffline(user);
-    }
-
-    auth.signOut();
-}
-
-/* Detect Tab / Browser Close */
-window.addEventListener("beforeunload", function () {
-    const user = auth.currentUser;
-    if(user){
-        setUserOffline(user);
-    }
-});
-
-/* Optional: Detect Page Visibility Change (Tab Switch) */
-document.addEventListener("visibilitychange", function(){
-    const user = auth.currentUser;
-    if(!user) return;
-
-    if(document.visibilityState === "hidden"){
-        setUserOffline(user);
+  // ---------- LIVE STREAM ----------
+  db.collection("live").doc("current").onSnapshot(doc => {
+    const liveArea = document.getElementById("liveArea");
+    if (doc.exists) {
+      const d = doc.data();
+      liveArea.innerHTML = `
+        <h4>${d.title || 'Live Stream'}</h4>
+        <iframe width="100%" height="315" src="https://www.youtube.com/embed/${d.videoId || ''}" allowfullscreen></iframe>
+      `;
     } else {
-        setUserOnline(user);
+      liveArea.innerHTML = "<p style='text-align:center;'>🔴 Currently Offline</p>";
     }
-});
+  }, showError);
 
+  window.commentLive = function () {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("liveCommentInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("live").doc("current").collection("comments").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  db.collection("live").doc("current").collection("comments").orderBy("created").onSnapshot(s => {
+    const liveComments = document.getElementById("liveComments");
+    liveComments.innerHTML = "";
+    s.forEach(doc => {
+      const c = doc.data();
+      const commentId = doc.id;
+      const commentDiv = document.createElement('div');
+      commentDiv.className = "live-comment-item";
+      commentDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>: ${parseContent(c.text)}
+        <div class="timestamp">${formatTimestamp(c.created)}</div>
+        <div id="liveReplies${commentId}" class="replies"></div>
+        <input id="liveReplyInput${commentId}" placeholder="Reply...">
+        <button onclick="replyLiveComment('${commentId}')">Reply</button>
+      `;
+      liveComments.appendChild(commentDiv);
+      addReactionUI('live/current/comments', commentId, commentDiv);
+      loadLiveReplies(commentId);
+    });
+  }, showError);
+
+  window.replyLiveComment = function (commentId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("liveReplyInput" + commentId);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadLiveReplies(commentId) {
+    db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("liveReplies" + commentId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`live/current/comments/${commentId}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
+
+  // ---------- EVENTS (with comments) ----------
+  db.collection("events").orderBy("created", "desc").onSnapshot(s => {
+    const eventArea = document.getElementById("eventArea");
+    eventArea.innerHTML = "";
+    s.forEach(doc => {
+      const e = doc.data();
+      const eventId = doc.id;
+      let mediaHtml = '';
+      if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
+      if (e.video) {
+        const videoId = extractYoutubeId(e.video);
+        if (videoId) mediaHtml += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
+        else mediaHtml += `<p><a href="${e.video}" target="_blank" style="color:#f97316;">Watch Video</a></p>`;
+      }
+      if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
+
+      const eventDiv = document.createElement('div');
+      eventDiv.className = "event-item";
+      eventDiv.id = `event-${eventId}`;
+      eventDiv.innerHTML = `
+        <h4>${e.title || 'Untitled'}</h4>
+        <p>${e.description ? parseContent(e.description) : ''}</p>
+        <p><small>${e.date || ''}</small></p>
+        ${mediaHtml}
+        <div id="eventComments${eventId}" class="replies"></div>
+        <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
+        <button onclick="commentEvent('${eventId}')">Comment</button>
+      `;
+      eventArea.appendChild(eventDiv);
+      loadEventComments(eventId);
+    });
+  }, showError);
+
+  function extractYoutubeId(url) {
+    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  }
+
+  window.commentEvent = function(eventId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("eventCommentInput" + eventId);
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("events").doc(eventId).collection("comments").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadEventComments(eventId) {
+    db.collection("events").doc(eventId).collection("comments").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("eventComments" + eventId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const c = doc.data();
+        const commentId = doc.id;
+        const commentDiv = document.createElement('div');
+        commentDiv.className = "replyBox";
+        commentDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>
+          <div>${parseContent(c.text)}</div>
+          <div class="timestamp">${formatTimestamp(c.created)}</div>
+          <div id="eventCommentReplies${commentId}"></div>
+          <input id="eventCommentReplyInput${commentId}" placeholder="Reply...">
+          <button onclick="replyEventComment('${eventId}', '${commentId}')">Reply</button>
+        `;
+        container.appendChild(commentDiv);
+        addReactionUI(`events/${eventId}/comments`, commentId, commentDiv);
+        loadEventCommentReplies(eventId, commentId);
+      });
+    }, showError);
+  }
+
+  window.replyEventComment = function(eventId, commentId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("eventCommentReplyInput" + commentId);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("events").doc(eventId).collection("comments").doc(commentId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadEventCommentReplies(eventId, commentId) {
+    db.collection("events").doc(eventId).collection("comments").doc(commentId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("eventCommentReplies" + commentId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`events/${eventId}/comments/${commentId}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
+
+  // ---------- USER PROFILES ----------
+  let currentProfileUserId = null;
+
+  window.showProfile = function(userId) {
+    if (!userId) return;
+    db.collection('users').doc(userId).get().then(doc => {
+      if (!doc.exists) return;
+      const user = doc.data();
+      document.getElementById('profileInfo').innerHTML = `
+        <p><strong>Name:</strong> ${user.name || '?'}</p>
+        <p><strong>Kindred:</strong> ${user.kindred || '?'}</p>
+        <p><strong>Email:</strong> ${user.email || '?'}</p>
+        <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
+      `;
+      currentProfileUserId = userId;
+      document.getElementById('profileModal').style.display = 'flex';
+    }).catch(showError);
+  };
+
+  window.closeProfileModal = function() {
+    document.getElementById('profileModal').style.display = 'none';
+    currentProfileUserId = null;
+  };
+
+  window.startPrivateChatFromProfile = function() {
+    if (currentProfileUserId) {
+      startPrivateChat(currentProfileUserId);
+      closeProfileModal();
+    }
+  };
+
+  // ---------- PRIVATE CHAT (Room-based, Index-Free Inbox) ----------
+  let activeChatRoomId = null;
+  let activeChatOtherUserId = null;
+  let unsubscribeRoomMessages = null;
+
+  function getChatRoomId(uid1, uid2) {
+    return [uid1, uid2].sort().join('_');
+  }
+
+  window.startPrivateChat = async function(otherUserId) {
+    if (!currentUser) return alert('Login required');
+    if (otherUserId === currentUser.uid) return alert('Cannot chat with yourself');
+
+    const roomId = getChatRoomId(currentUser.uid, otherUserId);
+    activeChatRoomId = roomId;
+    activeChatOtherUserId = otherUserId;
+
+    const roomRef = db.collection('privateChatRooms').doc(roomId);
+    const roomDoc = await roomRef.get();
+    if (!roomDoc.exists) {
+      await roomRef.set({
+        participants: [currentUser.uid, otherUserId],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastMessage: null,
+        lastMessageTime: null
+      });
+    }
+
+    db.collection('users').doc(otherUserId).get().then(doc => {
+      const otherUser = doc.data();
+      document.getElementById('chatWith').innerHTML = `Chat with ${otherUser.name || 'User'}`;
+    });
+
+    document.getElementById('chatModal').style.display = 'flex';
+    document.getElementById('privateChatInput').focus();
+
+    const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
+    if (unsubscribeRoomMessages) unsubscribeRoomMessages();
+    unsubscribeRoomMessages = messagesRef.onSnapshot(snapshot => {
+      const container = document.getElementById('privateChatMessages');
+      container.innerHTML = '';
+      snapshot.forEach(doc => {
+        const msg = doc.data();
+        const div = document.createElement('div');
+        div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
+        div.innerHTML = `
+          <div>${parseContent(msg.text)}</div>
+          <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
+        `;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    }, showError);
+  };
+
+  window.sendPrivateMessage = function() {
+    const input = document.getElementById('privateChatInput');
+    const text = input.value.trim();
+    if (!text || !activeChatRoomId) return;
+
+    const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
+    roomRef.collection('messages').add({
+      from: currentUser.uid,
+      text: text,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      read: false
+    }).then(() => {
+      // Update room's last message field (for inbox)
+      roomRef.update({
+        lastMessage: text,
+        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(showError);
+      input.value = '';
+    }).catch(showError);
+  };
+
+  window.closeChatModal = function() {
+    document.getElementById('chatModal').style.display = 'none';
+    if (unsubscribeRoomMessages) {
+      unsubscribeRoomMessages();
+      unsubscribeRoomMessages = null;
+    }
+    activeChatRoomId = null;
+    activeChatOtherUserId = null;
+  };
+
+  // ---------- INBOX (No Index Required) ----------
+  window.showInbox = function() {
+    document.getElementById('inboxModal').style.display = 'flex';
+    loadInbox();
+  };
+
+  window.closeInboxModal = function() {
+    document.getElementById('inboxModal').style.display = 'none';
+  };
+
+  function loadInbox() {
+    if (!currentUser) return;
+    const inboxList = document.getElementById('inboxList');
+    inboxList.innerHTML = 'Loading...';
+
+    // Query rooms where current user is a participant – this uses array-contains but without orderBy, so no composite index needed.
+    db.collection('privateChatRooms')
+      .where('participants', 'array-contains', currentUser.uid)
+      .get()
+      .then(async snapshot => {
+        if (snapshot.empty) {
+          inboxList.innerHTML = '<p>No conversations yet.</p>';
+          return;
+        }
+
+        const rooms = [];
+        for (const doc of snapshot.docs) {
+          const room = doc.data();
+          const otherUid = room.participants.find(uid => uid !== currentUser.uid);
+          // Fetch other user's name
+          const userDoc = await db.collection('users').doc(otherUid).get();
+          const otherUser = userDoc.data() || { name: 'Unknown' };
+
+          // Use lastMessage and lastMessageTime from room document
+          let preview = room.lastMessage || 'No messages';
+          if (preview.length > 30) preview = preview.substring(0, 30) + '…';
+          let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
+
+          rooms.push({
+            id: doc.id,
+            otherUid,
+            otherName: otherUser.name || 'User',
+            preview,
+            time,
+            lastMessageTime: room.lastMessageTime ? room.lastMessageTime.toDate() : new Date(0)
+          });
+        }
+
+        // Sort by lastMessageTime descending (client-side)
+        rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+
+        inboxList.innerHTML = '';
+        rooms.forEach(r => {
+          const item = document.createElement('div');
+          item.className = 'inbox-item';
+          item.onclick = () => {
+            closeInboxModal();
+            startPrivateChat(r.otherUid);
+          };
+          item.innerHTML = `
+            <div class="inbox-item-info">
+              <div class="inbox-item-name">${r.otherName}</div>
+              <div class="inbox-item-preview">${r.preview}</div>
+            </div>
+            <div class="inbox-item-time">${r.time}</div>
+          `;
+          inboxList.appendChild(item);
+        });
+      })
+      .catch(err => {
+        console.error('Inbox error:', err);
+        inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
+      });
+  }
+
+  // Click outside modal to close
+  window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+      event.target.style.display = 'none';
+      if (event.target.id === 'chatModal' && unsubscribeRoomMessages) {
+        unsubscribeRoomMessages();
+        unsubscribeRoomMessages = null;
+        activeChatRoomId = null;
+      }
+    }
+  };
 </script>
-
+<script>
+  if (typeof navigator.serviceWorker !== 'undefined') {
+    navigator.serviceWorker.register('sw.js')
+  }
+</script>
 </body>
 </html>
+
+
+
+
+
+
