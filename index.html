@@ -60,7 +60,7 @@
     }
 
     #navArea button {
-      background: #f97316;
+      background: #c2410c;
       border: none;
       padding: 8px 14px;
       border-radius: 40px;
@@ -100,7 +100,7 @@
     }
 
     .card h3 {
-      color: #f97316;
+      color: #c2410c;
       margin-bottom: 12px;
       font-size: 1.3rem;
       display: flex;
@@ -131,7 +131,7 @@
     }
 
     button {
-      background: #f97316;
+      background: #c2410c;
       border: none;
       padding: 12px 20px;
       border-radius: 40px;
@@ -159,7 +159,7 @@
       border-radius: 20px;
       padding: 15px;
       margin: 15px 0;
-      border-left: 5px solid #f97316;
+      border-left: 5px solid #c2410c;
       word-break: break-word;
     }
 
@@ -221,7 +221,7 @@
     }
 
     .reaction-btn.liked {
-      color: #f97316;
+      color: #c2410c;
     }
 
     /* Modals */
@@ -247,7 +247,7 @@
       max-height: 90vh;
       overflow-y: auto;
       color: white;
-      border: 2px solid #f97316;
+      border: 2px solid #c2410c;
       box-shadow: 0 30px 50px black;
       position: relative;
     }
@@ -262,7 +262,7 @@
       line-height: 1;
     }
 
-    .close:hover { color: #f97316; }
+    .close:hover { color: #c2410c; }
 
     /* Chat modal */
     .chat-messages {
@@ -283,7 +283,7 @@
     }
 
     .chat-message.sent {
-      background: #f97316;
+      background: #c2410c;
       color: white;
       margin-left: auto;
     }
@@ -334,7 +334,7 @@
 
     .inbox-item-name {
       font-weight: bold;
-      color: #f97316;
+      color: #c2410c;
     }
 
     .inbox-item-preview {
@@ -397,6 +397,7 @@
   <div class="marquee">
   <h6>Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
 </div>
+<main>
 
 <div class="section">
 
@@ -453,7 +454,7 @@
   <button id="authSubmitBtn">Login</button>
   <p>
     <span id="toggleText">Don't have an account?</span>
-    <a href="#" onclick="toggleAuthMode(event)" style="color:#f97316;">Click here</a>
+    <a href="#" onclick="toggleAuthMode(event)" style="color:#c2410c;">Click here</a>
   </p>
   <div id="authMessage"></div>
 </div>
@@ -489,6 +490,8 @@
     </div>
   </div>
 </div>
+
+</main>
 
 <script>
   // Firebase config
@@ -544,7 +547,7 @@
       if (part.type === 'text') {
         html += escapeHtml(part.content);
       } else if (part.type === 'link') {
-        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#f97316;">${part.content}</a>`;
+        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#c2410c;">${part.content}</a>`;
       } else if (part.type === 'image') {
         html += `<div class="embedded-media"><img src="${part.content}" alt="embedded image" loading="lazy"></div>`;
       } else if (part.type === 'youtube') {
@@ -1066,7 +1069,7 @@
       if (e.video) {
         const videoId = extractYoutubeId(e.video);
         if (videoId) mediaHtml += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
-        else mediaHtml += `<p><a href="${e.video}" target="_blank" style="color:#f97316;">Watch Video</a></p>`;
+        else mediaHtml += `<p><a href="${e.video}" target="_blank" style="color:#c2410c;">Watch Video</a></p>`;
       }
       if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
 
