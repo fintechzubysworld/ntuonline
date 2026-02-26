@@ -318,7 +318,7 @@
   }
 
   window.deleteItem = function(path) {
-    if (!confirm('Permanently delete this item and all its replies?')) return;
+    if (confirm('Permanently delete this item and all its replies?')) return;
     const docRef = db.doc(path);
     deleteDocumentAndSubcollections(docRef)
       .then(() => alert('Deleted successfully'))
@@ -441,4 +441,3 @@
 
 </body>
 </html>
-
