@@ -577,22 +577,35 @@
     });
   }
 
-  function formatTimestamp(timestamp) {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  }
+  // Safely format timestamp to locale string
+function formatTimestamp(ts) {
+    if (!ts) return '';
+    try {
+        // Convert Firestore Timestamp or string/number to Date
+        let date = ts.toDate ? ts.toDate() : new Date(ts);
+        // Check if date is valid
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleString();
+    } catch (e) {
+        return '';
+    }
+}
 
-  function formatRelativeTime(timestamp) {
-    if (!timestamp) return '';
-    const now = new Date();
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    const diff = Math.floor((now - date) / 1000);
-    if (diff < 60) return 'just now';
-    if (diff < 3600) return `${Math.floor(diff/60)} minutes ago`;
-    if (diff < 86400) return `${Math.floor(diff/3600)} hours ago`;
-    return `${Math.floor(diff/86400)} days ago`;
-  }
+// Safely format relative time (e.g., "2h ago")
+function formatRelativeTime(ts) {
+    if (!ts) return '';
+    try {
+        let date = ts.toDate ? ts.toDate() : new Date(ts);
+        if (isNaN(date.getTime())) return '';
+        let diffSeconds = Math.floor((Date.now() - date) / 1000);
+        if (diffSeconds < 60) return 'just now';
+        if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + 'm ago';
+        if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + 'h ago';
+        return Math.floor(diffSeconds / 86400) + 'd ago';
+    } catch (e) {
+        return '';
+    }
+}
 
   // reaction UI (unchanged)
   function addReactionUI(targetType, targetId, container) {
