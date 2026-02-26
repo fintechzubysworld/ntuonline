@@ -1,47 +1,64 @@
-// This is the "Offline page" service worker
+// service-worker.js – Ntuconnect PWA
 
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
+const CACHE_NAME = 'ntuconnect-v1';
+const urlsToCache = [
+  '/ntuonline/index.html',
+  '/ntuonline/manifest.json',
+  '/ntuonline/icon-192.png',
+  '/ntuonline/icon-512.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css',
+  'https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap'
+];
 
-const CACHE = "pwabuilder-page";
-
-// TODO: replace the following with the correct offline fallback page i.e.: const offlineFallbackPage = "offline.html";
-const offlineFallbackPage = "ToDo-replace-this-name.html";
-
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
-});
-
-self.addEventListener('install', async (event) => {
+// Install event – cache core assets
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE)
-      .then((cache) => cache.add(offlineFallbackPage))
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+      .catch(err => console.error('Cache addAll failed:', err))
   );
+  self.skipWaiting(); // Activate worker immediately
 });
 
-if (workbox.navigationPreload.isSupported()) {
-  workbox.navigationPreload.enable();
-}
+// Activate event – clean up old caches
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.filter(name => name !== CACHE_NAME)
+          .map(name => caches.delete(name))
+      );
+    })
+  );
+  self.clients.claim(); // Take control of all clients
+});
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const preloadResp = await event.preloadResponse;
+// Fetch event – serve cached content when offline
+self.addEventListener('fetch', event => {
+  const request = event.request;
 
-        if (preloadResp) {
-          return preloadResp;
-        }
-
-        const networkResp = await fetch(event.request);
-        return networkResp;
-      } catch (error) {
-
-        const cache = await caches.open(CACHE);
-        const cachedResp = await cache.match(offlineFallbackPage);
-        return cachedResp;
-      }
-    })());
+  // For same‑origin requests, use network‑first (fresh content)
+  if (request.url.startsWith(self.location.origin)) {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          // Clone the response before caching
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+  } else {
+    // For cross‑origin requests (CDN fonts, styles), use cache‑first, fallback to network
+    event.respondWith(
+      caches.match(request)
+        .then(response => response || fetch(request))
+    );
   }
 });
