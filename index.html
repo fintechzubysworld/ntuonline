@@ -564,11 +564,17 @@
   }
 
   // ---------- TIMESTAMP FORMATTER ----------
-  function formatTimestamp(timestamp) {
-    if (!timestamp) return '';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+ function formatTimestamp(timestamp) {
+  if (!timestamp) return '';
+  let date;
+  // Check if it's a Firestore Timestamp (has toDate method)
+  if (timestamp.toDate) {
+    date = timestamp.toDate();
+  } else {
+    date = new Date(timestamp);
   }
+  return date.toLocaleString();
+}
 
   function formatRelativeTime(timestamp) {
     if (!timestamp) return '';
