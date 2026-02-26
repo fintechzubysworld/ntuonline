@@ -2,35 +2,397 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="description" content="Ntu global communication platform. live stream, event and news hub, social messaging, personal messaging service. newsroom. powered by Zuby's World IT solutions.">
-  <title>Ntuconnect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ntuconnect – Mobile</title>
 
-  <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js" defer></script>
+  <!-- Preconnect to critical origins for faster loading -->
+  <link rel="preconnect" href="https://www.gstatic.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link rel="preconnect" href="https://firestore.googleapis.com">
 
-  <!-- Preconnect to origins -->
-<link rel="preconnect" href="https://www.gstatic.com">
-<link rel="preconnect" href="https://cdnjs.cloudflare.com">
-<link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- Font Awesome (preload then apply asynchronously) -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
 
-<!--lazy loading-->
-<img src="..." loading="lazy" alt="...">
-<iframe src="..." loading="lazy"></iframe>
+  <!-- Firebase (deferred to not block rendering) -->
+  <script defer src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
-<!-- Preload key CSS/JS (optional but helpful) -->
-<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style">
-<link rel="preload" href="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js" as="script">
-
-<!--external sheet-->
-<link rel="stylesheet" href="styles.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="styles.css"></noscript> 
-
-<!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="manifest" href="manifest.json">
   <style>
+    /* ===== GLOBAL STYLES (mobile first) ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      background: linear-gradient(145deg, #0b1120 0%, #1a2639 100%);
+      color: #e2e8f0;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 12px;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: rgba(14, 165, 233, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 0.8rem 1.2rem;
+      border-radius: 50px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 20px 30px -10px rgba(0, 150, 255, 0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    header h2 {
+      font-weight: 600;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #navArea {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    #navArea button {
+      background: #f97316;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 40px;
+      color: white;
+      font-weight: bold;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 10px rgba(249, 115, 22, 0.4);
+      min-height: 44px;
+    }
+
+    .onlineDot {
+      color: #4ade80;
+      font-weight: bold;
+      margin-right: 4px;
+      font-size: 0.9rem;
+    }
+
+    /* ===== SECTION & CARDS ===== */
+    .section {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(8px);
+      border-radius: 28px;
+      padding: 20px;
+      box-shadow: 0 25px 40px -15px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: transform 0.2s;
+    }
+
+    .card h3 {
+      color: #f97316;
+      margin-bottom: 12px;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid #334155;
+      padding-bottom: 8px;
+    }
+
+    input, textarea, button {
+      font-size: 16px; /* prevents zoom on mobile */
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border-radius: 40px;
+      border: none;
+      background: #0f172a;
+      color: white;
+      transition: 0.2s;
+    }
+
+    textarea {
+      border-radius: 25px;
+      resize: vertical;
+    }
+
+    button {
+      background: #f97316;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 40px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 4px 10px rgba(249,115,22,0.3);
+      min-height: 48px;
+      width: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button.secondary {
+      background: #475569;
+      box-shadow: none;
+    }
+
+    /* ===== POST / COMMENT STYLES ===== */
+    .feed-item, .chat-item, .goodwill-item, .live-comment-item, .event-item {
+      background: #0f172a;
+      border-radius: 20px;
+      padding: 15px;
+      margin: 15px 0;
+      border-left: 5px solid #f97316;
+      word-break: break-word;
+    }
+
+    .replyBox {
+      margin-left: 12px;
+      padding-left: 12px;
+      border-left: 3px solid #334155;
+      margin-top: 8px;
+    }
+
+    .timestamp {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    /* Embedded media */
+    .embedded-media {
+      margin: 10px 0;
+      border-radius: 15px;
+      overflow: hidden;
+      max-width: 100%;
+    }
+
+    .embedded-media img,
+    .embedded-media iframe {
+      max-width: 100%;
+      border-radius: 15px;
+    }
+
+    .embedded-media iframe {
+      height: 200px; /* smaller on mobile */
+    }
+
+    /* Reaction bar */
+    .reaction-bar {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .reaction-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 8px 14px;
+      border-radius: 30px;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+    }
+
+    .reaction-btn:hover {
+      background: #334155;
+    }
+
+    .reaction-btn.liked {
+      color: #f97316;
+    }
+
+    /* Modals */
+    .modal {
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.8);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .modal-content {
+      background: #1e293b;
+      padding: 24px 20px;
+      border-radius: 40px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: white;
+      border: 2px solid #f97316;
+      box-shadow: 0 30px 50px black;
+      position: relative;
+    }
+
+    .close {
+      position: absolute;
+      top: 12px; right: 16px;
+      font-size: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #94a3b8;
+      line-height: 1;
+    }
+
+    .close:hover { color: #f97316; }
+
+    /* Chat modal */
+    .chat-messages {
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 15px 0;
+      padding: 10px;
+      background: #0f172a;
+      border-radius: 20px;
+    }
+
+    .chat-message {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 18px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+
+    .chat-message.sent {
+      background: #f97316;
+      color: white;
+      margin-left: auto;
+    }
+
+    .chat-message.received {
+      background: #334155;
+      color: white;
+      margin-right: auto;
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chat-input-area input {
+      flex: 1 1 200px;
+      margin: 0;
+    }
+
+    .chat-input-area button {
+      flex: 0 0 auto;
+    }
+
+    /* Inbox modal */
+    .inbox-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .inbox-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      background: #0f172a;
+      border-radius: 30px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      gap: 10px;
+    }
+
+    .inbox-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .inbox-item-name {
+      font-weight: bold;
+      color: #f97316;
+    }
+
+    .inbox-item-preview {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .inbox-item-time {
+      font-size: 0.7rem;
+      color: #64748b;
+      white-space: nowrap;
+    }
+
+    /* Marquee */
+    .marquee {
+      width: 100%;
+      overflow: hidden;
+      background: black;
+      padding: 4px 0;
+      margin-bottom: 12px;
+      border-radius: 30px;
+    }
+
+    .marquee h6 {
+      display: inline-block;
+      margin: 0;
+      font-size: 0.8rem;
+      color: yellowgreen;
+      animation: scrollText 18s linear infinite;
+      white-space: nowrap;
+    }
+
+    @keyframes scrollText {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* Mobile fine-tuning */
+    @media (max-width: 480px) {
+      body { padding: 8px; }
+      header { padding: 0.6rem 1rem; }
+      header h2 { font-size: 1.2rem; }
+      .section { gap: 12px; }
+      .card { padding: 16px; }
+      button { width: 100%; } /* full-width buttons on very small screens */
+      #navArea button { width: auto; } /* keep nav buttons inline */
+      .reaction-bar { flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body>
@@ -40,17 +402,8 @@
   <div id="navArea"></div>
 </header>
 
-
-  <div class="marquee">
+<div class="marquee">
   <h6>Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
-</div>
-<main>
-
-  <div id="profileModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle" style="display:none;">
-  <div class="modal-content">
-    <h3 id="profileModalTitle"><i class="fa-regular fa-user"></i> User Profile</h3>
-    ...
-  </div>
 </div>
 
 <div class="section">
@@ -96,21 +449,24 @@
 
 </div>
 
-<!-- AUTH MODAL -->
-<div id="authContainer" style="display:none;">
-  <h3 id="authHeader">Login</h3>
-  <div id="registerFields" style="display:none;">
-    <input id="regName" placeholder="Full Name">
-    <input id="regKindred" placeholder="Kindred Name">
+<!-- LOGIN/REGISTER MODAL (replaces old inline auth container) -->
+<div id="authModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeAuthModal()">&times;</span>
+    <h3 id="authHeader">Login</h3>
+    <div id="registerFields" style="display:none;">
+      <input id="regName" placeholder="Full Name">
+      <input id="regKindred" placeholder="Kindred Name">
+    </div>
+    <input id="authEmail" placeholder="Email">
+    <input id="authPassword" type="password" placeholder="Password">
+    <button id="authSubmitBtn">Login</button>
+    <p>
+      <span id="toggleText">Don't have an account?</span>
+      <a href="#" onclick="toggleAuthMode(event)" style="color:#f97316;">Click here</a>
+    </p>
+    <div id="authMessage"></div>
   </div>
-  <input id="authEmail" placeholder="Email">
-  <input id="authPassword" type="password" placeholder="Password">
-  <button id="authSubmitBtn">Login</button>
-  <p>
-    <span id="toggleText">Don't have an account?</span>
-    <a href="#" onclick="toggleAuthMode(event)" style="color:#c2410c;">Click here</a>
-  </p>
-  <div id="authMessage"></div>
 </div>
 
 <!-- Profile Modal -->
@@ -145,8 +501,6 @@
   </div>
 </div>
 
-</main>
-
 <script>
   // Firebase config
   const firebaseConfig = {
@@ -162,7 +516,6 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   let currentUser = null;
-
 
   // ---------- HELPER: parse content for media ----------
   function parseContent(text) {
@@ -201,7 +554,7 @@
       if (part.type === 'text') {
         html += escapeHtml(part.content);
       } else if (part.type === 'link') {
-        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#c2410c;">${part.content}</a>`;
+        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#f97316;">${part.content}</a>`;
       } else if (part.type === 'image') {
         html += `<div class="embedded-media"><img src="${part.content}" alt="embedded image" loading="lazy"></div>`;
       } else if (part.type === 'youtube') {
@@ -218,17 +571,17 @@
   }
 
   // ---------- TIMESTAMP FORMATTER ----------
- function formatTimestamp(timestamp) {
-  if (!timestamp) return '';
-  let date;
-  // Check if it's a Firestore Timestamp (has toDate method)
-  if (timestamp.toDate) {
-    date = timestamp.toDate();
-  } else {
-    date = new Date(timestamp);
+  function formatTimestamp(timestamp) {
+    if (!timestamp) return '';
+    let date;
+    // Check if it's a Firestore Timestamp (has toDate method)
+    if (timestamp.toDate) {
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
+    return date.toLocaleString();
   }
-  return date.toLocaleString();
-}
 
   function formatRelativeTime(timestamp) {
     if (!timestamp) return '';
@@ -304,12 +657,18 @@
     return unsubscribe;
   }
 
-  // ---------- AUTH ----------
+  // ---------- AUTH (now using modal) ----------
   let authMode = "login";
   const navArea = document.getElementById("navArea");
-  const authContainer = document.getElementById("authContainer");
 
-  function showAuth() { authContainer.style.display = "block"; }
+  function showAuth() {
+    document.getElementById('authModal').style.display = 'flex';
+  }
+
+  window.closeAuthModal = function() {
+    document.getElementById('authModal').style.display = 'none';
+    clearAuth();
+  };
 
   window.toggleAuthMode = function (e) {
     e.preventDefault();
@@ -333,11 +692,11 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           isAdmin: false
         }))
-        .then(() => { alert("Registered"); authContainer.style.display = "none"; clearAuth(); })
+        .then(() => { alert("Registered"); closeAuthModal(); clearAuth(); })
         .catch(showError);
     } else {
       auth.signInWithEmailAndPassword(email, password)
-        .then(() => { alert("Login successful"); authContainer.style.display = "none"; clearAuth(); })
+        .then(() => { alert("Login successful"); closeAuthModal(); clearAuth(); })
         .catch(showError);
     }
   };
@@ -356,6 +715,57 @@
     auth.signOut().catch(showError);
   };
 
+  // ---------- PUSH NOTIFICATIONS ----------
+  function requestNotificationPermission() {
+    if (!("Notification" in window)) {
+      console.log("This browser does not support notifications.");
+      return;
+    }
+    if (Notification.permission === "granted") {
+      // already granted
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          console.log("Notification permission granted.");
+        }
+      });
+    }
+  }
+
+  function setupPrivateChatNotifications(userId) {
+    const roomsQuery = db.collection('privateChatRooms')
+      .where('participants', 'array-contains', userId);
+
+    roomsQuery.onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          const room = change.doc.data();
+          const otherUid = room.participants.find(uid => uid !== userId);
+          db.collection('privateChatRooms').doc(change.doc.id)
+            .collection('messages')
+            .orderBy('timestamp', 'desc')
+            .limit(1)
+            .onSnapshot(msgSnapshot => {
+              msgSnapshot.docChanges().forEach(msgChange => {
+                if (msgChange.type === 'added') {
+                  const msg = msgChange.doc.data();
+                  if (msg.from === otherUid && Notification.permission === "granted") {
+                    db.collection('users').doc(otherUid).get().then(userDoc => {
+                      const otherName = userDoc.data()?.name || 'User';
+                      new Notification(`New message from ${otherName}`, {
+                        body: msg.text.substring(0, 50) + (msg.text.length > 50 ? '…' : ''),
+                        icon: '/ntuonline/icon-192.png'
+                      });
+                    });
+                  }
+                }
+              });
+            });
+        }
+      });
+    });
+  }
+
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -370,6 +780,9 @@
           ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
         `;
       }).catch(showError);
+      // Request notification permission and set up listeners
+      requestNotificationPermission();
+      setupPrivateChatNotifications(user.uid);
     } else {
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
     }
@@ -729,7 +1142,7 @@
       if (e.video) {
         const videoId = extractYoutubeId(e.video);
         if (videoId) mediaHtml += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
-        else mediaHtml += `<p><a href="${e.video}" target="_blank" style="color:#c2410c;">Watch Video</a></p>`;
+        else mediaHtml += `<p><a href="${e.video}" target="_blank" style="color:#f97316;">Watch Video</a></p>`;
       }
       if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
 
@@ -935,7 +1348,6 @@
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       read: false
     }).then(() => {
-      // Update room's last message field (for inbox)
       roomRef.update({
         lastMessage: text,
         lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
@@ -969,7 +1381,6 @@
     const inboxList = document.getElementById('inboxList');
     inboxList.innerHTML = 'Loading...';
 
-    // Query rooms where current user is a participant – this uses array-contains but without orderBy, so no composite index needed.
     db.collection('privateChatRooms')
       .where('participants', 'array-contains', currentUser.uid)
       .get()
@@ -983,11 +1394,9 @@
         for (const doc of snapshot.docs) {
           const room = doc.data();
           const otherUid = room.participants.find(uid => uid !== currentUser.uid);
-          // Fetch other user's name
           const userDoc = await db.collection('users').doc(otherUid).get();
           const otherUser = userDoc.data() || { name: 'Unknown' };
 
-          // Use lastMessage and lastMessageTime from room document
           let preview = room.lastMessage || 'No messages';
           if (preview.length > 30) preview = preview.substring(0, 30) + '…';
           let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
@@ -1002,7 +1411,6 @@
           });
         }
 
-        // Sort by lastMessageTime descending (client-side)
         rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
 
         inboxList.innerHTML = '';
@@ -1038,22 +1446,18 @@
         unsubscribeRoomMessages = null;
         activeChatRoomId = null;
       }
+      if (event.target.id === 'authModal') {
+        closeAuthModal();
+      }
     }
   };
 </script>
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(registration => {
-          console.log('ServiceWorker registered: ', registration);
-        })
-        .catch(error => {
-          console.log('ServiceWorker registration failed: ', error);
-        });
-    });
+  if (typeof navigator.serviceWorker !== 'undefined') {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(reg => console.log('Service Worker registered:', reg))
+      .catch(err => console.error('Service Worker registration failed:', err));
   }
 </script>
-
 </body>
 </html>
