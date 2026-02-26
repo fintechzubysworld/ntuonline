@@ -2,55 +2,48 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ntuconnect – Mobile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>Ntuconnect · mobile</title>
 
-  <!-- Preconnect to critical origins for faster loading -->
+  <!-- Preconnect for performance -->
   <link rel="preconnect" href="https://www.gstatic.com">
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link rel="preconnect" href="https://firestore.googleapis.com">
 
-  <!-- Font Awesome (preload then apply asynchronously) -->
+  <!-- Font Awesome (async) -->
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
 
-  <!-- Firebase (deferred to not block rendering) -->
+  <!-- Firebase (deferred) -->
   <script defer src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
   <style>
-    /* ===== GLOBAL STYLES (mobile first) ===== */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    /* ----- reset & mobile-first ----- */
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
       background: linear-gradient(145deg, #0b1120 0%, #1a2639 100%);
       color: #e2e8f0;
-      line-height: 1.5;
       min-height: 100vh;
       padding: 12px;
+      line-height: 1.5;
     }
-
-    /* ===== HEADER ===== */
+    /* ----- header ----- */
     header {
       background: rgba(14, 165, 233, 0.9);
       backdrop-filter: blur(10px);
-      padding: 0.8rem 1.2rem;
+      padding: 0.7rem 1.2rem;
       border-radius: 50px;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 20px 30px -10px rgba(0, 150, 255, 0.3);
       border: 1px solid rgba(255,255,255,0.1);
     }
-
     header h2 {
       font-weight: 600;
       font-size: 1.4rem;
@@ -58,14 +51,12 @@
       align-items: center;
       gap: 6px;
     }
-
     #navArea {
       display: flex;
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
     }
-
     #navArea button {
       background: #f97316;
       border: none;
@@ -75,19 +66,20 @@
       font-weight: bold;
       font-size: 0.9rem;
       cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 10px rgba(249, 115, 22, 0.4);
+      transition: 0.2s;
+      box-shadow: 0 4px 10px rgba(249,115,22,0.4);
       min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
-
     .onlineDot {
       color: #4ade80;
       font-weight: bold;
       margin-right: 4px;
       font-size: 0.9rem;
     }
-
-    /* ===== SECTION & CARDS ===== */
+    /* ----- grid / cards ----- */
     .section {
       max-width: 1200px;
       margin: 0 auto;
@@ -95,17 +87,14 @@
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 20px;
     }
-
     .card {
       background: rgba(30, 41, 59, 0.8);
       backdrop-filter: blur(8px);
       border-radius: 28px;
       padding: 20px;
-      box-shadow: 0 25px 40px -15px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 25px 40px -15px rgba(0,0,0,0.5);
       border: 1px solid rgba(255,255,255,0.05);
-      transition: transform 0.2s;
     }
-
     .card h3 {
       color: #f97316;
       margin-bottom: 12px;
@@ -116,14 +105,10 @@
       border-bottom: 2px solid #334155;
       padding-bottom: 8px;
     }
-
-    input, textarea, button {
-      font-size: 16px; /* prevents zoom on mobile */
-    }
-
+    input, textarea, button { font-size: 16px; } /* no zoom on mobile */
     input, textarea {
       width: 100%;
-      padding: 12px 15px;
+      padding: 12px 16px;
       margin: 8px 0;
       border-radius: 40px;
       border: none;
@@ -131,12 +116,7 @@
       color: white;
       transition: 0.2s;
     }
-
-    textarea {
-      border-radius: 25px;
-      resize: vertical;
-    }
-
+    textarea { border-radius: 25px; resize: vertical; min-height: 70px; }
     button {
       background: #f97316;
       border: none;
@@ -148,19 +128,13 @@
       transition: 0.2s;
       box-shadow: 0 4px 10px rgba(249,115,22,0.3);
       min-height: 48px;
-      width: auto;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
     }
-
-    button.secondary {
-      background: #475569;
-      box-shadow: none;
-    }
-
-    /* ===== POST / COMMENT STYLES ===== */
+    button.secondary { background: #475569; box-shadow: none; }
+    /* feed items */
     .feed-item, .chat-item, .goodwill-item, .live-comment-item, .event-item {
       background: #0f172a;
       border-radius: 20px;
@@ -169,229 +143,82 @@
       border-left: 5px solid #f97316;
       word-break: break-word;
     }
-
     .replyBox {
       margin-left: 12px;
       padding-left: 12px;
       border-left: 3px solid #334155;
-      margin-top: 8px;
+      margin-top: 10px;
     }
-
     .timestamp {
       font-size: 0.7rem;
       color: #94a3b8;
       margin-top: 6px;
     }
-
-    /* Embedded media */
-    .embedded-media {
-      margin: 10px 0;
-      border-radius: 15px;
-      overflow: hidden;
-      max-width: 100%;
-    }
-
-    .embedded-media img,
-    .embedded-media iframe {
-      max-width: 100%;
-      border-radius: 15px;
-    }
-
-    .embedded-media iframe {
-      height: 200px; /* smaller on mobile */
-    }
-
-    /* Reaction bar */
-    .reaction-bar {
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
+    .clickable-name { cursor: pointer; color: #fbbf24; font-weight: 600; text-decoration: underline dotted; }
+    /* embedded media */
+    .embedded-media { margin: 10px 0; border-radius: 15px; overflow: hidden; max-width: 100%; }
+    .embedded-media img, .embedded-media iframe { max-width: 100%; border-radius: 15px; }
+    .embedded-media iframe { height: 200px; width: 100%; border: none; }
+    /* reaction bar */
+    .reaction-bar { margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .reaction-btn {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      cursor: pointer;
-      padding: 8px 14px;
-      border-radius: 30px;
-      transition: 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.9rem;
+      background: none; border: none; color: #94a3b8; cursor: pointer; padding: 6px 12px;
+      border-radius: 30px; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem;
     }
-
-    .reaction-btn:hover {
-      background: #334155;
-    }
-
-    .reaction-btn.liked {
-      color: #f97316;
-    }
-
-    /* Modals */
+    .reaction-btn:hover { background: #334155; }
+    .reaction-btn.liked { color: #f97316; }
+    /* modals */
     .modal {
-      position: fixed;
-      z-index: 1000;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.8);
-      backdrop-filter: blur(5px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
+      position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+      display: flex; align-items: center; justify-content: center; padding: 10px;
     }
-
     .modal-content {
-      background: #1e293b;
-      padding: 24px 20px;
-      border-radius: 40px;
-      width: 100%;
-      max-width: 500px;
-      max-height: 90vh;
-      overflow-y: auto;
-      color: white;
-      border: 2px solid #f97316;
-      box-shadow: 0 30px 50px black;
+      background: #1e293b; padding: 24px 20px; border-radius: 40px; width: 100%; max-width: 500px;
+      max-height: 90vh; overflow-y: auto; color: white; border: 2px solid #f97316; box-shadow: 0 30px 50px black;
       position: relative;
     }
-
     .close {
-      position: absolute;
-      top: 12px; right: 16px;
-      font-size: 30px;
-      font-weight: bold;
-      cursor: pointer;
-      color: #94a3b8;
-      line-height: 1;
+      position: absolute; top: 12px; right: 16px; font-size: 30px; font-weight: bold;
+      cursor: pointer; color: #94a3b8; line-height: 1;
     }
-
     .close:hover { color: #f97316; }
-
-    /* Chat modal */
-    .chat-messages {
-      max-height: 300px;
-      overflow-y: auto;
-      margin: 15px 0;
-      padding: 10px;
-      background: #0f172a;
-      border-radius: 20px;
-    }
-
-    .chat-message {
-      margin-bottom: 10px;
-      padding: 8px 12px;
-      border-radius: 18px;
-      max-width: 80%;
-      word-wrap: break-word;
-    }
-
-    .chat-message.sent {
-      background: #f97316;
-      color: white;
-      margin-left: auto;
-    }
-
-    .chat-message.received {
-      background: #334155;
-      color: white;
-      margin-right: auto;
-    }
-
-    .chat-input-area {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .chat-input-area input {
-      flex: 1 1 200px;
-      margin: 0;
-    }
-
-    .chat-input-area button {
-      flex: 0 0 auto;
-    }
-
-    /* Inbox modal */
-    .inbox-list {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
+    /* chat modal */
+    .chat-messages { max-height: 300px; overflow-y: auto; margin: 15px 0; padding: 10px; background: #0f172a; border-radius: 20px; }
+    .chat-message { margin-bottom: 10px; padding: 8px 12px; border-radius: 18px; max-width: 80%; word-wrap: break-word; }
+    .chat-message.sent { background: #f97316; color: white; margin-left: auto; }
+    .chat-message.received { background: #334155; color: white; margin-right: auto; }
+    .chat-input-area { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chat-input-area input { flex: 1 1 200px; margin: 0; }
+    /* inbox */
+    .inbox-list { max-height: 400px; overflow-y: auto; }
     .inbox-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 15px;
-      background: #0f172a;
-      border-radius: 30px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      gap: 10px;
+      display: flex; align-items: center; justify-content: space-between; padding: 15px;
+      background: #0f172a; border-radius: 30px; margin-bottom: 10px; cursor: pointer; gap: 10px;
     }
-
-    .inbox-item-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .inbox-item-name {
-      font-weight: bold;
-      color: #f97316;
-    }
-
-    .inbox-item-preview {
-      font-size: 0.85rem;
-      color: #94a3b8;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .inbox-item-time {
-      font-size: 0.7rem;
-      color: #64748b;
-      white-space: nowrap;
-    }
-
-    /* Marquee */
+    .inbox-item-info { flex: 1; min-width: 0; }
+    .inbox-item-name { font-weight: bold; color: #f97316; }
+    .inbox-item-preview { font-size: 0.85rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .inbox-item-time { font-size: 0.7rem; color: #64748b; }
+    /* marquee */
     .marquee {
-      width: 100%;
-      overflow: hidden;
-      background: black;
-      padding: 4px 0;
-      margin-bottom: 12px;
-      border-radius: 30px;
+      width: 100%; overflow: hidden; background: black; padding: 6px 0; margin-bottom: 15px;
+      border-radius: 40px; border: 1px solid #f97316;
     }
-
     .marquee h6 {
-      display: inline-block;
-      margin: 0;
-      font-size: 0.8rem;
-      color: yellowgreen;
-      animation: scrollText 18s linear infinite;
-      white-space: nowrap;
+      display: inline-block; margin: 0; font-size: 0.85rem; color: #facc15;
+      animation: scrollText 20s linear infinite; white-space: nowrap; padding-right: 20px;
     }
-
     @keyframes scrollText {
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
     }
-
-    /* Mobile fine-tuning */
+    /* mobile fine-tuning */
     @media (max-width: 480px) {
       body { padding: 8px; }
       header { padding: 0.6rem 1rem; }
-      header h2 { font-size: 1.2rem; }
       .section { gap: 12px; }
-      .card { padding: 16px; }
-      button { width: 100%; } /* full-width buttons on very small screens */
-      #navArea button { width: auto; } /* keep nav buttons inline */
-      .reaction-bar { flex-wrap: wrap; }
+      #navArea button { padding: 6px 10px; font-size: 0.8rem; }
     }
   </style>
 </head>
@@ -403,27 +230,26 @@
 </header>
 
 <div class="marquee">
-  <h6>Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
+  <h6>⚡ Powered by Zuby's World IT · fintech.zubysworld@gmail.com · innovative solutions ⚡</h6>
 </div>
 
 <div class="section">
-
-  <!-- LIVE STREAM -->
+  <!-- LIVE STREAM card -->
   <div class="card">
     <h3><i class="fa-solid fa-circle" style="color:#f87171;"></i> Live Stream</h3>
-    <div id="liveArea">Loading...</div>
-    <textarea id="liveCommentInput" placeholder="Write a comment..."></textarea>
+    <div id="liveArea">Loading stream...</div>
+    <textarea id="liveCommentInput" placeholder="Live comment..."></textarea>
     <button onclick="commentLive()"><i class="fa-regular fa-comment"></i> Comment</button>
     <div id="liveComments"></div>
   </div>
 
-  <!-- EVENTS -->
+  <!-- EVENTS card -->
   <div class="card">
     <h3><i class="fa-regular fa-calendar"></i> Events</h3>
     <div id="eventArea"></div>
   </div>
 
-  <!-- FEED -->
+  <!-- COMMUNITY FEED card -->
   <div class="card">
     <h3><i class="fa-regular fa-newspaper"></i> Community Feed</h3>
     <textarea id="feedInput" placeholder="Share something..."></textarea>
@@ -431,7 +257,7 @@
     <div id="feedArea"></div>
   </div>
 
-  <!-- CHAT -->
+  <!-- COMMUNITY CHAT card -->
   <div class="card">
     <h3><i class="fa-regular fa-message"></i> Community Chat</h3>
     <div id="chatArea"></div>
@@ -439,29 +265,28 @@
     <button onclick="sendChat()"><i class="fa-regular fa-paper-plane"></i> Send</button>
   </div>
 
-  <!-- GOODWILL -->
+  <!-- GOODWILL card -->
   <div class="card">
     <h3><i class="fa-regular fa-handshake"></i> Goodwill Messages</h3>
     <textarea id="goodwillInput" placeholder="Write a goodwill message..."></textarea>
     <button onclick="postGoodwill()"><i class="fa-regular fa-heart"></i> Post</button>
     <div id="goodwillArea"></div>
   </div>
-
 </div>
 
-<!-- LOGIN/REGISTER MODAL (replaces old inline auth container) -->
+<!-- LOGIN/REGISTER MODAL -->
 <div id="authModal" class="modal" style="display: none;">
   <div class="modal-content">
     <span class="close" onclick="closeAuthModal()">&times;</span>
     <h3 id="authHeader">Login</h3>
     <div id="registerFields" style="display:none;">
-      <input id="regName" placeholder="Full Name">
-      <input id="regKindred" placeholder="Kindred Name">
+      <input id="regName" placeholder="Full Name" autocomplete="off">
+      <input id="regKindred" placeholder="Kindred Name" autocomplete="off">
     </div>
-    <input id="authEmail" placeholder="Email">
-    <input id="authPassword" type="password" placeholder="Password">
+    <input id="authEmail" placeholder="Email" type="email" autocomplete="off">
+    <input id="authPassword" type="password" placeholder="Password" autocomplete="off">
     <button id="authSubmitBtn">Login</button>
-    <p>
+    <p style="margin-top: 12px;">
       <span id="toggleText">Don't have an account?</span>
       <a href="#" onclick="toggleAuthMode(event)" style="color:#f97316;">Click here</a>
     </p>
@@ -469,7 +294,7 @@
   </div>
 </div>
 
-<!-- Profile Modal -->
+<!-- PROFILE MODAL -->
 <div id="profileModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeProfileModal()">&times;</span>
@@ -479,7 +304,7 @@
   </div>
 </div>
 
-<!-- Inbox Modal -->
+<!-- INBOX MODAL -->
 <div id="inboxModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeInboxModal()">&times;</span>
@@ -488,9 +313,9 @@
   </div>
 </div>
 
-<!-- Private Chat Modal -->
+<!-- PRIVATE CHAT MODAL -->
 <div id="chatModal" class="modal" style="display:none;">
-  <div class="modal-content chat-modal">
+  <div class="modal-content">
     <span class="close" onclick="closeChatModal()">&times;</span>
     <h3 id="chatWith"></h3>
     <div id="privateChatMessages" class="chat-messages"></div>
@@ -502,7 +327,7 @@
 </div>
 
 <script>
-  // Firebase config
+  // ========== FIREBASE INIT ==========
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -517,947 +342,508 @@
   const db = firebase.firestore();
   let currentUser = null;
 
-  // ---------- HELPER: parse content for media ----------
+  // ---------- helper: parse media links ----------
   function parseContent(text) {
     if (!text) return '';
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
     const imageRegex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|bmp|svg))(?:\?.*)?/gi;
 
-    let parts = [];
-    let lastIndex = 0;
-    let match;
-
+    let parts = [], lastIndex = 0, match;
     while ((match = urlRegex.exec(text)) !== null) {
-      const url = match[0];
-      const index = match.index;
-      if (index > lastIndex) {
-        parts.push({ type: 'text', content: text.substring(lastIndex, index) });
-      }
+      const url = match[0], index = match.index;
+      if (index > lastIndex) parts.push({ type: 'text', content: text.substring(lastIndex, index) });
       let ytMatch = youtubeRegex.exec(url);
-      if (ytMatch) {
-        parts.push({ type: 'youtube', content: ytMatch[1] });
-      } else if (imageRegex.test(url)) {
-        parts.push({ type: 'image', content: url });
-      } else {
-        parts.push({ type: 'link', content: url });
-      }
+      if (ytMatch) parts.push({ type: 'youtube', content: ytMatch[1] });
+      else if (imageRegex.test(url)) parts.push({ type: 'image', content: url });
+      else parts.push({ type: 'link', content: url });
       lastIndex = index + url.length;
     }
-    if (lastIndex < text.length) {
-      parts.push({ type: 'text', content: text.substring(lastIndex) });
-    }
+    if (lastIndex < text.length) parts.push({ type: 'text', content: text.substring(lastIndex) });
     if (parts.length === 0) return escapeHtml(text);
 
     let html = '';
-    parts.forEach(part => {
-      if (part.type === 'text') {
-        html += escapeHtml(part.content);
-      } else if (part.type === 'link') {
-        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#f97316;">${part.content}</a>`;
-      } else if (part.type === 'image') {
-        html += `<div class="embedded-media"><img src="${part.content}" alt="embedded image" loading="lazy"></div>`;
-      } else if (part.type === 'youtube') {
-        html += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${part.content}" allowfullscreen></iframe></div>`;
-      }
+    parts.forEach(p => {
+      if (p.type === 'text') html += escapeHtml(p.content);
+      else if (p.type === 'link') html += `<a href="${p.content}" target="_blank" rel="noopener" style="color:#f97316;">${p.content}</a>`;
+      else if (p.type === 'image') html += `<div class="embedded-media"><img src="${p.content}" loading="lazy" alt="img"></div>`;
+      else if (p.type === 'youtube') html += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${p.content}" allowfullscreen></iframe></div>`;
     });
     return html;
   }
+  function escapeHtml(u) { return u.replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' })[m]); }
 
-  function escapeHtml(unsafe) {
-    return unsafe.replace(/[&<>"']/g, function(m) {
-      if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
-    });
+  // ---------- timestamp ----------
+  function formatTimestamp(ts) {
+    if (!ts) return '';
+    let d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString();
   }
-
-  // ---------- TIMESTAMP FORMATTER ----------
-  function formatTimestamp(timestamp) {
-    if (!timestamp) return '';
-    let date;
-    // Check if it's a Firestore Timestamp (has toDate method)
-    if (timestamp.toDate) {
-      date = timestamp.toDate();
-    } else {
-      date = new Date(timestamp);
-    }
-    return date.toLocaleString();
-  }
-
-  function formatRelativeTime(timestamp) {
-    if (!timestamp) return '';
-    const now = new Date();
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    const diff = Math.floor((now - date) / 1000);
+  function formatRelativeTime(ts) {
+    if (!ts) return '';
+    let d = ts.toDate ? ts.toDate() : new Date(ts);
+    let diff = Math.floor((Date.now() - d) / 1000);
     if (diff < 60) return 'just now';
-    if (diff < 3600) return `${Math.floor(diff/60)} minutes ago`;
-    if (diff < 86400) return `${Math.floor(diff/3600)} hours ago`;
-    return `${Math.floor(diff/86400)} days ago`;
+    if (diff < 3600) return Math.floor(diff/60)+'m ago';
+    if (diff < 86400) return Math.floor(diff/3600)+'h ago';
+    return Math.floor(diff/86400)+'d ago';
   }
 
-  // ---------- REACTIONS (likes) ----------
+  // ---------- reactions (like system) ----------
   function addReactionUI(targetType, targetId, container) {
-    const reactDiv = document.createElement('div');
+    let reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
-    reactDiv.innerHTML = `
-      <button class="reaction-btn like-btn" data-type="${targetType}" data-id="${targetId}">
-        <i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">0</span>
-      </button>
-    `;
+    reactDiv.innerHTML = `<button class="reaction-btn like-btn" data-type="${targetType}" data-id="${targetId}"><i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">0</span></button>`;
     container.appendChild(reactDiv);
-
-    const likeBtn = reactDiv.querySelector('.like-btn');
-    const countSpan = likeBtn.querySelector('.reaction-count');
-    const userId = currentUser?.uid;
+    let btn = reactDiv.querySelector('.like-btn');
+    let countSpan = btn.querySelector('.reaction-count');
+    let uid = currentUser?.uid;
 
     let docRef;
-    if (targetType.includes('/')) {
-      if (!targetId) {
-        docRef = db.doc(targetType);
-      } else {
-        docRef = db.collection(targetType).doc(targetId);
-      }
-    } else {
-      docRef = db.collection(targetType).doc(targetId);
-    }
-    const reactionsRef = docRef.collection('reactions');
+    if (targetType.includes('/') && !targetId) docRef = db.doc(targetType);
+    else if (targetType.includes('/')) docRef = db.collection(targetType).doc(targetId);
+    else docRef = db.collection(targetType).doc(targetId);
+    let reactionsRef = docRef.collection('reactions');
 
-    const unsubscribe = reactionsRef.onSnapshot(snapshot => {
-      let count = 0;
-      let userLiked = false;
-      snapshot.forEach(doc => {
-        if (doc.data().type === 'like') {
-          count++;
-          if (userId && doc.id === userId) userLiked = true;
-        }
+    let unsubscribe = reactionsRef.onSnapshot(snap => {
+      let count = 0, userLiked = false;
+      snap.forEach(d => {
+        if (d.data().type === 'like') count++;
+        if (uid && d.id === uid) userLiked = true;
       });
       countSpan.textContent = count;
       if (userLiked) {
-        likeBtn.classList.add('liked');
-        likeBtn.innerHTML = `<i class="fa-solid fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
+        btn.classList.add('liked');
+        btn.innerHTML = `<i class="fa-solid fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
       } else {
-        likeBtn.classList.remove('liked');
-        likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
+        btn.classList.remove('liked');
+        btn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
       }
     });
 
-    likeBtn.addEventListener('click', async () => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
       if (!currentUser) return alert('Login required');
-      const reactionDoc = reactionsRef.doc(currentUser.uid);
-      const doc = await reactionDoc.get();
-      if (doc.exists) {
-        await reactionDoc.delete();
-      } else {
-        await reactionDoc.set({
-          type: 'like',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
+      let reactionDoc = reactionsRef.doc(currentUser.uid);
+      let d = await reactionDoc.get();
+      d.exists ? await reactionDoc.delete() : await reactionDoc.set({ type: 'like', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     });
-
     return unsubscribe;
   }
 
-  // ---------- AUTH (now using modal) ----------
-  let authMode = "login";
-  const navArea = document.getElementById("navArea");
-
-  function showAuth() {
-    document.getElementById('authModal').style.display = 'flex';
-  }
-
-  window.closeAuthModal = function() {
-    document.getElementById('authModal').style.display = 'none';
-    clearAuth();
-  };
-
-  window.toggleAuthMode = function (e) {
+  // ---------- AUTH ----------
+  let authMode = 'login';
+  const navArea = document.getElementById('navArea');
+  function showAuth() { document.getElementById('authModal').style.display = 'flex'; }
+  window.closeAuthModal = function() { document.getElementById('authModal').style.display = 'none'; clearAuth(); };
+  window.toggleAuthMode = function(e) {
     e.preventDefault();
-    authMode = authMode === "login" ? "register" : "login";
-    document.getElementById("registerFields").style.display = authMode === "register" ? "block" : "none";
-    document.getElementById("authHeader").innerText = authMode === "login" ? "Login" : "Register";
-    document.getElementById("authSubmitBtn").innerText = authMode === "login" ? "Login" : "Register";
-    document.getElementById("toggleText").innerText = authMode === "login" ? "Don't have an account?" : "Already have an account?";
+    authMode = authMode === 'login' ? 'register' : 'login';
+    document.getElementById('registerFields').style.display = authMode === 'register' ? 'block' : 'none';
+    document.getElementById('authHeader').innerText = authMode === 'login' ? 'Login' : 'Register';
+    document.getElementById('authSubmitBtn').innerText = authMode === 'login' ? 'Login' : 'Register';
+    document.getElementById('toggleText').innerText = authMode === 'login' ? "Don't have an account?" : "Already have an account?";
   };
-
-  document.getElementById("authSubmitBtn").onclick = function () {
-    const email = document.getElementById("authEmail").value.trim();
-    const password = document.getElementById("authPassword").value.trim();
-    if (authMode === "register") {
-      const name = document.getElementById("regName").value.trim();
-      const kindred = document.getElementById("regKindred").value.trim();
-      if (!name || !kindred || !email || !password) return alert("All fields required");
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(cred => db.collection("users").doc(cred.user.uid).set({
-          name, kindred, email, online: true, lastSeen: null,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          isAdmin: false
-        }))
-        .then(() => { alert("Registered"); closeAuthModal(); clearAuth(); })
+  document.getElementById('authSubmitBtn').onclick = () => {
+    let email = document.getElementById('authEmail').value.trim();
+    let pass = document.getElementById('authPassword').value.trim();
+    if (authMode === 'register') {
+      let name = document.getElementById('regName').value.trim();
+      let kindred = document.getElementById('regKindred').value.trim();
+      if (!name || !kindred || !email || !pass) return alert('All fields required');
+      auth.createUserWithEmailAndPassword(email, pass)
+        .then(cred => db.collection('users').doc(cred.user.uid).set({ name, kindred, email, online: true, lastSeen: null, createdAt: firebase.firestore.FieldValue.serverTimestamp(), isAdmin: false }))
+        .then(() => { alert('Registered'); closeAuthModal(); })
         .catch(showError);
     } else {
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => { alert("Login successful"); closeAuthModal(); clearAuth(); })
-        .catch(showError);
+      auth.signInWithEmailAndPassword(email, pass).then(() => { alert('Login OK'); closeAuthModal(); }).catch(showError);
     }
   };
-
   function clearAuth() {
-    document.getElementById("authEmail").value = "";
-    document.getElementById("authPassword").value = "";
-    if (document.getElementById("regName")) document.getElementById("regName").value = "";
-    if (document.getElementById("regKindred")) document.getElementById("regKindred").value = "";
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
+    if (document.getElementById('regName')) document.getElementById('regName').value = '';
+    if (document.getElementById('regKindred')) document.getElementById('regKindred').value = '';
   }
-
-  window.logout = function () {
-    if (currentUser) {
-      db.collection("users").doc(currentUser.uid).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
-    }
+  window.logout = function() {
+    if (currentUser) db.collection('users').doc(currentUser.uid).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
     auth.signOut().catch(showError);
   };
-
-  // ---------- PUSH NOTIFICATIONS ----------
   function requestNotificationPermission() {
-    if (!("Notification" in window)) {
-      console.log("This browser does not support notifications.");
-      return;
-    }
-    if (Notification.permission === "granted") {
-      // already granted
-    } else if (Notification.permission !== "denied") {
-      Notification.requestPermission().then(permission => {
-        if (permission === "granted") {
-          console.log("Notification permission granted.");
-        }
-      });
-    }
+    if ('Notification' in window && Notification.permission !== 'denied') Notification.requestPermission();
   }
-
-  function setupPrivateChatNotifications(userId) {
-    const roomsQuery = db.collection('privateChatRooms')
-      .where('participants', 'array-contains', userId);
-
-    roomsQuery.onSnapshot(snapshot => {
-      snapshot.docChanges().forEach(change => {
-        if (change.type === 'added') {
-          const room = change.doc.data();
-          const otherUid = room.participants.find(uid => uid !== userId);
-          db.collection('privateChatRooms').doc(change.doc.id)
-            .collection('messages')
-            .orderBy('timestamp', 'desc')
-            .limit(1)
-            .onSnapshot(msgSnapshot => {
-              msgSnapshot.docChanges().forEach(msgChange => {
-                if (msgChange.type === 'added') {
-                  const msg = msgChange.doc.data();
-                  if (msg.from === otherUid && Notification.permission === "granted") {
-                    db.collection('users').doc(otherUid).get().then(userDoc => {
-                      const otherName = userDoc.data()?.name || 'User';
-                      new Notification(`New message from ${otherName}`, {
-                        body: msg.text.substring(0, 50) + (msg.text.length > 50 ? '…' : ''),
-                        icon: '/ntuonline/icon-192.png'
-                      });
-                    });
-                  }
-                }
-              });
+  function setupPrivateChatNotifications(uid) {
+    db.collection('privateChatRooms').where('participants', 'array-contains', uid).onSnapshot(snap => {
+      snap.docChanges().forEach(c => {
+        if (c.type === 'added') {
+          let room = c.doc.data();
+          let other = room.participants.find(p => p !== uid);
+          db.collection('privateChatRooms').doc(c.doc.id).collection('messages').orderBy('timestamp','desc').limit(1).onSnapshot(m => {
+            m.docChanges().forEach(mc => {
+              if (mc.type === 'added' && mc.doc.data().from === other && Notification.permission === 'granted') {
+                db.collection('users').doc(other).get().then(u => {
+                  new Notification(`📩 ${u.data()?.name || 'User'}`, { body: mc.doc.data().text.substring(0,50) });
+                });
+              }
             });
+          });
         }
       });
     });
   }
-
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
-      db.collection("users").doc(user.uid).update({ online: true }).catch(showError);
-      db.collection("users").doc(user.uid).get().then(doc => {
-        const userData = doc.data() || {};
-        const isAdmin = userData.isAdmin || false;
-        navArea.innerHTML = `
-          <span class="onlineDot">● Online</span>
+      db.collection('users').doc(user.uid).update({ online: true }).catch(showError);
+      db.collection('users').doc(user.uid).get().then(d => {
+        let data = d.data() || {};
+        navArea.innerHTML = `<span class="onlineDot">● Online</span>
           <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
           <button onclick="logout()">Logout</button>
-          ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
-        `;
-      }).catch(showError);
-      // Request notification permission and set up listeners
+          ${data.isAdmin ? '<button onclick="alert(\'Admin panel stub\')">Admin</button>' : ''}`;
+      });
       requestNotificationPermission();
       setupPrivateChatNotifications(user.uid);
     } else {
-      navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
+      navArea.innerHTML = '<button onclick="showAuth()">Login / Register</button>';
     }
   });
-
-  window.addEventListener("beforeunload", () => {
-    if (currentUser) {
-      db.collection("users").doc(currentUser.uid).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
-    }
+  window.addEventListener('beforeunload', ()=>{
+    if (currentUser) db.collection('users').doc(currentUser.uid).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
   });
-
-  function showError(err) { alert("Error: " + err.message); console.error(err); }
+  function showError(err) { alert('Error: '+err.message); console.error(err); }
 
   // ---------- FEED ----------
-  window.postFeed = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("feedInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("feed").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  window.postFeed = function() {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('feedInput');
+    if (!inp.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('feed').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
-    const feedArea = document.getElementById("feedArea");
-    feedArea.innerHTML = "";
-    s.forEach(doc => {
-      const p = doc.data();
-      const feedId = doc.id;
-      const feedDiv = document.createElement('div');
-      feedDiv.className = "feed-item";
-      feedDiv.id = `feed-${feedId}`;
-      feedDiv.innerHTML = `
-        <strong><span class="clickable-name" onclick="showProfile('${p.userId || ''}')">${p.name ?? '?'}</span> (${p.kindred ?? '?'})</strong>
-        <div>${parseContent(p.text)}</div>
-        <div class="timestamp">${formatTimestamp(p.created)}</div>
-        <div id="feedReplies${feedId}" class="replies"></div>
-        <input id="replyFeed${feedId}" placeholder="Reply...">
-        <button onclick="replyFeed('${feedId}')">Reply</button>
-      `;
-      feedArea.appendChild(feedDiv);
-      addReactionUI('feed', feedId, feedDiv);
-      loadReplies("feed", feedId, "feedReplies");
+  db.collection('feed').orderBy('created','desc').onSnapshot(s => {
+    let area = document.getElementById('feedArea'); area.innerHTML = '';
+    s.forEach(d => {
+      let p = d.data(), id = d.id;
+      let div = document.createElement('div'); div.className = 'feed-item'; div.id = 'feed-'+id;
+      div.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${p.userId||''}')">${p.name||'?'}</span> (${p.kindred||'?'})</strong>
+        <div>${parseContent(p.text)}</div><div class="timestamp">${formatTimestamp(p.created)}</div>
+        <div id="feedReplies${id}" class="replies"></div><input id="replyFeed${id}" placeholder="Reply..."><button onclick="replyFeed('${id}')">Reply</button>`;
+      area.appendChild(div);
+      addReactionUI('feed', id, div);
+      loadReplies('feed', id, 'feedReplies');
     });
-  }, showError);
-
-  window.replyFeed = function (id) {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("replyFeed" + id);
-    if (!input || !input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("feed").doc(id).collection("replies").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  });
+  window.replyFeed = function(id) {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('replyFeed'+id); if (!inp?.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('feed').doc(id).collection('replies').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  function loadReplies(collection, id, containerPrefix) {
-    db.collection(collection).doc(id).collection("replies").orderBy("created").onSnapshot(s => {
-      const box = document.getElementById(containerPrefix + id);
-      if (!box) return;
-      box.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>
-          <div>${parseContent(r.text)}</div>
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        box.appendChild(replyDiv);
-        addReactionUI(`${collection}/${id}/replies`, doc.id, replyDiv);
+  function loadReplies(coll, id, prefix) {
+    db.collection(coll).doc(id).collection('replies').orderBy('created').onSnapshot(s => {
+      let box = document.getElementById(prefix+id); if (!box) return;
+      box.innerHTML = '';
+      s.forEach(d => {
+        let r = d.data(), rid = d.id;
+        let rd = document.createElement('div'); rd.className = 'replyBox';
+        rd.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${r.userId||''}')">${r.name||'?'}</span> (${r.kindred||'?'})</strong> ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>`;
+        box.appendChild(rd);
+        addReactionUI(`${coll}/${id}/replies`, rid, rd);
       });
-    }, showError);
+    });
   }
 
   // ---------- CHAT ----------
-  window.sendChat = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("chatInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("chat").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  window.sendChat = function() {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('chatInput'); if (!inp.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('chat').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  db.collection("chat").orderBy("created").onSnapshot(s => {
-    const chatArea = document.getElementById("chatArea");
-    chatArea.innerHTML = "";
-    s.forEach(doc => {
-      const m = doc.data();
-      const chatId = doc.id;
-      const chatDiv = document.createElement('div');
-      chatDiv.className = "chat-item";
-      chatDiv.innerHTML = `
-        <strong><span class="clickable-name" onclick="showProfile('${m.userId || ''}')">${m.name ?? '?'}</span> (${m.kindred ?? '?'})</strong>
-        <span>: ${parseContent(m.text)}</span>
-        <div class="timestamp">${formatTimestamp(m.created)}</div>
-        <div id="chatReplies${chatId}" class="replies"></div>
-        <input id="chatReplyInput${chatId}" placeholder="Reply...">
-        <button onclick="replyChat('${chatId}')">Reply</button>
-      `;
-      chatArea.appendChild(chatDiv);
-      addReactionUI('chat', chatId, chatDiv);
-      loadChatReplies(chatId);
+  db.collection('chat').orderBy('created').onSnapshot(s => {
+    let area = document.getElementById('chatArea'); area.innerHTML = '';
+    s.forEach(d => {
+      let m = d.data(), id = d.id;
+      let div = document.createElement('div'); div.className = 'chat-item';
+      div.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${m.userId||''}')">${m.name||'?'}</span> (${m.kindred||'?'})</strong> ${parseContent(m.text)}
+        <div class="timestamp">${formatTimestamp(m.created)}</div><div id="chatReplies${id}" class="replies"></div>
+        <input id="chatReplyInput${id}" placeholder="Reply..."><button onclick="replyChat('${id}')">Reply</button>`;
+      area.appendChild(div);
+      addReactionUI('chat', id, div);
+      loadChatReplies(id);
     });
-  }, showError);
-
-  window.replyChat = function (chatId) {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("chatReplyInput" + chatId);
-    if (!input || !input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("chat").doc(chatId).collection("replies").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  });
+  window.replyChat = function(id) {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('chatReplyInput'+id); if (!inp?.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('chat').doc(id).collection('replies').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  function loadChatReplies(chatId) {
-    db.collection("chat").doc(chatId).collection("replies").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("chatReplies" + chatId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        container.appendChild(replyDiv);
-        addReactionUI(`chat/${chatId}/replies`, doc.id, replyDiv);
+  function loadChatReplies(id) {
+    db.collection('chat').doc(id).collection('replies').orderBy('created').onSnapshot(s => {
+      let box = document.getElementById('chatReplies'+id); if (!box) return;
+      box.innerHTML = '';
+      s.forEach(d => {
+        let r = d.data(), rid = d.id;
+        let rd = document.createElement('div'); rd.className = 'replyBox';
+        rd.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${r.userId||''}')">${r.name||'?'}</span> (${r.kindred||'?'})</strong> ${parseContent(r.text)} <div class="timestamp">${formatTimestamp(r.created)}</div>`;
+        box.appendChild(rd);
+        addReactionUI(`chat/${id}/replies`, rid, rd);
       });
-    }, showError);
+    });
   }
 
   // ---------- GOODWILL ----------
-  window.postGoodwill = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("goodwillInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("goodwill").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  window.postGoodwill = function() {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('goodwillInput'); if (!inp.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('goodwill').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  db.collection("goodwill").orderBy("created", "desc").onSnapshot(s => {
-    const goodwillArea = document.getElementById("goodwillArea");
-    goodwillArea.innerHTML = "";
-    s.forEach(doc => {
-      const g = doc.data();
-      const goodwillId = doc.id;
-      const goodwillDiv = document.createElement('div');
-      goodwillDiv.className = "goodwill-item";
-      goodwillDiv.innerHTML = `
-        <strong><span class="clickable-name" onclick="showProfile('${g.userId || ''}')">${g.name ?? '?'}</span> (${g.kindred ?? '?'})</strong>
-        <div>${parseContent(g.text)}</div>
-        <div class="timestamp">${formatTimestamp(g.created)}</div>
-        <div id="goodwillReplies${goodwillId}" class="replies"></div>
-        <input id="goodwillReplyInput${goodwillId}" placeholder="Reply...">
-        <button onclick="replyGoodwill('${goodwillId}')">Reply</button>
-      `;
-      goodwillArea.appendChild(goodwillDiv);
-      addReactionUI('goodwill', goodwillId, goodwillDiv);
-      loadGoodwillReplies(goodwillId);
+  db.collection('goodwill').orderBy('created','desc').onSnapshot(s => {
+    let area = document.getElementById('goodwillArea'); area.innerHTML = '';
+    s.forEach(d => {
+      let g = d.data(), id = d.id;
+      let div = document.createElement('div'); div.className = 'goodwill-item';
+      div.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${g.userId||''}')">${g.name||'?'}</span> (${g.kindred||'?'})</strong> ${parseContent(g.text)}
+        <div class="timestamp">${formatTimestamp(g.created)}</div><div id="goodwillReplies${id}"></div>
+        <input id="goodwillReplyInput${id}" placeholder="Reply..."><button onclick="replyGoodwill('${id}')">Reply</button>`;
+      area.appendChild(div);
+      addReactionUI('goodwill', id, div);
+      loadGoodwillReplies(id);
     });
-  }, showError);
-
-  window.replyGoodwill = function (goodwillId) {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("goodwillReplyInput" + goodwillId);
-    if (!input || !input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("goodwill").doc(goodwillId).collection("replies").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  });
+  window.replyGoodwill = function(id) {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('goodwillReplyInput'+id); if (!inp?.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('goodwill').doc(id).collection('replies').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  function loadGoodwillReplies(goodwillId) {
-    db.collection("goodwill").doc(goodwillId).collection("replies").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("goodwillReplies" + goodwillId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        container.appendChild(replyDiv);
-        addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
+  function loadGoodwillReplies(id) {
+    db.collection('goodwill').doc(id).collection('replies').orderBy('created').onSnapshot(s => {
+      let box = document.getElementById('goodwillReplies'+id); if (!box) return;
+      box.innerHTML = '';
+      s.forEach(d => {
+        let r = d.data(), rid = d.id;
+        let rd = document.createElement('div'); rd.className = 'replyBox';
+        rd.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${r.userId||''}')">${r.name||'?'}</span> (${r.kindred||'?'})</strong> ${parseContent(r.text)} <div class="timestamp">${formatTimestamp(r.created)}</div>`;
+        box.appendChild(rd);
+        addReactionUI(`goodwill/${id}/replies`, rid, rd);
       });
-    }, showError);
+    });
   }
 
-  // ---------- LIVE STREAM ----------
-  db.collection("live").doc("current").onSnapshot(doc => {
-    const liveArea = document.getElementById("liveArea");
-    if (doc.exists) {
-      const d = doc.data();
-      liveArea.innerHTML = `
-        <h4>${d.title || 'Live Stream'}</h4>
-        <iframe width="100%" height="315" src="https://www.youtube.com/embed/${d.videoId || ''}" allowfullscreen></iframe>
-      `;
-    } else {
-      liveArea.innerHTML = "<p style='text-align:center;'>🔴 Currently Offline</p>";
-    }
-  }, showError);
-
-  window.commentLive = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("liveCommentInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("live").doc("current").collection("comments").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  // ---------- LIVE ----------
+  db.collection('live').doc('current').onSnapshot(d => {
+    let a = document.getElementById('liveArea');
+    if (d.exists) { let dd = d.data(); a.innerHTML = `<h4>${dd.title||'Live'}</h4><iframe width="100%" height="200" src="https://www.youtube.com/embed/${dd.videoId||''}" allowfullscreen></iframe>`; }
+    else a.innerHTML = '<p style="text-align:center;">🔴 Currently Offline</p>';
+  });
+  window.commentLive = function() {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('liveCommentInput'); if (!inp.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('live').doc('current').collection('comments').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  db.collection("live").doc("current").collection("comments").orderBy("created").onSnapshot(s => {
-    const liveComments = document.getElementById("liveComments");
-    liveComments.innerHTML = "";
-    s.forEach(doc => {
-      const c = doc.data();
-      const commentId = doc.id;
-      const commentDiv = document.createElement('div');
-      commentDiv.className = "live-comment-item";
-      commentDiv.innerHTML = `
-        <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>: ${parseContent(c.text)}
-        <div class="timestamp">${formatTimestamp(c.created)}</div>
-        <div id="liveReplies${commentId}" class="replies"></div>
-        <input id="liveReplyInput${commentId}" placeholder="Reply...">
-        <button onclick="replyLiveComment('${commentId}')">Reply</button>
-      `;
-      liveComments.appendChild(commentDiv);
-      addReactionUI('live/current/comments', commentId, commentDiv);
-      loadLiveReplies(commentId);
+  db.collection('live').doc('current').collection('comments').orderBy('created').onSnapshot(s => {
+    let area = document.getElementById('liveComments'); area.innerHTML = '';
+    s.forEach(d => {
+      let c = d.data(), id = d.id;
+      let div = document.createElement('div'); div.className = 'live-comment-item';
+      div.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${c.userId||''}')">${c.name||'?'}</span> (${c.kindred||'?'})</strong> ${parseContent(c.text)}
+        <div class="timestamp">${formatTimestamp(c.created)}</div><div id="liveReplies${id}"></div>
+        <input id="liveReplyInput${id}" placeholder="Reply..."><button onclick="replyLiveComment('${id}')">Reply</button>`;
+      area.appendChild(div);
+      addReactionUI('live/current/comments', id, div);
+      loadLiveReplies(id);
     });
-  }, showError);
-
-  window.replyLiveComment = function (commentId) {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("liveReplyInput" + commentId);
-    if (!input || !input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  });
+  window.replyLiveComment = function(id) {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('liveReplyInput'+id); if (!inp?.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('live').doc('current').collection('comments').doc(id).collection('replies').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  function loadLiveReplies(commentId) {
-    db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("liveReplies" + commentId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        container.appendChild(replyDiv);
-        addReactionUI(`live/current/comments/${commentId}/replies`, doc.id, replyDiv);
+  function loadLiveReplies(id) {
+    db.collection('live').doc('current').collection('comments').doc(id).collection('replies').orderBy('created').onSnapshot(s => {
+      let box = document.getElementById('liveReplies'+id); if (!box) return;
+      box.innerHTML = '';
+      s.forEach(d => {
+        let r = d.data(), rid = d.id;
+        let rd = document.createElement('div'); rd.className = 'replyBox';
+        rd.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${r.userId||''}')">${r.name||'?'}</span> (${r.kindred||'?'})</strong> ${parseContent(r.text)} <div class="timestamp">${formatTimestamp(r.created)}</div>`;
+        box.appendChild(rd);
+        addReactionUI(`live/current/comments/${id}/replies`, rid, rd);
       });
-    }, showError);
+    });
   }
 
-  // ---------- EVENTS (with comments) ----------
-  db.collection("events").orderBy("created", "desc").onSnapshot(s => {
-    const eventArea = document.getElementById("eventArea");
-    eventArea.innerHTML = "";
-    s.forEach(doc => {
-      const e = doc.data();
-      const eventId = doc.id;
-      let mediaHtml = '';
-      if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
+  // ---------- EVENTS ----------
+  db.collection('events').orderBy('created','desc').onSnapshot(s => {
+    let area = document.getElementById('eventArea'); area.innerHTML = '';
+    s.forEach(d => {
+      let e = d.data(), id = d.id;
+      let media = '';
+      if (e.image) media += `<div class="embedded-media"><img src="${e.image}" alt="event"></div>`;
       if (e.video) {
-        const videoId = extractYoutubeId(e.video);
-        if (videoId) mediaHtml += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
-        else mediaHtml += `<p><a href="${e.video}" target="_blank" style="color:#f97316;">Watch Video</a></p>`;
+        let vid = e.video.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        if (vid) media += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${vid[1]}" allowfullscreen></iframe></div>`;
+        else media += `<p><a href="${e.video}" target="_blank">Watch</a></p>`;
       }
-      if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
-
-      const eventDiv = document.createElement('div');
-      eventDiv.className = "event-item";
-      eventDiv.id = `event-${eventId}`;
-      eventDiv.innerHTML = `
-        <h4>${e.title || 'Untitled'}</h4>
-        <p>${e.description ? parseContent(e.description) : ''}</p>
-        <p><small>${e.date || ''}</small></p>
-        ${mediaHtml}
-        <div id="eventComments${eventId}" class="replies"></div>
-        <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
-        <button onclick="commentEvent('${eventId}')">Comment</button>
-      `;
-      eventArea.appendChild(eventDiv);
-      loadEventComments(eventId);
+      if (e.audio) media += `<audio controls src="${e.audio}" style="width:100%"></audio>`;
+      let div = document.createElement('div'); div.className = 'event-item';
+      div.innerHTML = `<h4>${e.title||'Event'}</h4><p>${parseContent(e.description||'')}</p><p><small>${e.date||''}</small></p>${media}
+        <div id="eventComments${id}"></div><input id="eventCommentInput${id}" placeholder="Comment..."><button onclick="commentEvent('${id}')">Comment</button>`;
+      area.appendChild(div);
+      loadEventComments(id);
     });
-  }, showError);
-
-  function extractYoutubeId(url) {
-    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    return match ? match[1] : null;
-  }
-
-  window.commentEvent = function(eventId) {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("eventCommentInput" + eventId);
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("events").doc(eventId).collection("comments").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  });
+  window.commentEvent = function(id) {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('eventCommentInput'+id); if (!inp.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('events').doc(id).collection('comments').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  function loadEventComments(eventId) {
-    db.collection("events").doc(eventId).collection("comments").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("eventComments" + eventId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const c = doc.data();
-        const commentId = doc.id;
-        const commentDiv = document.createElement('div');
-        commentDiv.className = "replyBox";
-        commentDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>
-          <div>${parseContent(c.text)}</div>
-          <div class="timestamp">${formatTimestamp(c.created)}</div>
-          <div id="eventCommentReplies${commentId}"></div>
-          <input id="eventCommentReplyInput${commentId}" placeholder="Reply...">
-          <button onclick="replyEventComment('${eventId}', '${commentId}')">Reply</button>
-        `;
-        container.appendChild(commentDiv);
-        addReactionUI(`events/${eventId}/comments`, commentId, commentDiv);
-        loadEventCommentReplies(eventId, commentId);
+  function loadEventComments(id) {
+    db.collection('events').doc(id).collection('comments').orderBy('created').onSnapshot(s => {
+      let box = document.getElementById('eventComments'+id); if (!box) return;
+      box.innerHTML = '';
+      s.forEach(d => {
+        let c = d.data(), cid = d.id;
+        let cd = document.createElement('div'); cd.className = 'replyBox';
+        cd.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${c.userId||''}')">${c.name||'?'}</span> (${c.kindred||'?'})</strong> ${parseContent(c.text)}
+          <div class="timestamp">${formatTimestamp(c.created)}</div><div id="eventCommentReplies${cid}"></div>
+          <input id="eventCommentReplyInput${cid}" placeholder="Reply..."><button onclick="replyEventComment('${id}','${cid}')">Reply</button>`;
+        box.appendChild(cd);
+        addReactionUI(`events/${id}/comments`, cid, cd);
+        loadEventCommentReplies(id, cid);
       });
-    }, showError);
+    });
   }
-
-  window.replyEventComment = function(eventId, commentId) {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("eventCommentReplyInput" + commentId);
-    if (!input || !input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("events").doc(eventId).collection("comments").doc(commentId).collection("replies").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
+  window.replyEventComment = function(evId, comId) {
+    if (!currentUser) return alert('Login required');
+    let inp = document.getElementById('eventCommentReplyInput'+comId); if (!inp?.value.trim()) return;
+    db.collection('users').doc(currentUser.uid).get().then(u => {
+      return db.collection('events').doc(evId).collection('comments').doc(comId).collection('replies').add({ text: inp.value, name: u.data()?.name, kindred: u.data()?.kindred, userId: currentUser.uid, created: Date.now() });
+    }).then(() => inp.value = '').catch(showError);
   };
-
-  function loadEventCommentReplies(eventId, commentId) {
-    db.collection("events").doc(eventId).collection("comments").doc(commentId).collection("replies").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("eventCommentReplies" + commentId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        container.appendChild(replyDiv);
-        addReactionUI(`events/${eventId}/comments/${commentId}/replies`, doc.id, replyDiv);
+  function loadEventCommentReplies(evId, comId) {
+    db.collection('events').doc(evId).collection('comments').doc(comId).collection('replies').orderBy('created').onSnapshot(s => {
+      let box = document.getElementById('eventCommentReplies'+comId); if (!box) return;
+      box.innerHTML = '';
+      s.forEach(d => {
+        let r = d.data(), rid = d.id;
+        let rd = document.createElement('div'); rd.className = 'replyBox';
+        rd.innerHTML = `<strong><span class="clickable-name" onclick="showProfile('${r.userId||''}')">${r.name||'?'}</span> (${r.kindred||'?'})</strong> ${parseContent(r.text)} <div class="timestamp">${formatTimestamp(r.created)}</div>`;
+        box.appendChild(rd);
+        addReactionUI(`events/${evId}/comments/${comId}/replies`, rid, rd);
       });
-    }, showError);
+    });
   }
 
-  // ---------- USER PROFILES ----------
+  // ---------- PROFILES ----------
   let currentProfileUserId = null;
-
-  window.showProfile = function(userId) {
-    if (!userId) return;
-    db.collection('users').doc(userId).get().then(doc => {
-      if (!doc.exists) return;
-      const user = doc.data();
-      document.getElementById('profileInfo').innerHTML = `
-        <p><strong>Name:</strong> ${user.name || '?'}</p>
-        <p><strong>Kindred:</strong> ${user.kindred || '?'}</p>
-        <p><strong>Email:</strong> ${user.email || '?'}</p>
-        <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
-      `;
-      currentProfileUserId = userId;
+  window.showProfile = function(uid) {
+    if (!uid) return;
+    db.collection('users').doc(uid).get().then(d => {
+      if (!d.exists) return;
+      let u = d.data();
+      document.getElementById('profileInfo').innerHTML = `<p><strong>Name:</strong> ${u.name||'?'}</p><p><strong>Kindred:</strong> ${u.kindred||'?'}</p><p><strong>Email:</strong> ${u.email||'?'}</p><p><strong>Status:</strong> ${u.online ? '🟢 Online' : '🔴 Offline'}</p>`;
+      currentProfileUserId = uid;
       document.getElementById('profileModal').style.display = 'flex';
     }).catch(showError);
   };
+  window.closeProfileModal = function() { document.getElementById('profileModal').style.display = 'none'; currentProfileUserId = null; };
+  window.startPrivateChatFromProfile = function() { if (currentProfileUserId) { startPrivateChat(currentProfileUserId); closeProfileModal(); } };
 
-  window.closeProfileModal = function() {
-    document.getElementById('profileModal').style.display = 'none';
-    currentProfileUserId = null;
-  };
-
-  window.startPrivateChatFromProfile = function() {
-    if (currentProfileUserId) {
-      startPrivateChat(currentProfileUserId);
-      closeProfileModal();
-    }
-  };
-
-  // ---------- PRIVATE CHAT (Room-based, Index-Free Inbox) ----------
-  let activeChatRoomId = null;
-  let activeChatOtherUserId = null;
-  let unsubscribeRoomMessages = null;
-
-  function getChatRoomId(uid1, uid2) {
-    return [uid1, uid2].sort().join('_');
-  }
-
-  window.startPrivateChat = async function(otherUserId) {
+  // ---------- PRIVATE CHAT ----------
+  let activeChatRoomId = null, activeChatOtherUserId = null, unsubscribeRoomMessages = null;
+  function getRoomId(a,b) { return [a,b].sort().join('_'); }
+  window.startPrivateChat = async function(otherId) {
     if (!currentUser) return alert('Login required');
-    if (otherUserId === currentUser.uid) return alert('Cannot chat with yourself');
-
-    const roomId = getChatRoomId(currentUser.uid, otherUserId);
-    activeChatRoomId = roomId;
-    activeChatOtherUserId = otherUserId;
-
-    const roomRef = db.collection('privateChatRooms').doc(roomId);
-    const roomDoc = await roomRef.get();
-    if (!roomDoc.exists) {
-      await roomRef.set({
-        participants: [currentUser.uid, otherUserId],
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        lastMessage: null,
-        lastMessageTime: null
-      });
-    }
-
-    db.collection('users').doc(otherUserId).get().then(doc => {
-      const otherUser = doc.data();
-      document.getElementById('chatWith').innerHTML = `Chat with ${otherUser.name || 'User'}`;
-    });
-
+    if (otherId === currentUser.uid) return alert('Cannot chat with yourself');
+    let roomId = getRoomId(currentUser.uid, otherId);
+    activeChatRoomId = roomId; activeChatOtherUserId = otherId;
+    let roomRef = db.collection('privateChatRooms').doc(roomId);
+    let roomDoc = await roomRef.get();
+    if (!roomDoc.exists) await roomRef.set({ participants: [currentUser.uid, otherId], createdAt: firebase.firestore.FieldValue.serverTimestamp(), lastMessage: null, lastMessageTime: null });
+    db.collection('users').doc(otherId).get().then(d => { document.getElementById('chatWith').innerHTML = `Chat with ${d.data()?.name||'User'}`; });
     document.getElementById('chatModal').style.display = 'flex';
     document.getElementById('privateChatInput').focus();
-
-    const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
     if (unsubscribeRoomMessages) unsubscribeRoomMessages();
-    unsubscribeRoomMessages = messagesRef.onSnapshot(snapshot => {
-      const container = document.getElementById('privateChatMessages');
-      container.innerHTML = '';
-      snapshot.forEach(doc => {
-        const msg = doc.data();
-        const div = document.createElement('div');
-        div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
-        div.innerHTML = `
-          <div>${parseContent(msg.text)}</div>
-          <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
-        `;
-        container.appendChild(div);
-      });
-      container.scrollTop = container.scrollHeight;
+    unsubscribeRoomMessages = roomRef.collection('messages').orderBy('timestamp','asc').onSnapshot(s => {
+      let cont = document.getElementById('privateChatMessages'); cont.innerHTML = '';
+      s.forEach(d => { let m = d.data(); let div = document.createElement('div'); div.className = `chat-message ${m.from === currentUser.uid ? 'sent' : 'received'}`; div.innerHTML = `<div>${parseContent(m.text)}</div><small>${m.timestamp?.toDate().toLocaleTimeString()||''}</small>`; cont.appendChild(div); });
+      cont.scrollTop = cont.scrollHeight;
     }, showError);
   };
-
   window.sendPrivateMessage = function() {
-    const input = document.getElementById('privateChatInput');
-    const text = input.value.trim();
-    if (!text || !activeChatRoomId) return;
-
-    const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
-    roomRef.collection('messages').add({
-      from: currentUser.uid,
-      text: text,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      read: false
-    }).then(() => {
-      roomRef.update({
-        lastMessage: text,
-        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(showError);
-      input.value = '';
+    let inp = document.getElementById('privateChatInput'); let txt = inp.value.trim();
+    if (!txt || !activeChatRoomId) return;
+    let roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
+    roomRef.collection('messages').add({ from: currentUser.uid, text: txt, timestamp: firebase.firestore.FieldValue.serverTimestamp(), read: false }).then(() => {
+      roomRef.update({ lastMessage: txt, lastMessageTime: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
+      inp.value = '';
     }).catch(showError);
   };
-
   window.closeChatModal = function() {
     document.getElementById('chatModal').style.display = 'none';
-    if (unsubscribeRoomMessages) {
-      unsubscribeRoomMessages();
-      unsubscribeRoomMessages = null;
-    }
-    activeChatRoomId = null;
-    activeChatOtherUserId = null;
+    if (unsubscribeRoomMessages) { unsubscribeRoomMessages(); unsubscribeRoomMessages = null; }
+    activeChatRoomId = null; activeChatOtherUserId = null;
   };
 
-  // ---------- INBOX (No Index Required) ----------
-  window.showInbox = function() {
-    document.getElementById('inboxModal').style.display = 'flex';
-    loadInbox();
-  };
-
-  window.closeInboxModal = function() {
-    document.getElementById('inboxModal').style.display = 'none';
-  };
-
+  // ---------- INBOX ----------
+  window.showInbox = function() { document.getElementById('inboxModal').style.display = 'flex'; loadInbox(); };
+  window.closeInboxModal = function() { document.getElementById('inboxModal').style.display = 'none'; };
   function loadInbox() {
     if (!currentUser) return;
-    const inboxList = document.getElementById('inboxList');
-    inboxList.innerHTML = 'Loading...';
-
-    db.collection('privateChatRooms')
-      .where('participants', 'array-contains', currentUser.uid)
-      .get()
-      .then(async snapshot => {
-        if (snapshot.empty) {
-          inboxList.innerHTML = '<p>No conversations yet.</p>';
-          return;
-        }
-
-        const rooms = [];
-        for (const doc of snapshot.docs) {
-          const room = doc.data();
-          const otherUid = room.participants.find(uid => uid !== currentUser.uid);
-          const userDoc = await db.collection('users').doc(otherUid).get();
-          const otherUser = userDoc.data() || { name: 'Unknown' };
-
-          let preview = room.lastMessage || 'No messages';
-          if (preview.length > 30) preview = preview.substring(0, 30) + '…';
-          let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
-
-          rooms.push({
-            id: doc.id,
-            otherUid,
-            otherName: otherUser.name || 'User',
-            preview,
-            time,
-            lastMessageTime: room.lastMessageTime ? room.lastMessageTime.toDate() : new Date(0)
-          });
-        }
-
-        rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
-
-        inboxList.innerHTML = '';
-        rooms.forEach(r => {
-          const item = document.createElement('div');
-          item.className = 'inbox-item';
-          item.onclick = () => {
-            closeInboxModal();
-            startPrivateChat(r.otherUid);
-          };
-          item.innerHTML = `
-            <div class="inbox-item-info">
-              <div class="inbox-item-name">${r.otherName}</div>
-              <div class="inbox-item-preview">${r.preview}</div>
-            </div>
-            <div class="inbox-item-time">${r.time}</div>
-          `;
-          inboxList.appendChild(item);
-        });
-      })
-      .catch(err => {
-        console.error('Inbox error:', err);
-        inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
+    let list = document.getElementById('inboxList'); list.innerHTML = 'Loading...';
+    db.collection('privateChatRooms').where('participants', 'array-contains', currentUser.uid).get().then(async snap => {
+      if (snap.empty) { list.innerHTML = '<p>No conversations</p>'; return; }
+      let rooms = [];
+      for (let doc of snap.docs) {
+        let r = doc.data();
+        let other = r.participants.find(p => p !== currentUser.uid);
+        let u = await db.collection('users').doc(other).get();
+        let otherName = u.data()?.name || 'Unknown';
+        let preview = r.lastMessage || 'No messages'; if (preview.length > 30) preview = preview.substring(0,30)+'…';
+        let time = r.lastMessageTime ? formatRelativeTime(r.lastMessageTime) : '';
+        rooms.push({ id: doc.id, otherUid: other, otherName, preview, time, lastMsgTime: r.lastMessageTime ? r.lastMessageTime.toDate() : new Date(0) });
+      }
+      rooms.sort((a,b) => b.lastMsgTime - a.lastMsgTime);
+      list.innerHTML = '';
+      rooms.forEach(r => {
+        let it = document.createElement('div'); it.className = 'inbox-item';
+        it.onclick = () => { closeInboxModal(); startPrivateChat(r.otherUid); };
+        it.innerHTML = `<div class="inbox-item-info"><div class="inbox-item-name">${r.otherName}</div><div class="inbox-item-preview">${r.preview}</div></div><div class="inbox-item-time">${r.time}</div>`;
+        list.appendChild(it);
       });
+    }).catch(() => list.innerHTML = '<p>Error loading inbox</p>');
   }
 
-  // Click outside modal to close
-  window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-      event.target.style.display = 'none';
-      if (event.target.id === 'chatModal' && unsubscribeRoomMessages) {
-        unsubscribeRoomMessages();
-        unsubscribeRoomMessages = null;
-        activeChatRoomId = null;
-      }
-      if (event.target.id === 'authModal') {
-        closeAuthModal();
-      }
+  // click outside modal to close
+  window.onclick = function(e) {
+    if (e.target.classList.contains('modal')) {
+      e.target.style.display = 'none';
+      if (e.target.id === 'chatModal' && unsubscribeRoomMessages) { unsubscribeRoomMessages(); unsubscribeRoomMessages = null; activeChatRoomId = null; }
+      if (e.target.id === 'authModal') closeAuthModal();
     }
   };
+
+  // (Service worker registration commented out – no external file needed for standalone)
+  // if ('serviceWorker' in navigator) { ... } 
 </script>
-<script>
-  if (typeof navigator.serviceWorker !== 'undefined') {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(reg => console.log('Service Worker registered:', reg))
-      .catch(err => console.error('Service Worker registration failed:', err));
-  }
-</script>
+<!-- service worker registration skipped for self‑contained demo -->
 </body>
 </html>
