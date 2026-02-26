@@ -1283,6 +1283,16 @@ function formatRelativeTime(ts) {
     document.getElementById('chatModal').style.display = 'flex';
     document.getElementById('privateChatInput').focus();
 
+    // Mark all messages from the other user as read
+const unreadQuery = roomRef.collection('messages')
+  .where('from', '==', otherUserId)
+  .where('read', '==', false);
+unreadQuery.get().then(snapshot => {
+  const batch = db.batch();
+  snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
+  return batch.commit();
+}).catch(showError);
+    
     const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
     if (unsubscribeRoomMessages) unsubscribeRoomMessages();
     unsubscribeRoomMessages = messagesRef.onSnapshot(snapshot => {
@@ -1342,66 +1352,84 @@ function formatRelativeTime(ts) {
     document.getElementById('inboxModal').style.display = 'none';
   };
 
-  function loadInbox() {
-    if (!currentUser) return;
-    const inboxList = document.getElementById('inboxList');
-    inboxList.innerHTML = 'Loading...';
+ function loadInbox() {
+  if (!currentUser) return;
+  const inboxList = document.getElementById('inboxList');
+  inboxList.innerHTML = 'Loading...';
 
-    db.collection('privateChatRooms')
-      .where('participants', 'array-contains', currentUser.uid)
-      .get()
-      .then(async snapshot => {
-        if (snapshot.empty) {
-          inboxList.innerHTML = '<p>No conversations yet.</p>';
-          return;
-        }
+  db.collection('privateChatRooms')
+    .where('participants', 'array-contains', currentUser.uid)
+    .get()
+    .then(async snapshot => {
+      if (snapshot.empty) {
+        inboxList.innerHTML = '<p>No conversations yet.</p>';
+        return;
+      }
 
-        const rooms = [];
-        for (const doc of snapshot.docs) {
-          const room = doc.data();
-          const otherUid = room.participants.find(uid => uid !== currentUser.uid);
-          const userDoc = await db.collection('users').doc(otherUid).get();
-          const otherUser = userDoc.data() || { name: 'Unknown' };
+      const rooms = [];
+      for (const doc of snapshot.docs) {
+        const room = doc.data();
+        const otherUid = room.participants.find(uid => uid !== currentUser.uid);
+        const userDoc = await db.collection('users').doc(otherUid).get();
+        const otherUser = userDoc.data() || { name: 'Unknown' };
 
-          let preview = room.lastMessage || 'No messages';
-          if (preview.length > 30) preview = preview.substring(0, 30) + '…';
-          let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
+        // Count unread messages from the other user
+        const unreadSnapshot = await db.collection('privateChatRooms').doc(doc.id)
+          .collection('messages')
+          .where('from', '==', otherUid)
+          .where('read', '==', false)
+          .get();
+        const unreadCount = unreadSnapshot.size;
 
-          rooms.push({
-            id: doc.id,
-            otherUid,
-            otherName: otherUser.name || 'User',
-            preview,
-            time,
-            lastMessageTime: room.lastMessageTime ? room.lastMessageTime.toDate() : new Date(0)
-          });
-        }
+        let preview = room.lastMessage || 'No messages';
+        if (preview.length > 30) preview = preview.substring(0, 30) + '…';
+        let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
 
-        rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
-
-        inboxList.innerHTML = '';
-        rooms.forEach(r => {
-          const item = document.createElement('div');
-          item.className = 'inbox-item';
-          item.onclick = () => {
-            closeInboxModal();
-            startPrivateChat(r.otherUid);
-          };
-          item.innerHTML = `
-            <div class="inbox-item-info">
-              <div class="inbox-item-name">${r.otherName}</div>
-              <div class="inbox-item-preview">${r.preview}</div>
-            </div>
-            <div class="inbox-item-time">${r.time}</div>
-          `;
-          inboxList.appendChild(item);
+        rooms.push({
+          id: doc.id,
+          otherUid,
+          otherName: otherUser.name || 'User',
+          preview,
+          time,
+          lastMessageTime: room.lastMessageTime ? room.lastMessageTime.toDate() : new Date(0),
+          unreadCount
         });
-      })
-      .catch(err => {
-        console.error('Inbox error:', err);
-        inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
+      }
+
+      rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+
+      inboxList.innerHTML = '';
+      rooms.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'inbox-item';
+        item.onclick = () => {
+          closeInboxModal();
+          startPrivateChat(r.otherUid);
+        };
+
+        // Build badge HTML if there are unread messages
+        const unreadBadge = r.unreadCount > 0 
+          ? `<span class="unread-badge" style="background:#ff6b4a; color:white; border-radius:20px; padding:2px 8px; font-size:0.8rem; margin-left:8px;">${r.unreadCount}</span>` 
+          : '';
+
+        item.innerHTML = `
+          <div style="display:flex; align-items:center;">
+            <div class="inbox-item-name">${r.otherName}</div>
+            ${unreadBadge}
+          </div>
+          <div class="inbox-item-info" style="flex:1; margin-left:10px;">
+            <div class="inbox-item-preview">${r.preview}</div>
+          </div>
+          <div class="inbox-item-time">${r.time}</div>
+        `;
+        inboxList.appendChild(item);
       });
-  }
+    })
+    .catch(err => {
+      console.error('Inbox error:', err);
+      inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
+    });
+}
 
   // Click outside modal to close
   window.onclick = function(event) {
@@ -1422,4 +1450,5 @@ function formatRelativeTime(ts) {
 </script>
 </body>
 </html>
+
 
