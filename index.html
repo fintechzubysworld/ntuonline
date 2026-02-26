@@ -399,7 +399,9 @@
 
 <header>
   <h2><i class="fa-solid fa-globe"></i> Ntuconnect</h2>
-  <div id="navArea"></div>
+  <div id="navArea">
+    <button id="authSubmitBtn" onclick="handleAuthSubmit(event)">Login</button>
+  </div>
 </header>
 
 <div class="marquee">
@@ -516,7 +518,10 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   let currentUser = null;
-
+window.handleAuthSubmit = function(e) {
+  e.preventDefault();
+  // ... same logic as above ...
+};
   // ---------- HELPER: parse content for media ----------
   function parseContent(text) {
     if (!text) return '';
@@ -679,27 +684,29 @@
     document.getElementById("toggleText").innerText = authMode === "login" ? "Don't have an account?" : "Already have an account?";
   };
 
-  document.getElementById("authSubmitBtn").onclick = function () {
-    const email = document.getElementById("authEmail").value.trim();
-    const password = document.getElementById("authPassword").value.trim();
-    if (authMode === "register") {
-      const name = document.getElementById("regName").value.trim();
-      const kindred = document.getElementById("regKindred").value.trim();
-      if (!name || !kindred || !email || !password) return alert("All fields required");
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(cred => db.collection("users").doc(cred.user.uid).set({
-          name, kindred, email, online: true, lastSeen: null,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          isAdmin: false
-        }))
-        .then(() => { alert("Registered"); closeAuthModal(); clearAuth(); })
-        .catch(showError);
-    } else {
-      auth.signInWithEmailAndPassword(email, password)
-        .then(() => { alert("Login successful"); closeAuthModal(); clearAuth(); })
-        .catch(showError);
-    }
-  };
+ document.getElementById("authSubmitBtn").addEventListener("click", function (e) {
+  e.preventDefault(); // prevent any default form submission
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value.trim();
+  console.log("Login/Register clicked, mode:", authMode); // debug log
+  if (authMode === "register") {
+    const name = document.getElementById("regName").value.trim();
+    const kindred = document.getElementById("regKindred").value.trim();
+    if (!name || !kindred || !email || !password) return alert("All fields required");
+    auth.createUserWithEmailAndPassword(email, password)
+      .then(cred => db.collection("users").doc(cred.user.uid).set({
+        name, kindred, email, online: true, lastSeen: null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        isAdmin: false
+      }))
+      .then(() => { alert("Registered"); closeAuthModal(); clearAuth(); })
+      .catch(showError);
+  } else {
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => { alert("Login successful"); closeAuthModal(); clearAuth(); })
+      .catch(showError);
+  }
+});
 
   function clearAuth() {
     document.getElementById("authEmail").value = "";
@@ -1461,3 +1468,4 @@
 </script>
 </body>
 </html>
+
