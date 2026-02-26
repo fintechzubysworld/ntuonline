@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ntuconnect</title>
+  <title>Ntuconnect – aquamarine professional</title>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -290,7 +291,7 @@
 
     /* Auth modal specific – we reuse .modal + .modal-content */
     #authContainer.modal {
-      display: none; /* hidden by default, shown via showAuth() sets flex */
+      display: none;
     }
     #authContainer .modal-content {
       background: #1f4f47;
@@ -361,6 +362,18 @@
       color: #b0ddd4;
     }
 
+    /* Unread badge */
+    .unread-badge {
+      background: #ff6b4a;
+      color: white;
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      margin-left: 8px;
+      display: inline-block;
+      font-weight: 600;
+    }
+
     /* Marquee */
     .marquee {
       width: 100%;
@@ -400,9 +413,9 @@
       header { padding: 0.7rem 1.2rem; }
       .card { padding: 18px; }
       .section { gap: 16px; }
-      button { width: 100%; } /* full-width buttons for easy tapping */
-      .embedded-media iframe { height: 200px; } /* smaller video on mobile */
-      .modal-content { padding: 20px; } /* more space-efficient modal */
+      button { width: 100%; }
+      .embedded-media iframe { height: 200px; }
+      .modal-content { padding: 20px; }
     }
 
     @media (max-width: 360px) {
@@ -410,17 +423,6 @@
       .feed-item, .chat-item, .goodwill-item { padding: 12px; }
       .reaction-btn { padding: 6px 12px; }
     }
-
-    .unread-badge {
-  background: #ff6b4a;
-  color: white;
-  border-radius: 20px;
-  padding: 2px 8px;
-  font-size: 0.8rem;
-  margin-left: 8px;
-  display: inline-block;
-  font-weight: 600;
-}
   </style>
 </head>
 <body>
@@ -598,36 +600,34 @@
   }
 
   // Safely format timestamp to locale string
-function formatTimestamp(ts) {
+  function formatTimestamp(ts) {
     if (!ts) return '';
     try {
-        // Convert Firestore Timestamp or string/number to Date
-        let date = ts.toDate ? ts.toDate() : new Date(ts);
-        // Check if date is valid
-        if (isNaN(date.getTime())) return '';
-        return date.toLocaleString();
+      let date = ts.toDate ? ts.toDate() : new Date(ts);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleString();
     } catch (e) {
-        return '';
+      return '';
     }
-}
+  }
 
-// Safely format relative time (e.g., "2h ago")
-function formatRelativeTime(ts) {
+  // Safely format relative time (e.g., "2h ago")
+  function formatRelativeTime(ts) {
     if (!ts) return '';
     try {
-        let date = ts.toDate ? ts.toDate() : new Date(ts);
-        if (isNaN(date.getTime())) return '';
-        let diffSeconds = Math.floor((Date.now() - date) / 1000);
-        if (diffSeconds < 60) return 'just now';
-        if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + 'm ago';
-        if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + 'h ago';
-        return Math.floor(diffSeconds / 86400) + 'd ago';
+      let date = ts.toDate ? ts.toDate() : new Date(ts);
+      if (isNaN(date.getTime())) return '';
+      let diffSeconds = Math.floor((Date.now() - date) / 1000);
+      if (diffSeconds < 60) return 'just now';
+      if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + 'm ago';
+      if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + 'h ago';
+      return Math.floor(diffSeconds / 86400) + 'd ago';
     } catch (e) {
-        return '';
+      return '';
     }
-}
+  }
 
-  // reaction UI (unchanged)
+  // reaction UI
   function addReactionUI(targetType, targetId, container) {
     const reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
@@ -695,7 +695,6 @@ function formatRelativeTime(ts) {
   const navArea = document.getElementById("navArea");
   const authContainer = document.getElementById("authContainer");
 
-  // MODIFIED: showAuth now sets display to FLEX for proper modal centering
   window.showAuth = function() { authContainer.style.display = "flex"; };
 
   window.toggleAuthMode = function (e) {
@@ -743,6 +742,28 @@ function formatRelativeTime(ts) {
     auth.signOut().catch(showError);
   };
 
+  // ---------- UNREAD BADGE SETUP ----------
+  let unreadListener = null;
+
+  function setupUnreadListener(uid) {
+    if (unreadListener) unreadListener();
+    const messagesRef = db.collectionGroup('messages')
+      .where('to', '==', uid)
+      .where('read', '==', false);
+    unreadListener = messagesRef.onSnapshot(snapshot => {
+      const count = snapshot.size;
+      const badge = document.getElementById('inboxBadge');
+      if (badge) {
+        if (count > 0) {
+          badge.style.display = 'inline';
+          badge.textContent = count > 9 ? '9+' : count;
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    }, showError);
+  }
+
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -752,10 +773,14 @@ function formatRelativeTime(ts) {
         const isAdmin = userData.isAdmin || false;
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
-          <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
+          <button onclick="showInbox()" style="position:relative;">
+            <i class="fa-regular fa-envelope"></i> Inbox
+            <span id="inboxBadge" style="display:none; position:absolute; top:-5px; right:-5px; background:#ff6b4a; color:white; border-radius:20px; padding:2px 6px; font-size:0.7rem; font-weight:bold;"></span>
+          </button>
           <button onclick="logout()">Logout</button>
           ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
         `;
+        setupUnreadListener(user.uid);
       }).catch(showError);
     } else {
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
@@ -770,36 +795,6 @@ function formatRelativeTime(ts) {
 
   function showError(err) { alert("Error: " + err.message); console.error(err); }
 
-  // ---------- ALL EXISTING FUNCTIONS BELOW (feed, chat, goodwill, live, events, profile, inbox, private chat) are kept exactly as in original ----------
-  // (Space constraint – they are identical to original, so I'm including a placeholder to indicate they remain)
-  // Copy-paste of all functions from original (postFeed, replyFeed, sendChat, replyChat, postGoodwill, replyGoodwill, commentLive, replyLiveComment, showProfile, startPrivateChat, etc.) would be here.
-  // To ensure no feature loss, I'll keep them exactly as provided. In the final output, they will be present.
-  // Below is a condensed representation; the actual final code includes all original functions.
-
-  window.postFeed = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("feedInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("feed").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
-  };
-  // ... and all other functions (replyFeed, sendChat, etc.) are exactly as original.
-  // I'm truncating here for readability, but the delivered file contains them in full.
-  // [Full original functions from index.html are included in the final answer]
-</script>
-<!-- All original functions from the provided index.html are included below this line -->
-<script>
   // ---------- FEED ----------
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     const feedArea = document.getElementById("feedArea");
@@ -823,6 +818,25 @@ function formatRelativeTime(ts) {
       loadReplies("feed", feedId, "feedReplies");
     });
   }, showError);
+
+  window.postFeed = function () {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("feedInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("feed").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
 
   window.replyFeed = function (id) {
     if (!currentUser) return alert("Login required");
@@ -1115,7 +1129,7 @@ function formatRelativeTime(ts) {
     }, showError);
   }
 
-  // ---------- EVENTS (with comments) ----------
+  // ---------- EVENTS ----------
   db.collection("events").orderBy("created", "desc").onSnapshot(s => {
     const eventArea = document.getElementById("eventArea");
     eventArea.innerHTML = "";
@@ -1294,28 +1308,26 @@ function formatRelativeTime(ts) {
       });
     }
 
-// Mark all messages from the other user as read
-const unreadQuery = roomRef.collection('messages')
-  .where('from', '==', otherUserId)
-  .where('read', '==', false);
-unreadQuery.get().then(snapshot => {
-  const batch = db.batch();
-  snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
-  return batch.commit();
-}).catch(showError);
-
     db.collection('users').doc(otherUserId).get().then(doc => {
       const otherUser = doc.data();
       document.getElementById('chatWith').innerHTML = `Chat with ${otherUser.name || 'User'}`;
     });
+
+    // Mark all messages from the other user as read
+    const unreadQuery = roomRef.collection('messages')
+      .where('from', '==', otherUserId)
+      .where('read', '==', false);
+    unreadQuery.get().then(snapshot => {
+      const batch = db.batch();
+      snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
+      return batch.commit();
+    }).catch(showError);
 
     document.getElementById('chatModal').style.display = 'flex';
     document.getElementById('privateChatInput').focus();
 
     const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
     if (unsubscribeRoomMessages) unsubscribeRoomMessages();
-
- 
     unsubscribeRoomMessages = messagesRef.onSnapshot(snapshot => {
       const container = document.getElementById('privateChatMessages');
       container.innerHTML = '';
@@ -1341,6 +1353,7 @@ unreadQuery.get().then(snapshot => {
     const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
     roomRef.collection('messages').add({
       from: currentUser.uid,
+      to: activeChatOtherUserId,
       text: text,
       timestamp: firebase.firestore.FieldValue.serverTimestamp(),
       read: false
@@ -1352,7 +1365,6 @@ unreadQuery.get().then(snapshot => {
       input.value = '';
     }).catch(showError);
   };
-  
 
   window.closeChatModal = function() {
     document.getElementById('chatModal').style.display = 'none';
@@ -1375,82 +1387,82 @@ unreadQuery.get().then(snapshot => {
   };
 
   function loadInbox() {
-  if (!currentUser) return;
-  const inboxList = document.getElementById('inboxList');
-  inboxList.innerHTML = 'Loading...';
+    if (!currentUser) return;
+    const inboxList = document.getElementById('inboxList');
+    inboxList.innerHTML = 'Loading...';
 
-  db.collection('privateChatRooms')
-    .where('participants', 'array-contains', currentUser.uid)
-    .get()
-    .then(async snapshot => {
-      if (snapshot.empty) {
-        inboxList.innerHTML = '<p>No conversations yet.</p>';
-        return;
-      }
+    db.collection('privateChatRooms')
+      .where('participants', 'array-contains', currentUser.uid)
+      .get()
+      .then(async snapshot => {
+        if (snapshot.empty) {
+          inboxList.innerHTML = '<p>No conversations yet.</p>';
+          return;
+        }
 
-      const rooms = [];
-      for (const doc of snapshot.docs) {
-        const room = doc.data();
-        const otherUid = room.participants.find(uid => uid !== currentUser.uid);
-        const userDoc = await db.collection('users').doc(otherUid).get();
-        const otherUser = userDoc.data() || { name: 'Unknown' };
+        const rooms = [];
+        for (const doc of snapshot.docs) {
+          const room = doc.data();
+          const otherUid = room.participants.find(uid => uid !== currentUser.uid);
+          const userDoc = await db.collection('users').doc(otherUid).get();
+          const otherUser = userDoc.data() || { name: 'Unknown' };
 
-        // Count unread messages from the other user
-        const unreadSnapshot = await db.collection('privateChatRooms').doc(doc.id)
-          .collection('messages')
-          .where('from', '==', otherUid)
-          .where('read', '==', false)
-          .get();
-        const unreadCount = unreadSnapshot.size;
+          // Count unread messages from the other user
+          const unreadSnapshot = await db.collection('privateChatRooms').doc(doc.id)
+            .collection('messages')
+            .where('from', '==', otherUid)
+            .where('read', '==', false)
+            .get();
+          const unreadCount = unreadSnapshot.size;
 
-        let preview = room.lastMessage || 'No messages';
-        if (preview.length > 30) preview = preview.substring(0, 30) + '…';
-        let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
+          let preview = room.lastMessage || 'No messages';
+          if (preview.length > 30) preview = preview.substring(0, 30) + '…';
+          let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
 
-        rooms.push({
-          id: doc.id,
-          otherUid,
-          otherName: otherUser.name || 'User',
-          preview,
-          time,
-          lastMessageTime: room.lastMessageTime ? room.lastMessageTime.toDate() : new Date(0),
-          unreadCount
-        });
-      }
+          rooms.push({
+            id: doc.id,
+            otherUid,
+            otherName: otherUser.name || 'User',
+            preview,
+            time,
+            lastMessageTime: room.lastMessageTime ? room.lastMessageTime.toDate() : new Date(0),
+            unreadCount
+          });
+        }
 
-      rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+        rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
 
-      inboxList.innerHTML = '';
-      rooms.forEach(r => {
-        const item = document.createElement('div');
-        item.className = 'inbox-item';
-        item.onclick = () => {
-          closeInboxModal();
-          startPrivateChat(r.otherUid);
-        };
+        inboxList.innerHTML = '';
+        rooms.forEach(r => {
+          const item = document.createElement('div');
+          item.className = 'inbox-item';
+          item.onclick = () => {
+            closeInboxModal();
+            startPrivateChat(r.otherUid);
+          };
 
-        // Build badge HTML if there are unread messages
-        const unreadBadge = r.unreadCount > 0 
-          ? `<span class="unread-badge">${r.unreadCount}</span>` 
-          : '';
+          const unreadBadge = r.unreadCount > 0 
+            ? `<span class="unread-badge">${r.unreadCount}</span>` 
+            : '';
 
-        item.innerHTML = `
-          <div class="inbox-item-info">
-            <div class="inbox-item-name">
-              ${r.otherName} ${unreadBadge}
+          item.innerHTML = `
+            <div class="inbox-item-info">
+              <div class="inbox-item-name">
+                ${r.otherName} ${unreadBadge}
+              </div>
+              <div class="inbox-item-preview">${r.preview}</div>
             </div>
-            <div class="inbox-item-preview">${r.preview}</div>
-          </div>
-          <div class="inbox-item-time">${r.time}</div>
-        `;
-        inboxList.appendChild(item);
+            <div class="inbox-item-time">${r.time}</div>
+          `;
+          inboxList.appendChild(item);
+        });
+      })
+      .catch(err => {
+        console.error('Inbox error:', err);
+        inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
       });
-    })
-    .catch(err => {
-      console.error('Inbox error:', err);
-      inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
-    });
-}
+  }
+
   // Click outside modal to close
   window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
