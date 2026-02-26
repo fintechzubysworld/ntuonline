@@ -408,25 +408,40 @@
   };
 
   // ---------- MODERATION: DELETE FUNCTIONS (recursive) ----------
-  async function deleteDocumentAndSubcollections(docRef) {
-    const collections = await docRef.listCollections();
-    for (const subcol of collections) {
-      const snapshot = await subcol.get();
-      for (const subDoc of snapshot.docs) {
-        await deleteDocumentAndSubcollections(subDoc.ref);
-      }
-    }
-    await docRef.delete();
+   // ---------- MODERATION: DELETE FUNCTIONS (recursive) ----------
+async function deleteDocumentAndSubcollections(docRef) {
+  const docSnap = await docRef.get();
+  if (!docSnap.exists) {
+    console.log(`Document ${docRef.path} does not exist, skipping.`);
+    return;
   }
 
-  window.deleteItem = function(path) {
-    if (!confirm('Permanently delete this item and all its replies?')) return;
-    const docRef = db.doc(path);
-    deleteDocumentAndSubcollections(docRef)
-      .then(() => alert('Deleted successfully'))
-      .catch(showError);
-  };
+  const collections = await docRef.listCollections();
+  const deletionPromises = [];
 
+  for (const subcol of collections) {
+    const snapshot = await subcol.get();
+    snapshot.forEach(subDoc => {
+      deletionPromises.push(deleteDocumentAndSubcollections(subDoc.ref));
+    });
+  }
+
+  await Promise.all(deletionPromises);
+  await docRef.delete();
+  console.log(`Deleted document: ${docRef.path}`);
+}
+
+window.deleteItem = function(path) {
+  if (!confirm('Permanently delete this item and all its replies?')) return;
+  console.log(`Attempting to delete: ${path}`);
+  const docRef = db.doc(path);
+  deleteDocumentAndSubcollections(docRef)
+    .then(() => alert('Deleted successfully'))
+    .catch(err => {
+      console.error('Delete error:', err);
+      showError(err);
+    });
+};
   // ---------- LOAD ALL CONTENT FOR MODERATION ----------
   function loadAllContent() {
     // Feed
