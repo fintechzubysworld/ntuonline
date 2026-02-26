@@ -518,10 +518,7 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   let currentUser = null;
-window.handleAuthSubmit = function(e) {
-  e.preventDefault();
-  // ... same logic as above ...
-};
+
   // ---------- HELPER: parse content for media ----------
   function parseContent(text) {
     if (!text) return '';
@@ -1468,4 +1465,5 @@ window.handleAuthSubmit = function(e) {
 </script>
 </body>
 </html>
+
 
