@@ -9,7 +9,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -1295,6 +1294,16 @@ function formatRelativeTime(ts) {
       });
     }
 
+// Mark all messages from the other user as read
+const unreadQuery = roomRef.collection('messages')
+  .where('from', '==', otherUserId)
+  .where('read', '==', false);
+unreadQuery.get().then(snapshot => {
+  const batch = db.batch();
+  snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
+  return batch.commit();
+}).catch(showError);
+
     db.collection('users').doc(otherUserId).get().then(doc => {
       const otherUser = doc.data();
       document.getElementById('chatWith').innerHTML = `Chat with ${otherUser.name || 'User'}`;
@@ -1306,15 +1315,7 @@ function formatRelativeTime(ts) {
     const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
     if (unsubscribeRoomMessages) unsubscribeRoomMessages();
 
-    // Mark all messages from the other user as read
-const unreadQuery = roomRef.collection('messages')
-  .where('from', '==', otherUserId)
-  .where('read', '==', false);
-unreadQuery.get().then(snapshot => {
-  const batch = db.batch();
-  snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
-  return batch.commit();
-}).catch(showError);
+ 
     unsubscribeRoomMessages = messagesRef.onSnapshot(snapshot => {
       const container = document.getElementById('privateChatMessages');
       container.innerHTML = '';
@@ -1351,6 +1352,7 @@ unreadQuery.get().then(snapshot => {
       input.value = '';
     }).catch(showError);
   };
+  
 
   window.closeChatModal = function() {
     document.getElementById('chatModal').style.display = 'none';
