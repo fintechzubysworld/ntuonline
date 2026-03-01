@@ -261,7 +261,7 @@
     <div id="adminMessage" class="message"></div>
   </div>
 
-  <!-- MODERATION PANEL -->
+  <!-- MODERATION PANEL (with new Events tab) -->
   <div class="card">
     <h3><i class="fa-solid fa-gavel"></i> Moderate Content</h3>
     <div class="tab-buttons">
@@ -270,6 +270,7 @@
       <button class="tab-btn" data-tab="goodwill">Goodwill</button>
       <button class="tab-btn" data-tab="live">Live Comments</button>
       <button class="tab-btn" data-tab="replies">All Replies</button>
+      <button class="tab-btn" data-tab="events">Events</button>   <!-- NEW TAB -->
     </div>
 
     <div id="tab-feed" class="tab-content active"><div id="moderateFeed"></div></div>
@@ -277,11 +278,12 @@
     <div id="tab-goodwill" class="tab-content"><div id="moderateGoodwill"></div></div>
     <div id="tab-live" class="tab-content"><div id="moderateLive"></div></div>
     <div id="tab-replies" class="tab-content"><div id="moderateReplies"></div></div>
+    <div id="tab-events" class="tab-content"><div id="moderateEvents"></div></div>   <!-- NEW CONTENT -->
   </div>
 </div>
 
 <script>
-  // Firebase config (identical)
+  // Firebase config (same as before)
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -311,7 +313,7 @@
     setTimeout(() => { div.style.display = 'none'; }, 5000);
   }
 
-  // ---------- AUTH & ADMIN CHECK (unchanged) ----------
+  // ---------- AUTH & ADMIN CHECK ----------
   auth.onAuthStateChanged(user => {
     if (user) {
       userEmailSpan.textContent = user.email;
@@ -407,42 +409,46 @@
       .catch(err => showMessage('passMessage', err.message, 'error'));
   };
 
-  // ---------- MODERATION: DELETE FUNCTIONS (recursive) ----------
-   // ---------- MODERATION: DELETE FUNCTIONS (recursive) ----------
-async function deleteDocumentAndSubcollections(docRef) {
-  const docSnap = await docRef.get();
-  if (!docSnap.exists) {
-    console.log(`Document ${docRef.path} does not exist, skipping.`);
-    return;
+  // ---------- RECURSIVE DELETE (unchanged) ----------
+  async function deleteDocumentAndSubcollections(docRef) {
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      console.log(`Document ${docRef.path} does not exist, skipping.`);
+      return;
+    }
+
+    const collections = await docRef.listCollections();
+    const deletionPromises = [];
+
+    for (const subcol of collections) {
+      const snapshot = await subcol.get();
+      snapshot.forEach(subDoc => {
+        deletionPromises.push(deleteDocumentAndSubcollections(subDoc.ref));
+      });
+    }
+
+    await Promise.all(deletionPromises);
+    await docRef.delete();
+    console.log(`Deleted document: ${docRef.path}`);
   }
 
-  const collections = await docRef.listCollections();
-  const deletionPromises = [];
+  // ---------- DELETE ITEM (with reload) ----------
+  window.deleteItem = function(path) {
+    if (!confirm('Permanently delete this item and all its replies?')) return;
+    console.log(`Attempting to delete: ${path}`);
+    const docRef = db.doc(path);
+    deleteDocumentAndSubcollections(docRef)
+      .then(() => {
+        alert('Deleted successfully');
+        loadAllContent();  // Refresh all moderation lists
+      })
+      .catch(err => {
+        console.error('Delete error:', err);
+        showError(err);
+      });
+  };
 
-  for (const subcol of collections) {
-    const snapshot = await subcol.get();
-    snapshot.forEach(subDoc => {
-      deletionPromises.push(deleteDocumentAndSubcollections(subDoc.ref));
-    });
-  }
-
-  await Promise.all(deletionPromises);
-  await docRef.delete();
-  console.log(`Deleted document: ${docRef.path}`);
-}
-
-window.deleteItem = function(path) {
-  if (!confirm('Permanently delete this item and all its replies?')) return;
-  console.log(`Attempting to delete: ${path}`);
-  const docRef = db.doc(path);
-  deleteDocumentAndSubcollections(docRef)
-    .then(() => alert('Deleted successfully'))
-    .catch(err => {
-      console.error('Delete error:', err);
-      showError(err);
-    });
-};
-  // ---------- LOAD ALL CONTENT FOR MODERATION ----------
+  // ---------- LOAD ALL CONTENT FOR MODERATION (with Events) ----------
   function loadAllContent() {
     // Feed
     db.collection('feed').orderBy('created', 'desc').get().then(snap => {
@@ -454,7 +460,7 @@ window.deleteItem = function(path) {
           <div class="moderation-item">
             <div class="moderation-meta">📰 Feed | ${d.name} (${d.kindred}) | ${new Date(d.created).toLocaleString()}</div>
             <div>${d.text || ''}</div>
-            <button class="delete-btn" onclick="deleteItem('feed/${doc.id}')"><i class="fa-regular fa-trash-can"></i> Delete</button>
+            <button class="delete-btn" onclick="deleteItem('feed/${doc.id}')">Delete</button>
           </div>
         `;
       });
@@ -508,6 +514,23 @@ window.deleteItem = function(path) {
       });
     }).catch(showError);
 
+    // EVENTS (new)
+    db.collection('events').orderBy('created', 'desc').get().then(snap => {
+      const container = document.getElementById('moderateEvents');
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">📅 Event | ${new Date(d.created).toLocaleString()}</div>
+            <div><strong>${d.title}</strong></div>
+            <div>${d.description || ''}</div>
+            <button class="delete-btn" onclick="deleteItem('events/${doc.id}')">Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
+
     // All replies
     const replyContainer = document.getElementById('moderateReplies');
     replyContainer.innerHTML = '';
@@ -535,7 +558,6 @@ window.deleteItem = function(path) {
       });
     }
 
-    replyContainer.innerHTML = '';
     Promise.all([
       loadRepliesForCollection('feed'),
       loadRepliesForCollection('chat'),
