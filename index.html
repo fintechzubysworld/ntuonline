@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ntuconnect + profile pics</title>
+  <title>Ntuconnect + profile header</title>
 
-  <!-- Firebase (added Storage) -->
+  <!-- Firebase (with Storage) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
@@ -289,7 +289,7 @@
     }
     .close:hover { color: #a2ffee; transform: scale(1.1); }
 
-    /* Auth modal specific – we reuse .modal + .modal-content */
+    /* Auth modal */
     #authContainer.modal {
       display: none;
     }
@@ -584,7 +584,7 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
-  const storage = firebase.storage();   // <-- initialized storage
+  const storage = firebase.storage();
   let currentUser = null;
 
   // parseContent (unchanged)
@@ -640,7 +640,6 @@
     });
   }
 
-  // Safely format timestamp to locale string
   function formatTimestamp(ts) {
     if (!ts) return '';
     try {
@@ -652,7 +651,6 @@
     }
   }
 
-  // Safely format relative time (e.g., "2h ago")
   function formatRelativeTime(ts) {
     if (!ts) return '';
     try {
@@ -668,7 +666,7 @@
     }
   }
 
-  // reaction UI (unchanged)
+  // reaction UI
   function addReactionUI(targetType, targetId, container) {
     const reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
@@ -759,7 +757,7 @@
           name, kindred, email, online: true, lastSeen: null,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           isAdmin: false,
-          photoURL: null   // initialize photo field
+          photoURL: null
         }))
         .then(() => { alert("Registered"); authContainer.style.display = "none"; clearAuth(); })
         .catch(showError);
@@ -784,6 +782,7 @@
     auth.signOut().catch(showError);
   };
 
+  // ===== UPDATED HEADER: added profile button when signed in =====
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -793,6 +792,7 @@
         const isAdmin = userData.isAdmin || false;
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
+          <button onclick="showProfile('${user.uid}')"><i class="fa-regular fa-user"></i> Profile</button>
           <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
           <button onclick="logout()">Logout</button>
           ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
@@ -812,18 +812,16 @@
   function showError(err) { alert("Error: " + err.message); console.error(err); }
 
   // ---------- PROFILE PICTURE UPLOAD ----------
-  // Enlarge image (lightbox)
   window.enlargeImage = function(src) {
-    if (!src || src === 'https://via.placeholder.com/80?text=User') return; // ignore placeholder
+    if (!src || src === 'https://via.placeholder.com/80?text=User') return;
     document.getElementById('previewImage').src = src;
     document.getElementById('imagePreviewModal').style.display = 'flex';
   };
 
-  // Trigger file selection
   document.getElementById('profileUploadInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file || !currentUser) return;
-    const userId = currentProfileUserId; // the profile being viewed (must be self)
+    const userId = currentProfileUserId;
     if (userId !== currentUser.uid) {
       alert('You can only change your own picture');
       return;
@@ -835,16 +833,13 @@
       (error) => showError(error),
       async () => {
         const url = await storageRef.getDownloadURL();
-        // Update user document
         await db.collection('users').doc(userId).update({ photoURL: url });
-        // Update image in modal
         document.getElementById('profilePhotoImg').src = url;
         alert('Profile picture updated');
       }
     );
   });
 
-  // Modify showProfile to include photo and upload button
   let currentProfileUserId = null;
 
   window.showProfile = function(userId) {
@@ -861,7 +856,6 @@
         <p><strong>Email:</strong> ${user.email || '?'}</p>
         <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
       `;
-      // Show upload button only if viewing own profile
       const uploadArea = document.getElementById('profilePhotoUploadArea');
       if (currentUser && userId === currentUser.uid) {
         uploadArea.style.display = 'block';
@@ -884,18 +878,8 @@
     }
   };
 
-  // ---------- ALL EXISTING FUNCTIONS BELOW (unchanged, but must be present) ----------
-  // (All the original functions for feed, chat, goodwill, live, events, inbox, private chat are included.
-  // For brevity, they are identical to the original submission. I'll keep them exactly as they were.)
-  // ... (full original functions from the user's code are included here) ...
-  // To avoid duplication, I'll note that all those functions remain exactly as in the original file.
-  // In the final answer they will be present. For this demo, I'll include a placeholder comment indicating they are included.
-
-  // ... (the rest of the original functions are included below) ...
-</script>
-<!-- The entire original script section (feed, chat, goodwill, live, events, inbox, private chat) is kept intact.
-     For space reasons it's not repeated here, but in the final deliverable it's all present. -->
-<script>
+  // ---------- ALL EXISTING FUNCTIONS BELOW (feed, chat, goodwill, live, events, inbox, private chat) ----------
+  // (Kept exactly as original, no changes. They are included in full below.)
   // ---------- FEED ----------
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     const feedArea = document.getElementById("feedArea");
@@ -1332,7 +1316,6 @@
   }
 
   // ---------- PRIVATE CHAT & INBOX (existing) ----------
-  // (Kept exactly as original, no changes needed)
   let activeChatRoomId = null;
   let activeChatOtherUserId = null;
   let unsubscribeRoomMessages = null;
