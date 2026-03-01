@@ -409,25 +409,19 @@
       .catch(err => showMessage('passMessage', err.message, 'error'));
   };
 
-  // ---------- RECURSIVE DELETE (unchanged) ----------
+  // ---------- RECURSIVE DELETE (without listCollections) ----------
   async function deleteDocumentAndSubcollections(docRef) {
-    const docSnap = await docRef.get();
-    if (!docSnap.exists) {
-      console.log(`Document ${docRef.path} does not exist, skipping.`);
-      return;
-    }
+    // First, delete all documents in the 'replies' subcollection (if any)
+    const repliesRef = docRef.collection('replies');
+    const repliesSnapshot = await repliesRef.get();
+    const deletePromises = [];
+    repliesSnapshot.forEach(doc => {
+      // Recursively delete each reply (in case it has its own replies)
+      deletePromises.push(deleteDocumentAndSubcollections(doc.ref));
+    });
+    await Promise.all(deletePromises);
 
-    const collections = await docRef.listCollections();
-    const deletionPromises = [];
-
-    for (const subcol of collections) {
-      const snapshot = await subcol.get();
-      snapshot.forEach(subDoc => {
-        deletionPromises.push(deleteDocumentAndSubcollections(subDoc.ref));
-      });
-    }
-
-    await Promise.all(deletionPromises);
+    // Finally, delete the document itself
     await docRef.delete();
     console.log(`Deleted document: ${docRef.path}`);
   }
