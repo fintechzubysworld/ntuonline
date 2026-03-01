@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ntuconnect + profile header</title>
+  <title>Ntuconnect + secure profile pics</title>
 
   <!-- Firebase (with Storage) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
@@ -531,6 +531,7 @@
     <h3><i class="fa-regular fa-user"></i> User Profile</h3>
     <div style="text-align: center;">
       <img id="profilePhotoImg" class="profile-photo-small" src="https://via.placeholder.com/80?text=User" alt="Profile" onclick="enlargeImage(this.src)">
+      <!-- Upload area: only visible when viewing own profile (handled in JS) -->
       <div id="profilePhotoUploadArea" style="display:none; margin-bottom:10px;">
         <input type="file" id="profileUploadInput" accept="image/*" style="display:none;">
         <button class="upload-btn" onclick="document.getElementById('profileUploadInput').click()"><i class="fa-solid fa-camera"></i> Upload Photo</button>
@@ -782,7 +783,7 @@
     auth.signOut().catch(showError);
   };
 
-  // ===== UPDATED HEADER: added profile button when signed in =====
+  // ===== HEADER: profile button only when signed in =====
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -811,17 +812,18 @@
 
   function showError(err) { alert("Error: " + err.message); console.error(err); }
 
-  // ---------- PROFILE PICTURE UPLOAD ----------
+  // ---------- PROFILE PICTURE UPLOAD (strictly self-only) ----------
   window.enlargeImage = function(src) {
     if (!src || src === 'https://via.placeholder.com/80?text=User') return;
     document.getElementById('previewImage').src = src;
     document.getElementById('imagePreviewModal').style.display = 'flex';
   };
 
+  // File input change: only allowed if the profile being viewed is the current user
   document.getElementById('profileUploadInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file || !currentUser) return;
-    const userId = currentProfileUserId;
+    const userId = currentProfileUserId; // the profile being displayed
     if (userId !== currentUser.uid) {
       alert('You can only change your own picture');
       return;
@@ -856,6 +858,7 @@
         <p><strong>Email:</strong> ${user.email || '?'}</p>
         <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
       `;
+      // Show upload button only if viewing own profile
       const uploadArea = document.getElementById('profilePhotoUploadArea');
       if (currentUser && userId === currentUser.uid) {
         uploadArea.style.display = 'block';
@@ -879,7 +882,7 @@
   };
 
   // ---------- ALL EXISTING FUNCTIONS BELOW (feed, chat, goodwill, live, events, inbox, private chat) ----------
-  // (Kept exactly as original, no changes. They are included in full below.)
+  // (All original functions are included – they remain exactly as before)
   // ---------- FEED ----------
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     const feedArea = document.getElementById("feedArea");
