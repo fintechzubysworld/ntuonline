@@ -1,29 +1,23 @@
-// service-worker.js – Ntuconnect PWA
-
-const CACHE_NAME = 'ntuconnect-v1';
+const CACHE_NAME = 'ntuconnect-chat-v1';
 const urlsToCache = [
-  '/ntuonline/index.html',
-  '/ntuonline/manifest.json',
-  '/ntuonline/icon-192.png',
-  '/ntuonline/icon-512.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css',
-  'https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap'
+  'index.html',
+  'manifest.json',
+  'https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css'
 ];
 
-// Install event – cache core assets
+// Install event: cache static assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch(err => console.error('Cache addAll failed:', err))
+      .then(cache => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting(); // Activate worker immediately
 });
 
-// Activate event – clean up old caches
+// Activate event: clean up old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -31,34 +25,30 @@ self.addEventListener('activate', event => {
         cacheNames.filter(name => name !== CACHE_NAME)
           .map(name => caches.delete(name))
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim(); // Take control of all clients
 });
 
-// Fetch event – serve cached content when offline
+// Fetch event: network-first for Firebase requests, cache-first for static assets
 self.addEventListener('fetch', event => {
-  const request = event.request;
+  const requestUrl = new URL(event.request.url);
 
-  // For same‑origin requests, use network‑first (fresh content)
-  if (request.url.startsWith(self.location.origin)) {
+  // For Firebase API calls, go network-first (fallback to cache if offline)
+  if (requestUrl.hostname.includes('firebase') || requestUrl.pathname.includes('firestore')) {
     event.respondWith(
-      fetch(request)
+      fetch(event.request)
         .then(response => {
-          // Clone the response before caching
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, responseToCache);
-          });
+          // Optionally cache dynamic responses? We'll skip for simplicity.
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(() => caches.match(event.request))
     );
-  } else {
-    // For cross‑origin requests (CDN fonts, styles), use cache‑first, fallback to network
-    event.respondWith(
-      caches.match(request)
-        .then(response => response || fetch(request))
-    );
+    return;
   }
+
+  // For everything else (our local assets, CDN), use cache-first
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => response || fetch(event.request))
+  );
 });
