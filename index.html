@@ -1,12 +1,1472 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ntuconnect Chat</title><link rel="manifest" href="manifest.json"><!-- Firebase (essential) --><script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script><style>
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#fff;color:#222;padding:12px}header{background:#2e7d32;padding:12px 20px;border-radius:30px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;color:#fff}#navArea{display:flex;gap:8px}#navArea button{background:#fff;border:1px solid #2e7d32;padding:8px 16px;border-radius:30px;color:#2e7d32;font-weight:600;cursor:pointer}.onlineDot{color:#fff;font-weight:600;margin-right:6px}.card{background:#f9f9f9;border-radius:20px;padding:20px;margin-bottom:20px;border:1px solid #c8e6c9}.card h3{color:#2e7d32;margin-bottom:16px;font-size:1.3rem;border-bottom:2px solid #c8e6c9;padding-bottom:8px}input,textarea,button{font-size:16px;width:100%;padding:12px 16px;margin:8px 0;border-radius:30px;border:1px solid #ddd}input:focus,textarea:focus{outline:2px solid #2e7d32}button{background:#2e7d32;border:none;color:#fff;font-weight:600;cursor:pointer}button.secondary{background:#e8f5e9;color:#2e7d32;border:1px solid #2e7d32}.chat-item{background:#fff;border-radius:16px;padding:16px;margin:12px 0;border-left:4px solid #2e7d32;box-shadow:0 1px 4px rgba(0,0,0,0.1)}.replyBox{margin-left:16px;padding-left:16px;border-left:3px solid #a5d6a7}.timestamp{font-size:.7rem;color:#777;margin-top:8px}.reaction-bar{margin-top:8px;display:flex;gap:8px}.reaction-btn{background:none;border:1px solid #ccc;border-radius:20px;padding:6px 16px;cursor:pointer}.reaction-btn.liked{background:#e8f5e9;color:#2e7d32;border-color:#2e7d32}.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;padding:16px}.modal-content{background:#fff;border-radius:30px;padding:24px;max-width:500px;width:100%;border:2px solid #2e7d32}.close{float:right;font-size:28px;cursor:pointer}.chat-messages{max-height:300px;overflow-y:auto;background:#f5f5f5;border-radius:20px;padding:12px;margin:15px 0}.chat-message{margin-bottom:8px;padding:8px 14px;border-radius:20px;max-width:80%}.chat-message.sent{background:#2e7d32;color:#fff;margin-left:auto}.chat-message.received{background:#e8f5e9;color:#222}.inbox-item{display:flex;justify-content:space-between;padding:16px;background:#f5f5f5;border-radius:30px;margin-bottom:10px;cursor:pointer}.inbox-item-name{font-weight:600;color:#2e7d32}.unread-badge{background:#ff6b4a;color:#fff;border-radius:20px;padding:2px 8px;font-size:.8rem;margin-left:8px}
-</style></head><body><header><h2>💬 Ntuconnect Chat</h2><div id="navArea"></div></header><div class="card"><h3>Community Chat</h3><div id="chatArea"></div><input id="chatInput" placeholder="Type a message..."><button onclick="sendChat()">Send</button></div><!-- Auth Modal --><div id="authContainer" class="modal" style="display:none"><div class="modal-content"><span class="close" onclick="closeModal('authContainer')">&times;</span><h3 id="authHeader">Login</h3><div id="registerFields" style="display:none"><input id="regName" placeholder="Full Name"><input id="regKindred" placeholder="Kindred Name"></div><input id="authEmail" placeholder="Email"><input id="authPassword" type="password" placeholder="Password"><button id="authSubmitBtn">Login</button><p><span id="toggleText">Don't have an account?</span> <a href="#" onclick="toggleAuthMode(event)">Click here</a></p></div></div><!-- Profile Modal --><div id="profileModal" class="modal" style="display:none"><div class="modal-content"><span class="close" onclick="closeModal('profileModal')">&times;</span><h3>User Profile</h3><div id="profileInfo"></div><button onclick="startPrivateChatFromProfile()">Private Chat</button></div></div><!-- Inbox Modal --><div id="inboxModal" class="modal" style="display:none"><div class="modal-content"><span class="close" onclick="closeModal('inboxModal')">&times;</span><h3>Inbox</h3><div id="inboxList" class="inbox-list">Loading...</div></div></div><!-- Private Chat Modal --><div id="chatModal" class="modal" style="display:none"><div class="modal-content"><span class="close" onclick="closeChatModal()">&times;</span><h3 id="chatWith"></h3><div id="privateChatMessages" class="chat-messages"></div><div><input type="text" id="privateChatInput" placeholder="Type a message..."><button onclick="sendPrivateMessage()">Send</button></div></div></div><script>
-// Firebase config (keep same)
-const firebaseConfig={apiKey:"AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",authDomain:"ntudioka-online-c29d8.firebaseapp.com",projectId:"ntudioka-online-c29d8",storageBucket:"ntudioka-online-c29d8.firebasestorage.app",messagingSenderId:"1015621578149",appId:"1:1015621578149:web:c755b458e505fd32928c4c",measurementId:"G-JPVKYQRKEB"};
-firebase.initializeApp(firebaseConfig);const auth=firebase.auth(),db=firebase.firestore();let currentUser=null;
-// All functions (parseContent, reactions, auth, chat, private messaging, inbox) – minified version
-// (We include the exact same JS as before, but we'll keep it concise; in practice we'd keep the full script)
-// For brevity in this example, we assume the full JS is present. The actual file would contain the complete logic.
-window.closeModal=(id)=>document.getElementById(id).style.display='none';
-// ... (full JS from previous version goes here)
-</script><script>if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js')</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ntuconnect</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    /* ===== GLOBAL – AQUAMARINE PROFESSIONAL ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
+      background: linear-gradient(145deg, #0b1f1c, #0e2b26);
+      color: #e0f0ec;
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    /* ===== HEADER – AQUA BREEZE ===== */
+    header {
+      background: rgba(26, 138, 120, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 0.9rem 1.8rem;
+      border-radius: 60px;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 15px 30px -8px rgba(0, 180, 160, 0.4);
+      border: 1px solid rgba(100, 230, 210, 0.3);
+    }
+
+    header h2 {
+      font-weight: 500;
+      font-size: 1.6rem;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #ffffff;
+      text-shadow: 0 2px 5px rgba(0,80,70,0.3);
+    }
+
+    #navArea {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    #navArea button {
+      background: #1f8a7c;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 40px;
+      color: white;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 6px 14px rgba(22, 150, 130, 0.3);
+      min-height: 44px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    #navArea button:hover {
+      background: #2ba48f;
+      transform: scale(1.02);
+      box-shadow: 0 10px 20px rgba(0, 140, 120, 0.5);
+    }
+
+    .onlineDot {
+      color: #8cffe0;
+      font-weight: 600;
+      margin-right: 6px;
+      font-size: 0.95rem;
+      text-shadow: 0 0 5px #64ffda;
+    }
+
+    /* ===== SECTION & CARDS – GLASSY ===== */
+    .section {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: rgba(18, 45, 40, 0.7);
+      backdrop-filter: blur(12px);
+      border-radius: 32px;
+      padding: 24px;
+      box-shadow: 0 30px 45px -20px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(80, 210, 180, 0.2);
+      transition: transform 0.25s, border-color 0.2s;
+    }
+    .card:hover {
+      border-color: rgba(90, 235, 200, 0.5);
+      transform: translateY(-3px);
+    }
+
+    .card h3 {
+      color: #64e3cf;
+      margin-bottom: 16px;
+      font-size: 1.4rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid #1f6a5e;
+      padding-bottom: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    input, textarea, button {
+      font-size: 16px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 14px 18px;
+      margin: 8px 0;
+      border-radius: 50px;
+      border: none;
+      background: #102f2a;
+      color: #f0fdfa;
+      transition: 0.2s;
+      border: 1px solid transparent;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #3bc6b2;
+      background: #133b35;
+      box-shadow: 0 0 0 3px rgba(55, 200, 180, 0.2);
+    }
+
+    textarea {
+      border-radius: 28px;
+      resize: vertical;
+    }
+
+    button {
+      background: #1f8f7c;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 50px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 6px 14px rgba(20, 130, 110, 0.4);
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    button:hover {
+      background: #2fa892;
+      transform: scale(1.01);
+      box-shadow: 0 10px 20px rgba(0, 140, 120, 0.6);
+    }
+    button.secondary {
+      background: #2a4a44;
+      box-shadow: none;
+    }
+    button.secondary:hover {
+      background: #3c635b;
+    }
+
+    /* ===== POST / COMMENT STYLES ===== */
+    .feed-item, .chat-item, .goodwill-item, .live-comment-item, .event-item {
+      background: #0f2d27;
+      border-radius: 24px;
+      padding: 18px;
+      margin: 18px 0;
+      border-left: 5px solid #2dab95;
+      box-shadow: 0 10px 15px -5px rgba(0,0,0,0.5);
+    }
+
+    .replyBox {
+      margin-left: 16px;
+      padding-left: 16px;
+      border-left: 3px solid #2a6b5f;
+      margin-top: 12px;
+    }
+
+    .timestamp {
+      font-size: 0.7rem;
+      color: #9bc5bc;
+      margin-top: 8px;
+    }
+
+    .embedded-media {
+      margin: 12px 0;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .embedded-media img,
+    .embedded-media iframe {
+      max-width: 100%;
+      border-radius: 20px;
+    }
+    .embedded-media iframe {
+      height: 210px;
+    }
+
+    /* Reaction bar */
+    .reaction-bar {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .reaction-btn {
+      background: none;
+      border: none;
+      color: #b2d9d2;
+      cursor: pointer;
+      padding: 8px 18px;
+      border-radius: 40px;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+    .reaction-btn:hover {
+      background: #1d4d44;
+    }
+    .reaction-btn.liked {
+      color: #64ffda;
+      font-weight: 600;
+    }
+
+    /* ===== MODALS – AQUAMARINE GLOW ===== */
+    .modal {
+      position: fixed;
+      z-index: 2000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 30, 25, 0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-content {
+      background: #1b423b;
+      padding: 28px 26px;
+      border-radius: 48px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: white;
+      border: 2px solid #3bc6b2;
+      box-shadow: 0 30px 50px #00000060;
+      position: relative;
+    }
+
+    .close {
+      position: absolute;
+      top: 18px; right: 22px;
+      font-size: 32px;
+      font-weight: 300;
+      cursor: pointer;
+      color: #a0ddd2;
+      line-height: 1;
+      transition: 0.2s;
+    }
+    .close:hover { color: #a2ffee; transform: scale(1.1); }
+
+    /* Auth modal specific – we reuse .modal + .modal-content */
+    #authContainer.modal {
+      display: none; /* hidden by default, shown via showAuth() sets flex */
+    }
+    #authContainer .modal-content {
+      background: #1f4f47;
+    }
+
+    /* Chat modal */
+    .chat-messages {
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 15px 0;
+      padding: 12px;
+      background: #10332e;
+      border-radius: 28px;
+    }
+    .chat-message {
+      margin-bottom: 10px;
+      padding: 8px 14px;
+      border-radius: 22px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .chat-message.sent {
+      background: #1f8f7c;
+      color: white;
+      margin-left: auto;
+    }
+    .chat-message.received {
+      background: #2b5a51;
+      color: white;
+      margin-right: auto;
+    }
+    .chat-input-area {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .chat-input-area input {
+      flex: 1 1 200px;
+      margin: 0;
+    }
+
+    /* Inbox */
+    .inbox-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .inbox-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: #10332e;
+      border-radius: 40px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      gap: 12px;
+      transition: background 0.2s;
+    }
+    .inbox-item:hover {
+      background: #1b5349;
+    }
+    .inbox-item-name {
+      font-weight: 600;
+      color: #64ffda;
+    }
+    .inbox-item-preview {
+      font-size: 0.85rem;
+      color: #b0ddd4;
+    }
+
+    /* Marquee */
+    .marquee {
+      width: 100%;
+      overflow: hidden;
+      background: #0d312b;
+      padding: 8px 0;
+      margin-bottom: 20px;
+      border-radius: 60px;
+      border: 1px solid #3a887b;
+    }
+    .marquee h6 {
+      display: inline-block;
+      margin: 0;
+      font-size: 0.9rem;
+      color: #b5ffe8;
+      animation: scrollText 22s linear infinite;
+      white-space: nowrap;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+    }
+    @keyframes scrollText {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* clickable name */
+    .clickable-name {
+      color: #a2ffee;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* ===== MOBILE OPTIMIZATIONS ===== */
+    @media (max-width: 480px) {
+      body { padding: 10px; }
+      header { padding: 0.7rem 1.2rem; }
+      .card { padding: 18px; }
+      .section { gap: 16px; }
+      button { width: 100%; } /* full-width buttons for easy tapping */
+      .embedded-media iframe { height: 200px; } /* smaller video on mobile */
+      .modal-content { padding: 20px; } /* more space-efficient modal */
+    }
+
+    @media (max-width: 360px) {
+      .card h3 { font-size: 1.2rem; }
+      .feed-item, .chat-item, .goodwill-item { padding: 12px; }
+      .reaction-btn { padding: 6px 12px; }
+    }
+
+    .unread-badge {
+  background: #ff6b4a;
+  color: white;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  margin-left: 8px;
+  display: inline-block;
+  font-weight: 600;
+}
+  </style>
+</head>
+<body>
+
+<header>
+  <h2><i class="fa-solid fa-water" style="color:#8cffe0;"></i> Ntuconnect</h2>
+  <div id="navArea"></div>
+</header>
+<div class="marquee">
+  <h6>⚡ Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
+</div>
+
+<div class="section">
+
+  <!-- LIVE STREAM -
+  <div class="card">
+    <h3><i class="fa-solid fa-circle" style="color:#6ff2d2;"></i> Live Stream</h3>
+    <div id="liveArea">Loading...</div>
+    <textarea id="liveCommentInput" placeholder="Write a comment..."></textarea>
+    <button onclick="commentLive()"><i class="fa-regular fa-comment"></i> Comment</button>
+    <div id="liveComments"></div>
+  </div>
+-->
+  <!-- EVENTS -->
+  <div class="card">
+    <h3><i class="fa-regular fa-calendar"></i> Events</h3>
+    <div id="eventArea"></div>
+  </div>
+
+  <!-- FEED -->
+  <div class="card">
+    <h3><i class="fa-regular fa-newspaper"></i> Community Feed</h3>
+    <textarea id="feedInput" placeholder="Share something..."></textarea>
+    <button onclick="postFeed()"><i class="fa-regular fa-paper-plane"></i> Post</button>
+    <div id="feedArea"></div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="card">
+    <h3><i class="fa-regular fa-message"></i> Community Chat</h3>
+    <div id="chatArea"></div>
+    <input id="chatInput" placeholder="Type a message...">
+    <button onclick="sendChat()"><i class="fa-regular fa-paper-plane"></i> Send</button>
+  </div>
+
+  <!-- GOODWILL -->
+  <div class="card">
+    <h3><i class="fa-regular fa-handshake"></i> Goodwill Messages</h3>
+    <textarea id="goodwillInput" placeholder="Write a goodwill message..."></textarea>
+    <button onclick="postGoodwill()"><i class="fa-regular fa-heart"></i> Post</button>
+    <div id="goodwillArea"></div>
+  </div>
+
+</div>
+
+<!-- AUTH MODAL (pop-out dialog) – restructured as modal -->
+<div id="authContainer" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close" onclick="document.getElementById('authContainer').style.display='none'">&times;</span>
+    <h3 id="authHeader" style="color:#8cffe0;">Login</h3>
+    <div id="registerFields" style="display:none;">
+      <input id="regName" placeholder="Full Name">
+      <input id="regKindred" placeholder="Kindred Name">
+    </div>
+    <input id="authEmail" placeholder="Email">
+    <input id="authPassword" type="password" placeholder="Password">
+    <button id="authSubmitBtn" style="background:#1f8f7c;">Login</button>
+    <p style="margin-top:15px;">
+      <span id="toggleText">Don't have an account?</span>
+      <a href="#" onclick="toggleAuthMode(event)" style="color:#8cffe0; font-weight:600;">Click here</a>
+    </p>
+    <div id="authMessage"></div>
+  </div>
+</div>
+
+<!-- Profile Modal -->
+<div id="profileModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeProfileModal()">&times;</span>
+    <h3><i class="fa-regular fa-user"></i> User Profile</h3>
+    <div id="profileInfo"></div>
+    <button id="startPrivateChatBtn" onclick="startPrivateChatFromProfile()">💬 Private Chat</button>
+  </div>
+</div>
+
+<!-- Inbox Modal -->
+<div id="inboxModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeInboxModal()">&times;</span>
+    <h3><i class="fa-regular fa-envelope"></i> Inbox</h3>
+    <div id="inboxList" class="inbox-list">Loading...</div>
+  </div>
+</div>
+
+<!-- Private Chat Modal -->
+<div id="chatModal" class="modal" style="display:none;">
+  <div class="modal-content chat-modal">
+    <span class="close" onclick="closeChatModal()">&times;</span>
+    <h3 id="chatWith"></h3>
+    <div id="privateChatMessages" class="chat-messages"></div>
+    <div class="chat-input-area">
+      <input type="text" id="privateChatInput" placeholder="Type a message...">
+      <button onclick="sendPrivateMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+    authDomain: "ntudioka-online-c29d8.firebaseapp.com",
+    projectId: "ntudioka-online-c29d8",
+    storageBucket: "ntudioka-online-c29d8.firebasestorage.app",
+    messagingSenderId: "1015621578149",
+    appId: "1:1015621578149:web:c755b458e505fd32928c4c",
+    measurementId: "G-JPVKYQRKEB"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  let currentUser = null;
+
+  // parseContent (unchanged)
+  function parseContent(text) {
+    if (!text) return '';
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
+    const imageRegex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|bmp|svg))(?:\?.*)?/gi;
+
+    let parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+      const url = match[0];
+      const index = match.index;
+      if (index > lastIndex) {
+        parts.push({ type: 'text', content: text.substring(lastIndex, index) });
+      }
+      let ytMatch = youtubeRegex.exec(url);
+      if (ytMatch) {
+        parts.push({ type: 'youtube', content: ytMatch[1] });
+      } else if (imageRegex.test(url)) {
+        parts.push({ type: 'image', content: url });
+      } else {
+        parts.push({ type: 'link', content: url });
+      }
+      lastIndex = index + url.length;
+    }
+    if (lastIndex < text.length) {
+      parts.push({ type: 'text', content: text.substring(lastIndex) });
+    }
+    if (parts.length === 0) return escapeHtml(text);
+
+    let html = '';
+    parts.forEach(part => {
+      if (part.type === 'text') {
+        html += escapeHtml(part.content);
+      } else if (part.type === 'link') {
+        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#8cffe0;">${part.content}</a>`;
+      } else if (part.type === 'image') {
+        html += `<div class="embedded-media"><img src="${part.content}" alt="embedded image" loading="lazy"></div>`;
+      } else if (part.type === 'youtube') {
+        html += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${part.content}" allowfullscreen></iframe></div>`;
+      }
+    });
+    return html;
+  }
+
+  function escapeHtml(unsafe) {
+    return unsafe.replace(/[&<>"']/g, function(m) {
+      if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
+    });
+  }
+
+  // Safely format timestamp to locale string
+function formatTimestamp(ts) {
+    if (!ts) return '';
+    try {
+        // Convert Firestore Timestamp or string/number to Date
+        let date = ts.toDate ? ts.toDate() : new Date(ts);
+        // Check if date is valid
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleString();
+    } catch (e) {
+        return '';
+    }
+}
+
+// Safely format relative time (e.g., "2h ago")
+function formatRelativeTime(ts) {
+    if (!ts) return '';
+    try {
+        let date = ts.toDate ? ts.toDate() : new Date(ts);
+        if (isNaN(date.getTime())) return '';
+        let diffSeconds = Math.floor((Date.now() - date) / 1000);
+        if (diffSeconds < 60) return 'just now';
+        if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + 'm ago';
+        if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + 'h ago';
+        return Math.floor(diffSeconds / 86400) + 'd ago';
+    } catch (e) {
+        return '';
+    }
+}
+
+  // reaction UI (unchanged)
+  function addReactionUI(targetType, targetId, container) {
+    const reactDiv = document.createElement('div');
+    reactDiv.className = 'reaction-bar';
+    reactDiv.innerHTML = `
+      <button class="reaction-btn like-btn" data-type="${targetType}" data-id="${targetId}">
+        <i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">0</span>
+      </button>
+    `;
+    container.appendChild(reactDiv);
+
+    const likeBtn = reactDiv.querySelector('.like-btn');
+    const countSpan = likeBtn.querySelector('.reaction-count');
+    const userId = currentUser?.uid;
+
+    let docRef;
+    if (targetType.includes('/')) {
+      if (!targetId) {
+        docRef = db.doc(targetType);
+      } else {
+        docRef = db.collection(targetType).doc(targetId);
+      }
+    } else {
+      docRef = db.collection(targetType).doc(targetId);
+    }
+    const reactionsRef = docRef.collection('reactions');
+
+    const unsubscribe = reactionsRef.onSnapshot(snapshot => {
+      let count = 0;
+      let userLiked = false;
+      snapshot.forEach(doc => {
+        if (doc.data().type === 'like') {
+          count++;
+          if (userId && doc.id === userId) userLiked = true;
+        }
+      });
+      countSpan.textContent = count;
+      if (userLiked) {
+        likeBtn.classList.add('liked');
+        likeBtn.innerHTML = `<i class="fa-solid fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
+      } else {
+        likeBtn.classList.remove('liked');
+        likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
+      }
+    });
+
+    likeBtn.addEventListener('click', async () => {
+      if (!currentUser) return alert('Login required');
+      const reactionDoc = reactionsRef.doc(currentUser.uid);
+      const doc = await reactionDoc.get();
+      if (doc.exists) {
+        await reactionDoc.delete();
+      } else {
+        await reactionDoc.set({
+          type: 'like',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    });
+
+    return unsubscribe;
+  }
+
+  // AUTH
+  let authMode = "login";
+  const navArea = document.getElementById("navArea");
+  const authContainer = document.getElementById("authContainer");
+
+  // MODIFIED: showAuth now sets display to FLEX for proper modal centering
+  window.showAuth = function() { authContainer.style.display = "flex"; };
+
+  window.toggleAuthMode = function (e) {
+    e.preventDefault();
+    authMode = authMode === "login" ? "register" : "login";
+    document.getElementById("registerFields").style.display = authMode === "register" ? "block" : "none";
+    document.getElementById("authHeader").innerText = authMode === "login" ? "Login" : "Register";
+    document.getElementById("authSubmitBtn").innerText = authMode === "login" ? "Login" : "Register";
+    document.getElementById("toggleText").innerText = authMode === "login" ? "Don't have an account?" : "Already have an account?";
+  };
+
+  document.getElementById("authSubmitBtn").onclick = function () {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value.trim();
+    if (authMode === "register") {
+      const name = document.getElementById("regName").value.trim();
+      const kindred = document.getElementById("regKindred").value.trim();
+      if (!name || !kindred || !email || !password) return alert("All fields required");
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(cred => db.collection("users").doc(cred.user.uid).set({
+          name, kindred, email, online: true, lastSeen: null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          isAdmin: false
+        }))
+        .then(() => { alert("Registered"); authContainer.style.display = "none"; clearAuth(); })
+        .catch(showError);
+    } else {
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => { alert("Login successful"); authContainer.style.display = "none"; clearAuth(); })
+        .catch(showError);
+    }
+  };
+
+  function clearAuth() {
+    document.getElementById("authEmail").value = "";
+    document.getElementById("authPassword").value = "";
+    if (document.getElementById("regName")) document.getElementById("regName").value = "";
+    if (document.getElementById("regKindred")) document.getElementById("regKindred").value = "";
+  }
+
+  window.logout = function () {
+    if (currentUser) {
+      db.collection("users").doc(currentUser.uid).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
+    }
+    auth.signOut().catch(showError);
+  };
+
+  auth.onAuthStateChanged(user => {
+    currentUser = user;
+    if (user) {
+      db.collection("users").doc(user.uid).update({ online: true }).catch(showError);
+      db.collection("users").doc(user.uid).get().then(doc => {
+        const userData = doc.data() || {};
+        const isAdmin = userData.isAdmin || false;
+        navArea.innerHTML = `
+          <span class="onlineDot">● Online</span>
+          <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
+          <button onclick="logout()">Logout</button>
+          ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
+        `;
+      }).catch(showError);
+    } else {
+      navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (currentUser) {
+      db.collection("users").doc(currentUser.uid).update({ online: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
+    }
+  });
+
+  function showError(err) { alert("Error: " + err.message); console.error(err); }
+
+  // ---------- ALL EXISTING FUNCTIONS BELOW (feed, chat, goodwill, live, events, profile, inbox, private chat) are kept exactly as in original ----------
+  // (Space constraint – they are identical to original, so I'm including a placeholder to indicate they remain)
+  // Copy-paste of all functions from original (postFeed, replyFeed, sendChat, replyChat, postGoodwill, replyGoodwill, commentLive, replyLiveComment, showProfile, startPrivateChat, etc.) would be here.
+  // To ensure no feature loss, I'll keep them exactly as provided. In the final output, they will be present.
+  // Below is a condensed representation; the actual final code includes all original functions.
+
+  window.postFeed = function () {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("feedInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("feed").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+  // ... and all other functions (replyFeed, sendChat, etc.) are exactly as original.
+  // I'm truncating here for readability, but the delivered file contains them in full.
+  // [Full original functions from index.html are included in the final answer]
+</script>
+<!-- All original functions from the provided index.html are included below this line -->
+<script>
+  // ---------- FEED ----------
+  db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
+    const feedArea = document.getElementById("feedArea");
+    feedArea.innerHTML = "";
+    s.forEach(doc => {
+      const p = doc.data();
+      const feedId = doc.id;
+      const feedDiv = document.createElement('div');
+      feedDiv.className = "feed-item";
+      feedDiv.id = `feed-${feedId}`;
+      feedDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${p.userId || ''}')">${p.name ?? '?'}</span> (${p.kindred ?? '?'})</strong>
+        <div>${parseContent(p.text)}</div>
+        <div class="timestamp">${formatTimestamp(p.created)}</div>
+        <div id="feedReplies${feedId}" class="replies"></div>
+        <input id="replyFeed${feedId}" placeholder="Reply...">
+        <button onclick="replyFeed('${feedId}')">Reply</button>
+      `;
+      feedArea.appendChild(feedDiv);
+      addReactionUI('feed', feedId, feedDiv);
+      loadReplies("feed", feedId, "feedReplies");
+    });
+  }, showError);
+
+  window.replyFeed = function (id) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("replyFeed" + id);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("feed").doc(id).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadReplies(collection, id, containerPrefix) {
+    db.collection(collection).doc(id).collection("replies").orderBy("created").onSnapshot(s => {
+      const box = document.getElementById(containerPrefix + id);
+      if (!box) return;
+      box.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>
+          <div>${parseContent(r.text)}</div>
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        box.appendChild(replyDiv);
+        addReactionUI(`${collection}/${id}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
+
+  // ---------- CHAT ----------
+  window.sendChat = function () {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("chatInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("chat").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  db.collection("chat").orderBy("created").onSnapshot(s => {
+    const chatArea = document.getElementById("chatArea");
+    chatArea.innerHTML = "";
+    s.forEach(doc => {
+      const m = doc.data();
+      const chatId = doc.id;
+      const chatDiv = document.createElement('div');
+      chatDiv.className = "chat-item";
+      chatDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${m.userId || ''}')">${m.name ?? '?'}</span> (${m.kindred ?? '?'})</strong>
+        <span>: ${parseContent(m.text)}</span>
+        <div class="timestamp">${formatTimestamp(m.created)}</div>
+        <div id="chatReplies${chatId}" class="replies"></div>
+        <input id="chatReplyInput${chatId}" placeholder="Reply...">
+        <button onclick="replyChat('${chatId}')">Reply</button>
+      `;
+      chatArea.appendChild(chatDiv);
+      addReactionUI('chat', chatId, chatDiv);
+      loadChatReplies(chatId);
+    });
+  }, showError);
+
+  window.replyChat = function (chatId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("chatReplyInput" + chatId);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("chat").doc(chatId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadChatReplies(chatId) {
+    db.collection("chat").doc(chatId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("chatReplies" + chatId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`chat/${chatId}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
+
+  // ---------- GOODWILL ----------
+  window.postGoodwill = function () {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("goodwillInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("goodwill").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  db.collection("goodwill").orderBy("created", "desc").onSnapshot(s => {
+    const goodwillArea = document.getElementById("goodwillArea");
+    goodwillArea.innerHTML = "";
+    s.forEach(doc => {
+      const g = doc.data();
+      const goodwillId = doc.id;
+      const goodwillDiv = document.createElement('div');
+      goodwillDiv.className = "goodwill-item";
+      goodwillDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${g.userId || ''}')">${g.name ?? '?'}</span> (${g.kindred ?? '?'})</strong>
+        <div>${parseContent(g.text)}</div>
+        <div class="timestamp">${formatTimestamp(g.created)}</div>
+        <div id="goodwillReplies${goodwillId}" class="replies"></div>
+        <input id="goodwillReplyInput${goodwillId}" placeholder="Reply...">
+        <button onclick="replyGoodwill('${goodwillId}')">Reply</button>
+      `;
+      goodwillArea.appendChild(goodwillDiv);
+      addReactionUI('goodwill', goodwillId, goodwillDiv);
+      loadGoodwillReplies(goodwillId);
+    });
+  }, showError);
+
+  window.replyGoodwill = function (goodwillId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("goodwillReplyInput" + goodwillId);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("goodwill").doc(goodwillId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadGoodwillReplies(goodwillId) {
+    db.collection("goodwill").doc(goodwillId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("goodwillReplies" + goodwillId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
+
+  // ---------- LIVE STREAM ----------
+  db.collection("live").doc("current").onSnapshot(doc => {
+    const liveArea = document.getElementById("liveArea");
+    if (doc.exists) {
+      const d = doc.data();
+      liveArea.innerHTML = `
+        <h4>${d.title || 'Live Stream'}</h4>
+        <iframe width="100%" height="315" src="https://www.youtube.com/embed/${d.videoId || ''}" allowfullscreen></iframe>
+      `;
+    } else {
+      liveArea.innerHTML = "<p style='text-align:center;'>🔴 Currently Offline</p>";
+    }
+  }, showError);
+
+  window.commentLive = function () {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("liveCommentInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("live").doc("current").collection("comments").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  db.collection("live").doc("current").collection("comments").orderBy("created").onSnapshot(s => {
+    const liveComments = document.getElementById("liveComments");
+    liveComments.innerHTML = "";
+    s.forEach(doc => {
+      const c = doc.data();
+      const commentId = doc.id;
+      const commentDiv = document.createElement('div');
+      commentDiv.className = "live-comment-item";
+      commentDiv.innerHTML = `
+        <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>: ${parseContent(c.text)}
+        <div class="timestamp">${formatTimestamp(c.created)}</div>
+        <div id="liveReplies${commentId}" class="replies"></div>
+        <input id="liveReplyInput${commentId}" placeholder="Reply...">
+        <button onclick="replyLiveComment('${commentId}')">Reply</button>
+      `;
+      liveComments.appendChild(commentDiv);
+      addReactionUI('live/current/comments', commentId, commentDiv);
+      loadLiveReplies(commentId);
+    });
+  }, showError);
+
+  window.replyLiveComment = function (commentId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("liveReplyInput" + commentId);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadLiveReplies(commentId) {
+    db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("liveReplies" + commentId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`live/current/comments/${commentId}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
+
+  // ---------- EVENTS (with comments) ----------
+  db.collection("events").orderBy("created", "desc").onSnapshot(s => {
+    const eventArea = document.getElementById("eventArea");
+    eventArea.innerHTML = "";
+    s.forEach(doc => {
+      const e = doc.data();
+      const eventId = doc.id;
+      let mediaHtml = '';
+      if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
+      if (e.video) {
+        const videoId = extractYoutubeId(e.video);
+        if (videoId) mediaHtml += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
+        else mediaHtml += `<p><a href="${e.video}" target="_blank" style="color:#8cffe0;">Watch Video</a></p>`;
+      }
+      if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
+
+      const eventDiv = document.createElement('div');
+      eventDiv.className = "event-item";
+      eventDiv.id = `event-${eventId}`;
+      eventDiv.innerHTML = `
+        <h4>${e.title || 'Untitled'}</h4>
+        <p>${e.description ? parseContent(e.description) : ''}</p>
+        <p><small>${e.date || ''}</small></p>
+        ${mediaHtml}
+        <div id="eventComments${eventId}" class="replies"></div>
+        <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
+        <button onclick="commentEvent('${eventId}')">Comment</button>
+      `;
+      eventArea.appendChild(eventDiv);
+      loadEventComments(eventId);
+    });
+  }, showError);
+
+  function extractYoutubeId(url) {
+    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  }
+
+  window.commentEvent = function(eventId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("eventCommentInput" + eventId);
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("events").doc(eventId).collection("comments").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadEventComments(eventId) {
+    db.collection("events").doc(eventId).collection("comments").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("eventComments" + eventId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const c = doc.data();
+        const commentId = doc.id;
+        const commentDiv = document.createElement('div');
+        commentDiv.className = "replyBox";
+        commentDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>
+          <div>${parseContent(c.text)}</div>
+          <div class="timestamp">${formatTimestamp(c.created)}</div>
+          <div id="eventCommentReplies${commentId}"></div>
+          <input id="eventCommentReplyInput${commentId}" placeholder="Reply...">
+          <button onclick="replyEventComment('${eventId}', '${commentId}')">Reply</button>
+        `;
+        container.appendChild(commentDiv);
+        addReactionUI(`events/${eventId}/comments`, commentId, commentDiv);
+        loadEventCommentReplies(eventId, commentId);
+      });
+    }, showError);
+  }
+
+  window.replyEventComment = function(eventId, commentId) {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("eventCommentReplyInput" + commentId);
+    if (!input || !input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("events").doc(eventId).collection("comments").doc(commentId).collection("replies").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  function loadEventCommentReplies(eventId, commentId) {
+    db.collection("events").doc(eventId).collection("comments").doc(commentId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("eventCommentReplies" + commentId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        replyDiv.innerHTML = `
+          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`events/${eventId}/comments/${commentId}/replies`, doc.id, replyDiv);
+      });
+    }, showError);
+  }
+
+  // ---------- USER PROFILES ----------
+  let currentProfileUserId = null;
+
+  window.showProfile = function(userId) {
+    if (!userId) return;
+    db.collection('users').doc(userId).get().then(doc => {
+      if (!doc.exists) return;
+      const user = doc.data();
+      document.getElementById('profileInfo').innerHTML = `
+        <p><strong>Name:</strong> ${user.name || '?'}</p>
+        <p><strong>Kindred:</strong> ${user.kindred || '?'}</p>
+        <p><strong>Email:</strong> ${user.email || '?'}</p>
+        <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
+      `;
+      currentProfileUserId = userId;
+      document.getElementById('profileModal').style.display = 'flex';
+    }).catch(showError);
+  };
+
+  window.closeProfileModal = function() {
+    document.getElementById('profileModal').style.display = 'none';
+    currentProfileUserId = null;
+  };
+
+  window.startPrivateChatFromProfile = function() {
+    if (currentProfileUserId) {
+      startPrivateChat(currentProfileUserId);
+      closeProfileModal();
+    }
+  };
+
+  // ---------- PRIVATE CHAT (Room-based) ----------
+  let activeChatRoomId = null;
+  let activeChatOtherUserId = null;
+  let unsubscribeRoomMessages = null;
+
+  function getChatRoomId(uid1, uid2) {
+    return [uid1, uid2].sort().join('_');
+  }
+
+  window.startPrivateChat = async function(otherUserId) {
+    if (!currentUser) return alert('Login required');
+    if (otherUserId === currentUser.uid) return alert('Cannot chat with yourself');
+
+    const roomId = getChatRoomId(currentUser.uid, otherUserId);
+    activeChatRoomId = roomId;
+    activeChatOtherUserId = otherUserId;
+
+    const roomRef = db.collection('privateChatRooms').doc(roomId);
+    const roomDoc = await roomRef.get();
+    if (!roomDoc.exists) {
+      await roomRef.set({
+        participants: [currentUser.uid, otherUserId],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastMessage: null,
+        lastMessageTime: null
+      });
+    }
+
+// Mark all messages from the other user as read
+const unreadQuery = roomRef.collection('messages')
+  .where('from', '==', otherUserId)
+  .where('read', '==', false);
+unreadQuery.get().then(snapshot => {
+  const batch = db.batch();
+  snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
+  return batch.commit();
+}).catch(showError);
+
+    db.collection('users').doc(otherUserId).get().then(doc => {
+      const otherUser = doc.data();
+      document.getElementById('chatWith').innerHTML = `Chat with ${otherUser.name || 'User'}`;
+    });
+
+    document.getElementById('chatModal').style.display = 'flex';
+    document.getElementById('privateChatInput').focus();
+
+    const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
+    if (unsubscribeRoomMessages) unsubscribeRoomMessages();
+
+ 
+    unsubscribeRoomMessages = messagesRef.onSnapshot(snapshot => {
+      const container = document.getElementById('privateChatMessages');
+      container.innerHTML = '';
+      snapshot.forEach(doc => {
+        const msg = doc.data();
+        const div = document.createElement('div');
+        div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
+        div.innerHTML = `
+          <div>${parseContent(msg.text)}</div>
+          <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
+        `;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    }, showError);
+  };
+
+  window.sendPrivateMessage = function() {
+    const input = document.getElementById('privateChatInput');
+    const text = input.value.trim();
+    if (!text || !activeChatRoomId) return;
+
+    const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
+    roomRef.collection('messages').add({
+      from: currentUser.uid,
+      text: text,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      read: false
+    }).then(() => {
+      roomRef.update({
+        lastMessage: text,
+        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(showError);
+      input.value = '';
+    }).catch(showError);
+  };
+  
+
+  window.closeChatModal = function() {
+    document.getElementById('chatModal').style.display = 'none';
+    if (unsubscribeRoomMessages) {
+      unsubscribeRoomMessages();
+      unsubscribeRoomMessages = null;
+    }
+    activeChatRoomId = null;
+    activeChatOtherUserId = null;
+  };
+
+  // ---------- INBOX ----------
+  window.showInbox = function() {
+    document.getElementById('inboxModal').style.display = 'flex';
+    loadInbox();
+  };
+
+  window.closeInboxModal = function() {
+    document.getElementById('inboxModal').style.display = 'none';
+  };
+
+  function loadInbox() {
+  if (!currentUser) return;
+  const inboxList = document.getElementById('inboxList');
+  inboxList.innerHTML = 'Loading...';
+
+  db.collection('privateChatRooms')
+    .where('participants', 'array-contains', currentUser.uid)
+    .get()
+    .then(async snapshot => {
+      if (snapshot.empty) {
+        inboxList.innerHTML = '<p>No conversations yet.</p>';
+        return;
+      }
+
+      const rooms = [];
+      for (const doc of snapshot.docs) {
+        const room = doc.data();
+        const otherUid = room.participants.find(uid => uid !== currentUser.uid);
+        const userDoc = await db.collection('users').doc(otherUid).get();
+        const otherUser = userDoc.data() || { name: 'Unknown' };
+
+        // Count unread messages from the other user
+        const unreadSnapshot = await db.collection('privateChatRooms').doc(doc.id)
+          .collection('messages')
+          .where('from', '==', otherUid)
+          .where('read', '==', false)
+          .get();
+        const unreadCount = unreadSnapshot.size;
+
+        let preview = room.lastMessage || 'No messages';
+        if (preview.length > 30) preview = preview.substring(0, 30) + '…';
+        let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
+
+        rooms.push({
+          id: doc.id,
+          otherUid,
+          otherName: otherUser.name || 'User',
+          preview,
+          time,
+          lastMessageTime: room.lastMessageTime ? room.lastMessageTime.toDate() : new Date(0),
+          unreadCount
+        });
+      }
+
+      rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+
+      inboxList.innerHTML = '';
+      rooms.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'inbox-item';
+        item.onclick = () => {
+          closeInboxModal();
+          startPrivateChat(r.otherUid);
+        };
+
+        // Build badge HTML if there are unread messages
+        const unreadBadge = r.unreadCount > 0 
+          ? `<span class="unread-badge">${r.unreadCount}</span>` 
+          : '';
+
+        item.innerHTML = `
+          <div class="inbox-item-info">
+            <div class="inbox-item-name">
+              ${r.otherName} ${unreadBadge}
+            </div>
+            <div class="inbox-item-preview">${r.preview}</div>
+          </div>
+          <div class="inbox-item-time">${r.time}</div>
+        `;
+        inboxList.appendChild(item);
+      });
+    })
+    .catch(err => {
+      console.error('Inbox error:', err);
+      inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
+    });
+}
+  // Click outside modal to close
+  window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+      event.target.style.display = 'none';
+      if (event.target.id === 'chatModal' && unsubscribeRoomMessages) {
+        unsubscribeRoomMessages();
+        unsubscribeRoomMessages = null;
+        activeChatRoomId = null;
+      }
+    }
+  };
+</script>
+<script>
+  if (typeof navigator.serviceWorker !== 'undefined') {
+    navigator.serviceWorker.register('sw.js')
+  }
+</script>
+</body>
+</html>
