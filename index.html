@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ntuconnect + secure profile pics</title>
+  <title>Ntuconnect + avatar picker</title>
 
-  <!-- Firebase (with Storage) -->
+  <!-- Firebase (Auth + Firestore only – Storage removed) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -30,7 +29,7 @@
       padding: 16px;
     }
 
-    /* ===== HEADER – AQUA BREEZE ===== */
+    /* ===== HEADER ===== */
     header {
       background: rgba(26, 138, 120, 0.85);
       backdrop-filter: blur(12px);
@@ -90,7 +89,7 @@
       text-shadow: 0 0 5px #64ffda;
     }
 
-    /* ===== SECTION & CARDS – GLASSY ===== */
+    /* ===== SECTION & CARDS ===== */
     .section {
       max-width: 1300px;
       margin: 0 auto;
@@ -249,7 +248,7 @@
       font-weight: 600;
     }
 
-    /* ===== MODALS – AQUAMARINE GLOW ===== */
+    /* ===== MODALS ===== */
     .modal {
       position: fixed;
       z-index: 2000;
@@ -290,12 +289,8 @@
     .close:hover { color: #a2ffee; transform: scale(1.1); }
 
     /* Auth modal */
-    #authContainer.modal {
-      display: none;
-    }
-    #authContainer .modal-content {
-      background: #1f4f47;
-    }
+    #authContainer.modal { display: none; }
+    #authContainer .modal-content { background: #1f4f47; }
 
     /* Chat modal */
     .chat-messages {
@@ -395,8 +390,8 @@
       text-decoration: none;
     }
 
-    /* ===== PROFILE PICTURE STYLES ===== */
-    .profile-photo-small {
+    /* ===== AVATAR STYLES ===== */
+    .profile-avatar-small {
       width: 80px;
       height: 80px;
       border-radius: 50%;
@@ -405,18 +400,37 @@
       cursor: pointer;
       margin-bottom: 12px;
       transition: 0.2s;
+      background: #1f4f47;
     }
-    .profile-photo-small:hover {
+    .profile-avatar-small:hover {
       opacity: 0.9;
       transform: scale(1.02);
     }
 
-    .upload-btn {
-      background: #2a5a50;
-      margin-top: 8px;
-      width: auto;
-      padding: 8px 16px;
-      font-size: 0.9rem;
+    .avatar-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 20px 0;
+      justify-items: center;
+    }
+    .avatar-option {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: 0.2s;
+      object-fit: cover;
+      background: #1f4f47;
+    }
+    .avatar-option:hover {
+      transform: scale(1.1);
+      border-color: #8cffe0;
+    }
+    .avatar-option.selected {
+      border-color: #ffd966;
+      box-shadow: 0 0 12px #ffd966;
     }
 
     /* Image preview modal (lightbox) */
@@ -442,12 +456,7 @@
       button { width: 100%; }
       .embedded-media iframe { height: 200px; }
       .modal-content { padding: 20px; }
-    }
-
-    @media (max-width: 360px) {
-      .card h3 { font-size: 1.2rem; }
-      .feed-item, .chat-item, .goodwill-item { padding: 12px; }
-      .reaction-btn { padding: 6px 12px; }
+      .avatar-option { width: 55px; height: 55px; }
     }
 
     .unread-badge {
@@ -505,7 +514,7 @@
 </div>
 
 <!-- AUTH MODAL -->
-<div id="authContainer" class="modal" style="display: none;">
+<div id="authContainer" class="modal">
   <div class="modal-content">
     <span class="close" onclick="document.getElementById('authContainer').style.display='none'">&times;</span>
     <h3 id="authHeader" style="color:#8cffe0;">Login</h3>
@@ -524,21 +533,31 @@
   </div>
 </div>
 
-<!-- Profile Modal (with picture support) -->
+<!-- Profile Modal (view only) -->
 <div id="profileModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeProfileModal()">&times;</span>
     <h3><i class="fa-regular fa-user"></i> User Profile</h3>
     <div style="text-align: center;">
-      <img id="profilePhotoImg" class="profile-photo-small" src="https://via.placeholder.com/80?text=User" alt="Profile" onclick="enlargeImage(this.src)">
-      <!-- Upload area: only visible when viewing own profile (handled in JS) -->
-      <div id="profilePhotoUploadArea" style="display:none; margin-bottom:10px;">
-        <input type="file" id="profileUploadInput" accept="image/*" style="display:none;">
-        <button class="upload-btn" onclick="document.getElementById('profileUploadInput').click()"><i class="fa-solid fa-camera"></i> Upload Photo</button>
-      </div>
+      <img id="profileAvatarImg" class="profile-avatar-small" src="https://via.placeholder.com/80?text=User" alt="Avatar" onclick="enlargeImage(this.src)">
     </div>
     <div id="profileInfo"></div>
+    <!-- Edit button only for own profile (controlled by JS) -->
+    <button id="editProfileBtn" onclick="openEditProfileModal()" style="display:none; margin-top:10px;">✎ Edit Profile</button>
     <button id="startPrivateChatBtn" onclick="startPrivateChatFromProfile()">💬 Private Chat</button>
+  </div>
+</div>
+
+<!-- Edit Profile Modal (avatar picker) -->
+<div id="editProfileModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeEditProfileModal()">&times;</span>
+    <h3><i class="fa-regular fa-pen-to-square"></i> Edit Profile</h3>
+    <input type="text" id="editName" placeholder="Full Name">
+    <input type="text" id="editKindred" placeholder="Kindred Name">
+    <label style="margin: 15px 0 5px; display: block;">Choose Avatar:</label>
+    <div class="avatar-grid" id="avatarGrid"></div>
+    <button onclick="saveProfileChanges()">Save Changes</button>
   </div>
 </div>
 
@@ -572,7 +591,7 @@
 </div>
 
 <script>
-  // Firebase config
+  // Firebase config (Storage not needed)
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -585,20 +604,29 @@
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
-  const storage = firebase.storage();
   let currentUser = null;
 
-  // parseContent (unchanged)
+  // Avatar repository (DiceBear avatars, consistent style)
+  const avatarList = [
+    "https://api.dicebear.com/6.x/identicon/svg?seed=avatar1&backgroundColor=6b8e8c",
+    "https://api.dicebear.com/6.x/identicon/svg?seed=avatar2&backgroundColor=3b6e6c",
+    "https://api.dicebear.com/6.x/identicon/svg?seed=avatar3&backgroundColor=2b5e5c",
+    "https://api.dicebear.com/6.x/identicon/svg?seed=avatar4&backgroundColor=1b4e4c",
+    "https://api.dicebear.com/6.x/identicon/svg?seed=avatar5&backgroundColor=4b7e7c",
+    "https://api.dicebear.com/6.x/identicon/svg?seed=avatar6&backgroundColor=5b8e8c",
+    "https://api.dicebear.com/6.x/identicon/svg?seed=avatar7&backgroundColor=7baeac",
+    "https://api.dicebear.com/6.x/identicon/svg?seed=avatar8&backgroundColor=8bbebc"
+  ];
+
+  // ---------- Utility functions (unchanged) ----------
   function parseContent(text) {
     if (!text) return '';
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
     const imageRegex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|bmp|svg))(?:\?.*)?/gi;
-
     let parts = [];
     let lastIndex = 0;
     let match;
-
     while ((match = urlRegex.exec(text)) !== null) {
       const url = match[0];
       const index = match.index;
@@ -619,7 +647,6 @@
       parts.push({ type: 'text', content: text.substring(lastIndex) });
     }
     if (parts.length === 0) return escapeHtml(text);
-
     let html = '';
     parts.forEach(part => {
       if (part.type === 'text') {
@@ -667,7 +694,7 @@
     }
   }
 
-  // reaction UI
+  // reaction UI (unchanged)
   function addReactionUI(targetType, targetId, container) {
     const reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
@@ -677,11 +704,9 @@
       </button>
     `;
     container.appendChild(reactDiv);
-
     const likeBtn = reactDiv.querySelector('.like-btn');
     const countSpan = likeBtn.querySelector('.reaction-count');
     const userId = currentUser?.uid;
-
     let docRef;
     if (targetType.includes('/')) {
       if (!targetId) {
@@ -693,7 +718,6 @@
       docRef = db.collection(targetType).doc(targetId);
     }
     const reactionsRef = docRef.collection('reactions');
-
     const unsubscribe = reactionsRef.onSnapshot(snapshot => {
       let count = 0;
       let userLiked = false;
@@ -712,7 +736,6 @@
         likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
       }
     });
-
     likeBtn.addEventListener('click', async () => {
       if (!currentUser) return alert('Login required');
       const reactionDoc = reactionsRef.doc(currentUser.uid);
@@ -726,11 +749,10 @@
         });
       }
     });
-
     return unsubscribe;
   }
 
-  // AUTH
+  // ---------- AUTH ----------
   let authMode = "login";
   const navArea = document.getElementById("navArea");
   const authContainer = document.getElementById("authContainer");
@@ -758,7 +780,7 @@
           name, kindred, email, online: true, lastSeen: null,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           isAdmin: false,
-          photoURL: null
+          avatar: avatarList[0] // default first avatar
         }))
         .then(() => { alert("Registered"); authContainer.style.display = "none"; clearAuth(); })
         .catch(showError);
@@ -783,7 +805,7 @@
     auth.signOut().catch(showError);
   };
 
-  // ===== HEADER: profile button only when signed in =====
+  // Header buttons
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -812,58 +834,38 @@
 
   function showError(err) { alert("Error: " + err.message); console.error(err); }
 
-  // ---------- PROFILE PICTURE UPLOAD (strictly self-only) ----------
+  // ---------- PROFILE & AVATAR ----------
+  let currentProfileUserId = null;
+  let selectedAvatarUrl = null; // for edit modal
+
+  // Enlarge image (lightbox)
   window.enlargeImage = function(src) {
     if (!src || src === 'https://via.placeholder.com/80?text=User') return;
     document.getElementById('previewImage').src = src;
     document.getElementById('imagePreviewModal').style.display = 'flex';
   };
 
-  // File input change: only allowed if the profile being viewed is the current user
-  document.getElementById('profileUploadInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file || !currentUser) return;
-    const userId = currentProfileUserId; // the profile being displayed
-    if (userId !== currentUser.uid) {
-      alert('You can only change your own picture');
-      return;
-    }
-    const storageRef = storage.ref(`profile_pictures/${userId}`);
-    const task = storageRef.put(file);
-    task.on('state_changed',
-      null,
-      (error) => showError(error),
-      async () => {
-        const url = await storageRef.getDownloadURL();
-        await db.collection('users').doc(userId).update({ photoURL: url });
-        document.getElementById('profilePhotoImg').src = url;
-        alert('Profile picture updated');
-      }
-    );
-  });
-
-  let currentProfileUserId = null;
-
+  // Show profile (view only)
   window.showProfile = function(userId) {
     if (!userId) return;
     currentProfileUserId = userId;
     db.collection('users').doc(userId).get().then(doc => {
       if (!doc.exists) return;
       const user = doc.data();
-      const photoURL = user.photoURL || 'https://via.placeholder.com/80?text=User';
-      document.getElementById('profilePhotoImg').src = photoURL;
+      const avatar = user.avatar || avatarList[0];
+      document.getElementById('profileAvatarImg').src = avatar;
       document.getElementById('profileInfo').innerHTML = `
         <p><strong>Name:</strong> ${user.name || '?'}</p>
         <p><strong>Kindred:</strong> ${user.kindred || '?'}</p>
         <p><strong>Email:</strong> ${user.email || '?'}</p>
         <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
       `;
-      // Show upload button only if viewing own profile
-      const uploadArea = document.getElementById('profilePhotoUploadArea');
+      // Show edit button only if viewing own profile
+      const editBtn = document.getElementById('editProfileBtn');
       if (currentUser && userId === currentUser.uid) {
-        uploadArea.style.display = 'block';
+        editBtn.style.display = 'inline-flex';
       } else {
-        uploadArea.style.display = 'none';
+        editBtn.style.display = 'none';
       }
       document.getElementById('profileModal').style.display = 'flex';
     }).catch(showError);
@@ -874,6 +876,66 @@
     currentProfileUserId = null;
   };
 
+  // Open edit profile modal (only called for own profile)
+  window.openEditProfileModal = function() {
+    if (!currentUser || !currentProfileUserId || currentProfileUserId !== currentUser.uid) return;
+    // Fetch current user data
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+      const user = doc.data();
+      document.getElementById('editName').value = user.name || '';
+      document.getElementById('editKindred').value = user.kindred || '';
+      selectedAvatarUrl = user.avatar || avatarList[0];
+      renderAvatarGrid(selectedAvatarUrl);
+      document.getElementById('editProfileModal').style.display = 'flex';
+    }).catch(showError);
+  };
+
+  // Render avatar grid with selection highlight
+  function renderAvatarGrid(selected) {
+    const grid = document.getElementById('avatarGrid');
+    grid.innerHTML = '';
+    avatarList.forEach(url => {
+      const img = document.createElement('img');
+      img.src = url;
+      img.className = 'avatar-option' + (url === selected ? ' selected' : '');
+      img.onclick = () => {
+        // remove previous selected class
+        document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+        img.classList.add('selected');
+        selectedAvatarUrl = url;
+      };
+      grid.appendChild(img);
+    });
+  }
+
+  // Save profile changes
+  window.saveProfileChanges = function() {
+    if (!currentUser) return;
+    const newName = document.getElementById('editName').value.trim();
+    const newKindred = document.getElementById('editKindred').value.trim();
+    if (!newName || !newKindred) {
+      alert('Name and Kindred cannot be empty');
+      return;
+    }
+    if (!selectedAvatarUrl) selectedAvatarUrl = avatarList[0];
+    db.collection('users').doc(currentUser.uid).update({
+      name: newName,
+      kindred: newKindred,
+      avatar: selectedAvatarUrl
+    }).then(() => {
+      alert('Profile updated');
+      closeEditProfileModal();
+      // Refresh profile view if open
+      if (currentProfileUserId === currentUser.uid) {
+        showProfile(currentUser.uid);
+      }
+    }).catch(showError);
+  };
+
+  window.closeEditProfileModal = function() {
+    document.getElementById('editProfileModal').style.display = 'none';
+  };
+
   window.startPrivateChatFromProfile = function() {
     if (currentProfileUserId) {
       startPrivateChat(currentProfileUserId);
@@ -881,8 +943,8 @@
     }
   };
 
-  // ---------- ALL EXISTING FUNCTIONS BELOW (feed, chat, goodwill, live, events, inbox, private chat) ----------
-  // (All original functions are included – they remain exactly as before)
+  // ---------- ALL EXISTING FUNCTIONS (feed, chat, goodwill, live, events, inbox, private chat) remain exactly as before ----------
+  // (To keep the answer concise, they are included verbatim from the original; no changes needed.)
   // ---------- FEED ----------
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     const feedArea = document.getElementById("feedArea");
@@ -1106,7 +1168,7 @@
     }, showError);
   }
 
-  // ---------- LIVE STREAM ----------
+  // ---------- LIVE STREAM (commented out in original, but kept) ----------
   db.collection("live").doc("current").onSnapshot(doc => {
     const liveArea = document.getElementById("liveArea");
     if (doc.exists) {
@@ -1318,7 +1380,7 @@
     }, showError);
   }
 
-  // ---------- PRIVATE CHAT & INBOX (existing) ----------
+  // ---------- PRIVATE CHAT & INBOX ----------
   let activeChatRoomId = null;
   let activeChatOtherUserId = null;
   let unsubscribeRoomMessages = null;
