@@ -614,11 +614,14 @@
     });
   });
 
-  // ==================== GOOGLE DRIVE PICKER ====================
+  // ==================== GOOGLE DRIVE PICKER (restricted to folder) ====================
   // Replace with your actual API key and client ID
-  const API_KEY = 'AIzaSyCKpCYOgmtaoRy_4_WSY65FOZyhQEPdAPE';  // <-- REPLACE
-  const CLIENT_ID = '904948577360-i2423vutrhapi3n6f4ksc47vfgbqh6al.apps.googleusercontent.com'; // <-- REPLACE
+  const API_KEY = 'YOUR_API_KEY';  // <-- REPLACE
+  const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; // <-- REPLACE
   const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+
+  // The folder ID you provided
+  const FOLDER_ID = '1lP94Am892vc2_fYNp6MgcPh-2ZDpGFYW';
 
   let pickerApiLoaded = false;
   let oauthToken;
@@ -653,8 +656,13 @@
 
   function createPicker() {
     if (pickerApiLoaded && oauthToken) {
+      // Create a view restricted to the specified folder
+      const driveView = new google.picker.DocsView()
+        .setParent(FOLDER_ID)          // Show only files from this folder
+        .setIncludeFolders(true);       // Also show subfolders if needed
+
       const picker = new google.picker.PickerBuilder()
-        .addView(google.picker.ViewId.DOCS) // All files
+        .addView(driveView)
         .setOAuthToken(oauthToken)
         .setDeveloperKey(API_KEY)
         .setCallback(pickerCallback)
