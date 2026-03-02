@@ -11,8 +11,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
   <!-- Firebase Messaging -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
-  <!-- Google API (for Drive Picker) -->
-  <script src="https://apis.google.com/js/api.js"></script>
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -425,14 +423,6 @@
       display: inline-block;
       font-weight: 600;
     }
-
-    /* Admin event form */
-    .admin-event-form {
-      background: #0f2d27;
-      border-radius: 24px;
-      padding: 18px;
-      margin-bottom: 24px;
-    }
   </style>
 </head>
 <body>
@@ -447,23 +437,9 @@
 
 <div class="section">
 
-  <!-- EVENTS CARD (with optional admin form) -->
+  <!-- EVENTS CARD -->
   <div class="card">
     <h3><i class="fa-regular fa-calendar"></i> Events</h3>
-    <!-- Admin-only event creation form (hidden by default) -->
-    <div id="adminEventForm" class="admin-event-form" style="display: none;">
-      <h4 style="color:#8cffe0;">➕ Add New Event</h4>
-      <input type="text" id="eventTitle" placeholder="Event Title">
-      <textarea id="eventDesc" placeholder="Event Description"></textarea>
-      <input type="text" id="eventDate" placeholder="Date (e.g., March 15, 2025)">
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <input type="text" id="eventMediaUrl" placeholder="Media URL (auto-filled)" readonly style="flex:1;">
-        <button onclick="openGooglePicker()" style="white-space: nowrap;">📁 Drive</button>
-      </div>
-      <button onclick="createEvent()" style="margin-top: 8px;">Create Event</button>
-      <hr style="border-color:#2a6b5f; margin:16px 0;">
-    </div>
-    <!-- Events list -->
     <div id="eventArea"></div>
   </div>
 
@@ -820,18 +796,10 @@ function formatRelativeTime(ts) {
           <button onclick="logout()">Logout</button>
           ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
         `;
-        // Show admin event form if user is admin
-        const adminForm = document.getElementById('adminEventForm');
-        if (adminForm) {
-          adminForm.style.display = isAdmin ? 'block' : 'none';
-        }
         setupNotifications();
       }).catch(showError);
     } else {
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
-      // Hide admin event form
-      const adminForm = document.getElementById('adminEventForm');
-      if (adminForm) adminForm.style.display = 'none';
     }
   });
 
@@ -1500,112 +1468,6 @@ unreadQuery.get().then(snapshot => {
       inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
     });
 }
-
-  // ---------- GOOGLE DRIVE PICKER (for admin events) ----------
-  // Replace with your actual API key and client ID
-  const API_KEY = 'AIzaSyCKpCYOgmtaoRy_4_WSY65FOZyhQEPdAPE';  // <-- REPLACE
-  const CLIENT_ID = '904948577360-i2423vutrhapi3n6f4ksc47vfgbqh6al.apps.googleusercontent.com'; // <-- REPLACE
-  const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
-
-  let pickerApiLoaded = false;
-  let oauthToken;
-
-  window.openGooglePicker = function() {
-    if (!currentUser) {
-      alert('Please log in as admin first.');
-      return;
-    }
-    gapi.load('auth', { callback: onAuthApiLoad });
-    gapi.load('picker', { callback: onPickerApiLoad });
-  };
-
-  function onAuthApiLoad() {
-    gapi.auth.authorize(
-      {
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        immediate: false,
-      },
-      handleAuthResult
-    );
-  }
-
-  function onPickerApiLoad() {
-    pickerApiLoaded = true;
-    createPicker();
-  }
-
-  function handleAuthResult(authResult) {
-    if (authResult && !authResult.error) {
-      oauthToken = authResult.access_token;
-      createPicker();
-    } else {
-      alert('Authorization failed: ' + (authResult?.error || 'unknown error'));
-    }
-  }
-
-  function createPicker() {
-    if (pickerApiLoaded && oauthToken) {
-      const picker = new google.picker.PickerBuilder()
-        .addView(google.picker.ViewId.DOCS) // All files
-        .setOAuthToken(oauthToken)
-        .setDeveloperKey(API_KEY)
-        .setCallback(pickerCallback)
-        .build();
-      picker.setVisible(true);
-    }
-  }
-
-  function pickerCallback(data) {
-    if (data.action === google.picker.Action.PICKED) {
-      const doc = data.docs[0];
-      // Construct an embed URL for images: https://drive.google.com/uc?id=FILE_ID
-      // For other files, we'll store the viewer URL – parseContent will handle it as a link.
-      const fileId = doc.id;
-      // Check if it's an image (by mime type) – if so, use embed URL.
-      const isImage = doc.mimeType && doc.mimeType.startsWith('image/');
-      const mediaUrl = isImage ? `https://drive.google.com/uc?id=${fileId}` : doc.url;
-      document.getElementById('eventMediaUrl').value = mediaUrl;
-    }
-  }
-
-  // ---------- CREATE EVENT (admin) ----------
-  window.createEvent = function() {
-    if (!currentUser) return alert('Login required');
-    // Optionally verify admin again
-    const title = document.getElementById('eventTitle').value.trim();
-    const desc = document.getElementById('eventDesc').value.trim();
-    const date = document.getElementById('eventDate').value.trim();
-    const mediaUrl = document.getElementById('eventMediaUrl').value.trim();
-
-    if (!title) return alert('Title is required');
-
-    const eventData = {
-      title,
-      description: desc,
-      date,
-      created: Date.now()
-    };
-    if (mediaUrl) {
-      // If it looks like an image, store in 'image' field, else 'video'
-      if (mediaUrl.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || mediaUrl.includes('drive.google.com/uc?')) {
-        eventData.image = mediaUrl;
-      } else {
-        eventData.video = mediaUrl;
-      }
-    }
-
-    db.collection('events').add(eventData)
-      .then(() => {
-        // Clear form
-        document.getElementById('eventTitle').value = '';
-        document.getElementById('eventDesc').value = '';
-        document.getElementById('eventDate').value = '';
-        document.getElementById('eventMediaUrl').value = '';
-        alert('Event created!');
-      })
-      .catch(showError);
-  };
 
   // Click outside modal to close
   window.onclick = function(event) {
