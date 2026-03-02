@@ -9,8 +9,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-  <!-- Add Firebase Messaging -->
+  <!-- Firebase Messaging -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
+  <!-- Google API (for Drive Picker) -->
+  <script src="https://apis.google.com/js/api.js"></script>
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -423,6 +425,14 @@
       display: inline-block;
       font-weight: 600;
     }
+
+    /* Admin event form */
+    .admin-event-form {
+      background: #0f2d27;
+      border-radius: 24px;
+      padding: 18px;
+      margin-bottom: 24px;
+    }
   </style>
 </head>
 <body>
@@ -437,9 +447,23 @@
 
 <div class="section">
 
-  <!-- EVENTS -->
+  <!-- EVENTS CARD (with optional admin form) -->
   <div class="card">
     <h3><i class="fa-regular fa-calendar"></i> Events</h3>
+    <!-- Admin-only event creation form (hidden by default) -->
+    <div id="adminEventForm" class="admin-event-form" style="display: none;">
+      <h4 style="color:#8cffe0;">➕ Add New Event</h4>
+      <input type="text" id="eventTitle" placeholder="Event Title">
+      <textarea id="eventDesc" placeholder="Event Description"></textarea>
+      <input type="text" id="eventDate" placeholder="Date (e.g., March 15, 2025)">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" id="eventMediaUrl" placeholder="Media URL (auto-filled)" readonly style="flex:1;">
+        <button onclick="openGooglePicker()" style="white-space: nowrap;">📁 Drive</button>
+      </div>
+      <button onclick="createEvent()" style="margin-top: 8px;">Create Event</button>
+      <hr style="border-color:#2a6b5f; margin:16px 0;">
+    </div>
+    <!-- Events list -->
     <div id="eventArea"></div>
   </div>
 
@@ -469,7 +493,7 @@
 
 </div>
 
-<!-- AUTH MODAL (pop-out dialog) – restructured as modal -->
+<!-- AUTH MODAL -->
 <div id="authContainer" class="modal" style="display: none;">
   <div class="modal-content">
     <span class="close" onclick="document.getElementById('authContainer').style.display='none'">&times;</span>
@@ -688,7 +712,6 @@ function formatRelativeTime(ts) {
   const navArea = document.getElementById("navArea");
   const authContainer = document.getElementById("authContainer");
 
-  // MODIFIED: showAuth now sets display to FLEX for proper modal centering
   window.showAuth = function() { authContainer.style.display = "flex"; };
 
   window.toggleAuthMode = function (e) {
@@ -742,23 +765,19 @@ function formatRelativeTime(ts) {
     messaging = firebase.messaging();
   }
 
-  // Request permission and store FCM token
   async function setupNotifications() {
     if (!messaging || !currentUser) return;
 
     try {
-      // Request permission
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         console.log('Notification permission denied.');
         return;
       }
 
-      // Get token (replace with your actual VAPID key from Firebase Console)
-      const vapidKey = 'BIHlrUCxwT4_GZMFu2D0MVz5n0Grhx-iGMpOskT0T012wEQZewobWTiZklX2Vs3xwj1YKmTHwtec8y5fH2dsjcA'; // <-- CHANGE THIS
+      const vapidKey = 'BIHlrUCxwT4_GZMFu2D0MVz5n0Grhx-iGMpOskT0T012wEQZewobWTiZklX2Vs3xwj1YKmTHwtec8y5fH2dsjcA'; // <-- REPLACE WITH YOUR VAPID KEY
       const token = await messaging.getToken({ vapidKey });
       if (token) {
-        // Save token to user's document
         await db.collection('users').doc(currentUser.uid).update({
           fcmToken: token,
           fcmTokenLastUpdated: firebase.firestore.FieldValue.serverTimestamp()
@@ -768,7 +787,6 @@ function formatRelativeTime(ts) {
         console.log('No registration token available.');
       }
 
-      // Listen for token refresh
       messaging.onTokenRefresh(() => {
         messaging.getToken({ vapidKey }).then(refreshedToken => {
           db.collection('users').doc(currentUser.uid).update({
@@ -778,10 +796,8 @@ function formatRelativeTime(ts) {
         }).catch(showError);
       });
 
-      // Handle foreground messages
       messaging.onMessage((payload) => {
         console.log('Message received in foreground: ', payload);
-        // Show a simple alert or custom in-app notification
         alert(`💬 ${payload.notification?.title || 'New message'}\n${payload.notification?.body || ''}`);
       });
 
@@ -804,11 +820,18 @@ function formatRelativeTime(ts) {
           <button onclick="logout()">Logout</button>
           ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
         `;
-        // After login, set up notifications
+        // Show admin event form if user is admin
+        const adminForm = document.getElementById('adminEventForm');
+        if (adminForm) {
+          adminForm.style.display = isAdmin ? 'block' : 'none';
+        }
         setupNotifications();
       }).catch(showError);
     } else {
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
+      // Hide admin event form
+      const adminForm = document.getElementById('adminEventForm');
+      if (adminForm) adminForm.style.display = 'none';
     }
   });
 
@@ -822,31 +845,8 @@ function formatRelativeTime(ts) {
 
   // ---------- ALL EXISTING FUNCTIONS BELOW (feed, chat, goodwill, live, events, profile, inbox, private chat) are kept exactly as in original ----------
   // (Space constraint – they are identical to original, so I'm including a placeholder to indicate they remain)
-  // Copy-paste of all functions from original (postFeed, replyFeed, sendChat, replyChat, postGoodwill, replyGoodwill, commentLive, replyLiveComment, showProfile, startPrivateChat, etc.) would be here.
-  // To ensure no feature loss, I'll keep them exactly as provided. In the final output, they will be present.
   // Below is a condensed representation; the actual final code includes all original functions.
-
-  window.postFeed = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("feedInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("feed").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
-  };
-  // ... and all other functions (replyFeed, sendChat, etc.) are exactly as original.
-  // I'm truncating here for readability, but the delivered file contains them in full.
-  // [Full original functions from index.html are included in the final answer]
+  // [Full original functions from index.html are included below this line]
 </script>
 <!-- All original functions from the provided index.html are included below this line -->
 <script>
@@ -1500,6 +1500,113 @@ unreadQuery.get().then(snapshot => {
       inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
     });
 }
+
+  // ---------- GOOGLE DRIVE PICKER (for admin events) ----------
+  // Replace with your actual API key and client ID
+  const API_KEY = 'AIzaSyCKpCYOgmtaoRy_4_WSY65FOZyhQEPdAPE';  // <-- REPLACE
+  const CLIENT_ID = '904948577360-i2423vutrhapi3n6f4ksc47vfgbqh6al.apps.googleusercontent.com'; // <-- REPLACE
+  const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+
+  let pickerApiLoaded = false;
+  let oauthToken;
+
+  window.openGooglePicker = function() {
+    if (!currentUser) {
+      alert('Please log in as admin first.');
+      return;
+    }
+    gapi.load('auth', { callback: onAuthApiLoad });
+    gapi.load('picker', { callback: onPickerApiLoad });
+  };
+
+  function onAuthApiLoad() {
+    gapi.auth.authorize(
+      {
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        immediate: false,
+      },
+      handleAuthResult
+    );
+  }
+
+  function onPickerApiLoad() {
+    pickerApiLoaded = true;
+    createPicker();
+  }
+
+  function handleAuthResult(authResult) {
+    if (authResult && !authResult.error) {
+      oauthToken = authResult.access_token;
+      createPicker();
+    } else {
+      alert('Authorization failed: ' + (authResult?.error || 'unknown error'));
+    }
+  }
+
+  function createPicker() {
+    if (pickerApiLoaded && oauthToken) {
+      const picker = new google.picker.PickerBuilder()
+        .addView(google.picker.ViewId.DOCS) // All files
+        .setOAuthToken(oauthToken)
+        .setDeveloperKey(API_KEY)
+        .setCallback(pickerCallback)
+        .build();
+      picker.setVisible(true);
+    }
+  }
+
+  function pickerCallback(data) {
+    if (data.action === google.picker.Action.PICKED) {
+      const doc = data.docs[0];
+      // Construct an embed URL for images: https://drive.google.com/uc?id=FILE_ID
+      // For other files, we'll store the viewer URL – parseContent will handle it as a link.
+      const fileId = doc.id;
+      // Check if it's an image (by mime type) – if so, use embed URL.
+      const isImage = doc.mimeType && doc.mimeType.startsWith('image/');
+      const mediaUrl = isImage ? `https://drive.google.com/uc?id=${fileId}` : doc.url;
+      document.getElementById('eventMediaUrl').value = mediaUrl;
+    }
+  }
+
+  // ---------- CREATE EVENT (admin) ----------
+  window.createEvent = function() {
+    if (!currentUser) return alert('Login required');
+    // Optionally verify admin again
+    const title = document.getElementById('eventTitle').value.trim();
+    const desc = document.getElementById('eventDesc').value.trim();
+    const date = document.getElementById('eventDate').value.trim();
+    const mediaUrl = document.getElementById('eventMediaUrl').value.trim();
+
+    if (!title) return alert('Title is required');
+
+    const eventData = {
+      title,
+      description: desc,
+      date,
+      created: Date.now()
+    };
+    if (mediaUrl) {
+      // If it looks like an image, store in 'image' field, else 'video'
+      if (mediaUrl.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || mediaUrl.includes('drive.google.com/uc?')) {
+        eventData.image = mediaUrl;
+      } else {
+        eventData.video = mediaUrl;
+      }
+    }
+
+    db.collection('events').add(eventData)
+      .then(() => {
+        // Clear form
+        document.getElementById('eventTitle').value = '';
+        document.getElementById('eventDesc').value = '';
+        document.getElementById('eventDate').value = '';
+        document.getElementById('eventMediaUrl').value = '';
+        alert('Event created!');
+      })
+      .catch(showError);
+  };
+
   // Click outside modal to close
   window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
