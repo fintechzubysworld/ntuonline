@@ -64,3 +64,28 @@ self.addEventListener('activate', event => {
     })
   );
 });
+// sw.js
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+  authDomain: "ntudioka-online-c29d8.firebaseapp.com",
+  projectId: "ntudioka-online-c29d8",
+  storageBucket: "ntudioka-online-c29d8.firebasestorage.app",
+  messagingSenderId: "1015621578149",
+  appId: "1:1015621578149:web:c755b458e505fd32928c4c"
+});
+
+const messaging = firebase.messaging();
+
+// Handle background notifications
+messaging.onBackgroundMessage((payload) => {
+  console.log('[sw.js] Received background message ', payload);
+  const notificationTitle = payload.notification?.title || 'New message';
+  const notificationOptions = {
+    body: payload.notification?.body || 'You have a new notification',
+    icon: '/icon.png',  // optional: path to your app icon
+  };
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
