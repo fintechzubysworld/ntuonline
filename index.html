@@ -801,21 +801,7 @@ document.addEventListener('contextmenu', function(e) {
     return unsafe.replace(/[&<>"']/g, function(m) {
       if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
     });
-    document.addEventListener('contextmenu', function(e) {
-  const media = e.target.closest('.embedded-media img, .embedded-media video, .embedded-media audio');
-  if (media) {
-    e.preventDefault();
-    return false;
-  }
-});
 
-document.addEventListener('dblclick', function(e) {
-  const media = e.target.closest('.embedded-media img, .embedded-media video, .embedded-media audio');
-  if (media) {
-    e.preventDefault();
-    return false;
-  }
-  }
   // ==================== END parseContent ====================
 
   function formatTimestamp(ts) {
@@ -1784,6 +1770,7 @@ window.postFeed = function () {
 </script>
 </body>
 </html>
+
 
 
 
