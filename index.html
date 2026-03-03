@@ -424,56 +424,6 @@
       font-weight: 600;
     }
 
-    /* Link modal (for external links) */
-    #linkModal .modal-content {
-      max-width: 90vw;
-      width: 90vw;
-      height: 90vh;
-      padding: 0;
-      background: transparent;
-      border: none;
-    }
-    #linkModal iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 48px;
-      background: #1b423b;
-    }
-    #linkModal .close {
-      top: 10px;
-      right: 10px;
-      background: #1f8f7c;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      color: white;
-    }
-    #linkFallback {
-      display: none;
-      width: 100%;
-      height: 100%;
-      background: #1b423b;
-      border-radius: 48px;
-      padding: 40px;
-      text-align: center;
-      color: white;
-    }
-    #linkFallback a {
-      background: #2dab95;
-      color: white;
-      padding: 12px 24px;
-      border-radius: 40px;
-      text-decoration: none;
-      font-weight: 600;
-      display: inline-block;
-      margin-top: 20px;
-    }
-
     /* Search results for private chat */
     .user-result {
       background: #0f332d;
@@ -549,7 +499,7 @@
     <div id="goodwillArea"></div>
   </div>
 
-  <!-- NEW: PRIVATE CHAT -->
+  <!-- PRIVATE CHAT -->
   <div class="card">
     <h3><i class="fa-regular fa-comments"></i> Start Private Chat</h3>
     <input type="text" id="searchUserInput" placeholder="Search by name or email...">
@@ -611,18 +561,6 @@
   </div>
 </div>
 
-<!-- Link Modal (for external links) -->
-<div id="linkModal" class="modal" style="display:none;">
-  <div class="modal-content" style="position: relative; padding: 0; background: transparent; border: none;">
-    <span class="close" onclick="closeLinkModal()">&times;</span>
-    <iframe id="linkIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation" allowfullscreen></iframe>
-    <div id="linkFallback">
-      <p style="margin-bottom: 20px;">🔒 This site cannot be embedded due to its security settings.</p>
-      <a id="fallbackLink" href="#" target="_blank" rel="noopener">Open in New Tab</a>
-    </div>
-  </div>
-</div>
-
 <script>
   // Firebase config
   const firebaseConfig = {
@@ -638,59 +576,6 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   let currentUser = null;
-
-  // ==================== LINK HANDLER ====================
-  function openLinkInModal(url) {
-    const iframe = document.getElementById('linkIframe');
-    const fallback = document.getElementById('linkFallback');
-    const fallbackLink = document.getElementById('fallbackLink');
-    fallback.style.display = 'none';
-    iframe.style.display = 'block';
-    iframe.src = url;
-    fallbackLink.href = url;
-    iframe.onerror = function() {
-      iframe.style.display = 'none';
-      fallback.style.display = 'flex';
-      fallback.style.flexDirection = 'column';
-      fallback.style.alignItems = 'center';
-      fallback.style.justifyContent = 'center';
-    };
-    setTimeout(function() {
-      try {
-        if (iframe.contentDocument && iframe.contentDocument.body && iframe.contentDocument.body.children.length === 0) {
-          iframe.style.display = 'none';
-          fallback.style.display = 'flex';
-          fallback.style.flexDirection = 'column';
-          fallback.style.alignItems = 'center';
-          fallback.style.justifyContent = 'center';
-        }
-      } catch (e) {}
-    }, 2000);
-    document.getElementById('linkModal').style.display = 'flex';
-  }
-
-  window.closeLinkModal = function() {
-    document.getElementById('linkModal').style.display = 'none';
-    document.getElementById('linkIframe').src = 'about:blank';
-    document.getElementById('linkFallback').style.display = 'none';
-  };
-
-  // Intercept clicks on all links (except those with special classes)
-  document.addEventListener('click', function(e) {
-    let target = e.target.closest('a');
-    if (!target) return;
-    if (target.classList.contains('clickable-name')) return;
-    if (target.getAttribute('href') && target.getAttribute('href').startsWith('#')) return;
-    if (e.target.closest('button')) return;
-    if (target.closest('.event-item')) return; // events open normally
-
-    const href = target.getAttribute('href');
-    if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
-      e.preventDefault();
-      openLinkInModal(href);
-    }
-  });
-  // ==================== END LINK HANDLER ====================
 
   // ==================== ENHANCED parseContent ====================
   function parseContent(text) {
@@ -726,6 +611,7 @@
       } else if (part.type === 'embed') {
         html += part.html;
       } else if (part.type === 'link') {
+        // Plain link – opens in new tab normally (no modal)
         html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#8cffe0;">${part.content}</a>`;
       }
     });
@@ -745,12 +631,14 @@
     const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
     if (driveMatch) {
       const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
+      // If it's an image, use direct image URL
       if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || url.includes('uc?id=')) {
         return {
           type: 'embed',
           html: `<div class="embedded-media"><img src="https://drive.google.com/uc?id=${fileId}" alt="Google Drive image" loading="lazy"></div>`
         };
       } else {
+        // Assume video or other – use preview iframe
         return {
           type: 'embed',
           html: `<div class="embedded-media"><iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen></iframe></div>`
@@ -1667,13 +1555,12 @@
     const resultsDiv = document.getElementById('userSearchResults');
     resultsDiv.innerHTML = '<p style="text-align:center;">Searching...</p>';
 
-    // Search by name or email (case-insensitive)
     db.collection('users')
       .get()
       .then(snapshot => {
         const users = [];
         snapshot.forEach(doc => {
-          if (doc.id === currentUser.uid) return; // exclude self
+          if (doc.id === currentUser.uid) return;
           const data = doc.data();
           const name = (data.name || '').toLowerCase();
           const email = (data.email || '').toLowerCase();
@@ -1714,9 +1601,6 @@
         unsubscribeRoomMessages();
         unsubscribeRoomMessages = null;
         activeChatRoomId = null;
-      }
-      if (event.target.id === 'linkModal') {
-        closeLinkModal();
       }
     }
   };
