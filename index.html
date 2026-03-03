@@ -505,11 +505,9 @@
       font-size: 0.7rem;
       color: #8cffe0;
     }
-  /* Make feed images completely non-interactive */
-.feed-item .embedded-media img {
+
+    .feed-item .embedded-media img {
   pointer-events: none;
-  -webkit-user-select: none;
-  user-select: none;
 }
   </style>
 </head>
@@ -696,13 +694,6 @@
       openLinkInModal(href);
     }
   });
-  // Prevent context menu (right-click) on feed images
-document.addEventListener('contextmenu', function(e) {
-  if (e.target.closest('.feed-item .embedded-media img')) {
-    e.preventDefault();
-    return false;
-  }
-});
   // ==================== END LINK HANDLER ====================
 
   // ==================== ENHANCED parseContent ====================
@@ -794,13 +785,20 @@ document.addEventListener('contextmenu', function(e) {
 
     return { type: 'link', content: url };
   }
-// Prevent any interactive behaviour on media inside posts
-
+  document.addEventListener('contextmenu', function(e) {
+  if (e.target.closest('.feed-item .embedded-media img, .feed-item .embedded-media video')) {
+    e.preventDefault();
+    return false;
+  }
 });
+
   function escapeHtml(unsafe) {
     return unsafe.replace(/[&<>"']/g, function(m) {
       if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
     });
+  }
+
+  // Prevent right-click on feed media to avoid opening in new tab
 
   // ==================== END parseContent ====================
 
@@ -1770,9 +1768,3 @@ window.postFeed = function () {
 </script>
 </body>
 </html>
-
-
-
-
-
-
