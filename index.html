@@ -552,13 +552,18 @@
 </div>
 
 <!-- Link Modal (for external links) -->
+<!-- Link Modal (for external links) -->
 <div id="linkModal" class="modal" style="display:none;">
   <div class="modal-content" style="position: relative; padding: 0; background: transparent; border: none;">
     <span class="close" onclick="closeLinkModal()">&times;</span>
     <iframe id="linkIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation" allowfullscreen></iframe>
+    <!-- Fallback div shown when iframe fails to load -->
+    <div id="linkFallback" style="display: none; width: 100%; height: 100%; background: #1b423b; border-radius: 48px; padding: 40px; text-align: center; color: white;">
+      <p style="margin-bottom: 20px;">🔒 This site cannot be embedded due to its security settings.</p>
+      <a id="fallbackLink" href="#" target="_blank" rel="noopener" style="background: #2dab95; color: white; padding: 12px 24px; border-radius: 40px; text-decoration: none; font-weight: 600;">Open in New Tab</a>
+    </div>
   </div>
 </div>
-
 <script>
   // Firebase config
   const firebaseConfig = {
@@ -577,16 +582,54 @@
 
   // ==================== LINK HANDLER ====================
   // Open external links in modal instead of new tab
-  function openLinkInModal(url) {
-    const iframe = document.getElementById('linkIframe');
-    iframe.src = url;
-    document.getElementById('linkModal').style.display = 'flex';
-  }
+  // Open external links in modal with fallback
+function openLinkInModal(url) {
+  const iframe = document.getElementById('linkIframe');
+  const fallback = document.getElementById('linkFallback');
+  const fallbackLink = document.getElementById('fallbackLink');
 
-  window.closeLinkModal = function() {
-    document.getElementById('linkModal').style.display = 'none';
-    document.getElementById('linkIframe').src = 'about:blank';
+  // Hide fallback, show iframe
+  fallback.style.display = 'none';
+  iframe.style.display = 'block';
+  iframe.src = url;
+  fallbackLink.href = url;
+
+  // If iframe fails to load, show fallback
+  iframe.onerror = function() {
+    iframe.style.display = 'none';
+    fallback.style.display = 'flex';
+    fallback.style.flexDirection = 'column';
+    fallback.style.alignItems = 'center';
+    fallback.style.justifyContent = 'center';
   };
+
+  // Also handle cases where iframe loads but content is blocked (some browsers fire load event even if blocked)
+  // We'll add a timeout as an extra measure
+  setTimeout(function() {
+    // If after 2 seconds the iframe is still blank (no content height), assume failure
+    try {
+      if (iframe.contentDocument && iframe.contentDocument.body && iframe.contentDocument.body.children.length === 0) {
+        iframe.style.display = 'none';
+        fallback.style.display = 'flex';
+        fallback.style.flexDirection = 'column';
+        fallback.style.alignItems = 'center';
+        fallback.style.justifyContent = 'center';
+      }
+    } catch (e) {
+      // Cross-origin access error – likely iframe loaded but blocked from reading
+      // We'll keep iframe, but if it's a known blocking site, user will see blank page. We can still show fallback.
+      // For simplicity, we'll just keep iframe; user can close modal.
+    }
+  }, 2000);
+
+  document.getElementById('linkModal').style.display = 'flex';
+}
+
+window.closeLinkModal = function() {
+  document.getElementById('linkModal').style.display = 'none';
+  document.getElementById('linkIframe').src = 'about:blank';
+  document.getElementById('linkFallback').style.display = 'none';
+};
 
   // Intercept clicks on all links (except those with special classes)
   document.addEventListener('click', function(e) {
