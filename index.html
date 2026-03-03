@@ -453,6 +453,58 @@
       font-size: 24px;
       color: white;
     }
+    #linkFallback {
+      display: none;
+      width: 100%;
+      height: 100%;
+      background: #1b423b;
+      border-radius: 48px;
+      padding: 40px;
+      text-align: center;
+      color: white;
+    }
+    #linkFallback a {
+      background: #2dab95;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 40px;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-block;
+      margin-top: 20px;
+    }
+
+    /* Search results for private chat */
+    .user-result {
+      background: #0f332d;
+      border-radius: 40px;
+      padding: 12px 18px;
+      margin: 8px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .user-result:hover {
+      background: #1f6a5e;
+    }
+    .user-result-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .user-result-name {
+      font-weight: 600;
+      color: #64ffda;
+    }
+    .user-result-email {
+      font-size: 0.8rem;
+      color: #b0ddd4;
+    }
+    .user-result-status {
+      font-size: 0.7rem;
+      color: #8cffe0;
+    }
   </style>
 </head>
 <body>
@@ -495,6 +547,14 @@
     <textarea id="goodwillInput" placeholder="Write a goodwill message..."></textarea>
     <button onclick="postGoodwill()"><i class="fa-regular fa-heart"></i> Post</button>
     <div id="goodwillArea"></div>
+  </div>
+
+  <!-- NEW: PRIVATE CHAT -->
+  <div class="card">
+    <h3><i class="fa-regular fa-comments"></i> Start Private Chat</h3>
+    <input type="text" id="searchUserInput" placeholder="Search by name or email...">
+    <button onclick="searchUsers()"><i class="fa-regular fa-magnifying-glass"></i> Search</button>
+    <div id="userSearchResults"></div>
   </div>
 
 </div>
@@ -552,18 +612,17 @@
 </div>
 
 <!-- Link Modal (for external links) -->
-<!-- Link Modal (for external links) -->
 <div id="linkModal" class="modal" style="display:none;">
   <div class="modal-content" style="position: relative; padding: 0; background: transparent; border: none;">
     <span class="close" onclick="closeLinkModal()">&times;</span>
     <iframe id="linkIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation" allowfullscreen></iframe>
-    <!-- Fallback div shown when iframe fails to load -->
-    <div id="linkFallback" style="display: none; width: 100%; height: 100%; background: #1b423b; border-radius: 48px; padding: 40px; text-align: center; color: white;">
+    <div id="linkFallback">
       <p style="margin-bottom: 20px;">🔒 This site cannot be embedded due to its security settings.</p>
-      <a id="fallbackLink" href="#" target="_blank" rel="noopener" style="background: #2dab95; color: white; padding: 12px 24px; border-radius: 40px; text-decoration: none; font-weight: 600;">Open in New Tab</a>
+      <a id="fallbackLink" href="#" target="_blank" rel="noopener">Open in New Tab</a>
     </div>
   </div>
 </div>
+
 <script>
   // Firebase config
   const firebaseConfig = {
@@ -581,67 +640,50 @@
   let currentUser = null;
 
   // ==================== LINK HANDLER ====================
-  // Open external links in modal instead of new tab
-  // Open external links in modal with fallback
-function openLinkInModal(url) {
-  const iframe = document.getElementById('linkIframe');
-  const fallback = document.getElementById('linkFallback');
-  const fallbackLink = document.getElementById('fallbackLink');
+  function openLinkInModal(url) {
+    const iframe = document.getElementById('linkIframe');
+    const fallback = document.getElementById('linkFallback');
+    const fallbackLink = document.getElementById('fallbackLink');
+    fallback.style.display = 'none';
+    iframe.style.display = 'block';
+    iframe.src = url;
+    fallbackLink.href = url;
+    iframe.onerror = function() {
+      iframe.style.display = 'none';
+      fallback.style.display = 'flex';
+      fallback.style.flexDirection = 'column';
+      fallback.style.alignItems = 'center';
+      fallback.style.justifyContent = 'center';
+    };
+    setTimeout(function() {
+      try {
+        if (iframe.contentDocument && iframe.contentDocument.body && iframe.contentDocument.body.children.length === 0) {
+          iframe.style.display = 'none';
+          fallback.style.display = 'flex';
+          fallback.style.flexDirection = 'column';
+          fallback.style.alignItems = 'center';
+          fallback.style.justifyContent = 'center';
+        }
+      } catch (e) {}
+    }, 2000);
+    document.getElementById('linkModal').style.display = 'flex';
+  }
 
-  // Hide fallback, show iframe
-  fallback.style.display = 'none';
-  iframe.style.display = 'block';
-  iframe.src = url;
-  fallbackLink.href = url;
-
-  // If iframe fails to load, show fallback
-  iframe.onerror = function() {
-    iframe.style.display = 'none';
-    fallback.style.display = 'flex';
-    fallback.style.flexDirection = 'column';
-    fallback.style.alignItems = 'center';
-    fallback.style.justifyContent = 'center';
+  window.closeLinkModal = function() {
+    document.getElementById('linkModal').style.display = 'none';
+    document.getElementById('linkIframe').src = 'about:blank';
+    document.getElementById('linkFallback').style.display = 'none';
   };
-
-  // Also handle cases where iframe loads but content is blocked (some browsers fire load event even if blocked)
-  // We'll add a timeout as an extra measure
-  setTimeout(function() {
-    // If after 2 seconds the iframe is still blank (no content height), assume failure
-    try {
-      if (iframe.contentDocument && iframe.contentDocument.body && iframe.contentDocument.body.children.length === 0) {
-        iframe.style.display = 'none';
-        fallback.style.display = 'flex';
-        fallback.style.flexDirection = 'column';
-        fallback.style.alignItems = 'center';
-        fallback.style.justifyContent = 'center';
-      }
-    } catch (e) {
-      // Cross-origin access error – likely iframe loaded but blocked from reading
-      // We'll keep iframe, but if it's a known blocking site, user will see blank page. We can still show fallback.
-      // For simplicity, we'll just keep iframe; user can close modal.
-    }
-  }, 2000);
-
-  document.getElementById('linkModal').style.display = 'flex';
-}
-
-window.closeLinkModal = function() {
-  document.getElementById('linkModal').style.display = 'none';
-  document.getElementById('linkIframe').src = 'about:blank';
-  document.getElementById('linkFallback').style.display = 'none';
-};
 
   // Intercept clicks on all links (except those with special classes)
   document.addEventListener('click', function(e) {
     let target = e.target.closest('a');
     if (!target) return;
-    // If it's a clickable-name (profile) or internal link, let it behave normally
     if (target.classList.contains('clickable-name')) return;
     if (target.getAttribute('href') && target.getAttribute('href').startsWith('#')) return;
-    // If it's a button inside a link (like reaction button), ignore
     if (e.target.closest('button')) return;
+    if (target.closest('.event-item')) return; // events open normally
 
-    // Check if it's an external link (different origin)
     const href = target.getAttribute('href');
     if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
       e.preventDefault();
@@ -684,7 +726,6 @@ window.closeLinkModal = function() {
       } else if (part.type === 'embed') {
         html += part.html;
       } else if (part.type === 'link') {
-        // Use a normal link – our global click handler will open it in the modal
         html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#8cffe0;">${part.content}</a>`;
       }
     });
@@ -693,7 +734,6 @@ window.closeLinkModal = function() {
   }
 
   function detectAndEmbed(url) {
-    // 1. YouTube
     const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) {
       return {
@@ -702,18 +742,15 @@ window.closeLinkModal = function() {
       };
     }
 
-    // 2. Google Drive
     const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
     if (driveMatch) {
       const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
-      // If it's an image, use direct image URL
       if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || url.includes('uc?id=')) {
         return {
           type: 'embed',
           html: `<div class="embedded-media"><img src="https://drive.google.com/uc?id=${fileId}" alt="Google Drive image" loading="lazy"></div>`
         };
       } else {
-        // Assume video or other – use preview iframe
         return {
           type: 'embed',
           html: `<div class="embedded-media"><iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen></iframe></div>`
@@ -721,7 +758,6 @@ window.closeLinkModal = function() {
       }
     }
 
-    // 3. Direct image
     if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i)) {
       return {
         type: 'embed',
@@ -729,7 +765,6 @@ window.closeLinkModal = function() {
       };
     }
 
-    // 4. Direct video
     if (url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i)) {
       return {
         type: 'embed',
@@ -737,7 +772,6 @@ window.closeLinkModal = function() {
       };
     }
 
-    // 5. Direct audio
     if (url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i)) {
       return {
         type: 'embed',
@@ -745,7 +779,6 @@ window.closeLinkModal = function() {
       };
     }
 
-    // 6. Otherwise, treat as a plain link
     return { type: 'link', content: url };
   }
 
@@ -756,7 +789,6 @@ window.closeLinkModal = function() {
   }
   // ==================== END parseContent ====================
 
-  // Safely format timestamp to locale string
   function formatTimestamp(ts) {
     if (!ts) return '';
     try {
@@ -768,7 +800,6 @@ window.closeLinkModal = function() {
     }
   }
 
-  // Safely format relative time (e.g., "2h ago")
   function formatRelativeTime(ts) {
     if (!ts) return '';
     try {
@@ -784,7 +815,6 @@ window.closeLinkModal = function() {
     }
   }
 
-  // reaction UI (unchanged)
   function addReactionUI(targetType, targetId, container) {
     const reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
@@ -1628,7 +1658,55 @@ window.closeLinkModal = function() {
       });
   }
 
-  // Click outside modal to close
+  // ---------- SEARCH USERS FOR PRIVATE CHAT ----------
+  window.searchUsers = function() {
+    if (!currentUser) return alert('Please log in first.');
+    const query = document.getElementById('searchUserInput').value.trim().toLowerCase();
+    if (!query) return;
+
+    const resultsDiv = document.getElementById('userSearchResults');
+    resultsDiv.innerHTML = '<p style="text-align:center;">Searching...</p>';
+
+    // Search by name or email (case-insensitive)
+    db.collection('users')
+      .get()
+      .then(snapshot => {
+        const users = [];
+        snapshot.forEach(doc => {
+          if (doc.id === currentUser.uid) return; // exclude self
+          const data = doc.data();
+          const name = (data.name || '').toLowerCase();
+          const email = (data.email || '').toLowerCase();
+          if (name.includes(query) || email.includes(query)) {
+            users.push({ id: doc.id, ...data });
+          }
+        });
+
+        if (users.length === 0) {
+          resultsDiv.innerHTML = '<p style="text-align:center;">No users found.</p>';
+          return;
+        }
+
+        resultsDiv.innerHTML = '';
+        users.forEach(user => {
+          const userDiv = document.createElement('div');
+          userDiv.className = 'user-result';
+          userDiv.onclick = () => startPrivateChat(user.id);
+          userDiv.innerHTML = `
+            <div class="user-result-info">
+              <span class="user-result-name">${user.name || '?'}</span>
+              <span class="user-result-email">${user.email || ''}</span>
+              <span class="user-result-status">${user.online ? '● Online' : '○ Offline'}</span>
+            </div>
+            <i class="fa-regular fa-comment"></i>
+          `;
+          resultsDiv.appendChild(userDiv);
+        });
+      })
+      .catch(showError);
+  };
+
+  // ---------- CLICK OUTSIDE MODAL ----------
   window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
       event.target.style.display = 'none';
