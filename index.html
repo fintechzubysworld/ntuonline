@@ -794,11 +794,22 @@ document.addEventListener('contextmenu', function(e) {
 
     return { type: 'link', content: url };
   }
+// Prevent any interactive behaviour on media inside posts
 document.addEventListener('contextmenu', function(e) {
-  if (e.target.closest('.feed-item .embedded-media img, .feed-item .embedded-media video')) {
+  const media = e.target.closest('.embedded-media img, .embedded-media video, .embedded-media audio');
+  if (media) {
     e.preventDefault();
     return false;
   }
+});
+
+document.addEventListener('dblclick', function(e) {
+  const media = e.target.closest('.embedded-media img, .embedded-media video, .embedded-media audio');
+  if (media) {
+    e.preventDefault();
+    return false;
+  }
+});
 });
   function escapeHtml(unsafe) {
     return unsafe.replace(/[&<>"']/g, function(m) {
@@ -1773,6 +1784,7 @@ window.postFeed = function () {
 </script>
 </body>
 </html>
+
 
 
 
