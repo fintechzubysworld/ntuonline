@@ -505,8 +505,11 @@
       font-size: 0.7rem;
       color: #8cffe0;
     }
-    .feed-item .embedded-media img {
+  /* Make feed images completely non-interactive */
+.feed-item .embedded-media img {
   pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
   </style>
 </head>
@@ -693,6 +696,13 @@
       openLinkInModal(href);
     }
   });
+  // Prevent context menu (right-click) on feed images
+document.addEventListener('contextmenu', function(e) {
+  if (e.target.closest('.feed-item .embedded-media img')) {
+    e.preventDefault();
+    return false;
+  }
+});
   // ==================== END LINK HANDLER ====================
 
   // ==================== ENHANCED parseContent ====================
@@ -1763,5 +1773,6 @@ window.postFeed = function () {
 </script>
 </body>
 </html>
+
 
 
