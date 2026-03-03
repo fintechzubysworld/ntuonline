@@ -1013,28 +1013,55 @@
 <!-- All original functions from the provided index.html are included below this line -->
 <script>
   // ---------- FEED ----------
-  db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
-    const feedArea = document.getElementById("feedArea");
-    feedArea.innerHTML = "";
-    s.forEach(doc => {
-      const p = doc.data();
-      const feedId = doc.id;
-      const feedDiv = document.createElement('div');
-      feedDiv.className = "feed-item";
-      feedDiv.id = `feed-${feedId}`;
-      feedDiv.innerHTML = `
-        <strong><span class="clickable-name" onclick="showProfile('${p.userId || ''}')">${p.name ?? '?'}</span> (${p.kindred ?? '?'})</strong>
-        <div>${parseContent(p.text)}</div>
-        <div class="timestamp">${formatTimestamp(p.created)}</div>
-        <div id="feedReplies${feedId}" class="replies"></div>
-        <input id="replyFeed${feedId}" placeholder="Reply...">
-        <button onclick="replyFeed('${feedId}')">Reply</button>
-      `;
-      feedArea.appendChild(feedDiv);
-      addReactionUI('feed', feedId, feedDiv);
-      loadReplies("feed", feedId, "feedReplies");
-    });
-  }, showError);
+ // ---------- FEED (with image) ----------
+db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
+  const feedArea = document.getElementById("feedArea");
+  feedArea.innerHTML = "";
+  s.forEach(doc => {
+    const p = doc.data();
+    const feedId = doc.id;
+    const feedDiv = document.createElement('div');
+    feedDiv.className = "feed-item";
+    feedDiv.id = `feed-${feedId}`;
+    let imageHtml = '';
+    if (p.image) {
+      // Use parseContent to embed the image (handles Drive, direct links, etc.)
+      imageHtml = `<div class="embedded-media">${parseContent(p.image)}</div>`;
+    }
+    feedDiv.innerHTML = `
+      <strong><span class="clickable-name" onclick="showProfile('${p.userId || ''}')">${p.name ?? '?'}</span> (${p.kindred ?? '?'})</strong>
+      <div>${parseContent(p.text)}</div>
+      ${imageHtml}
+      <div class="timestamp">${formatTimestamp(p.created)}</div>
+      <div id="feedReplies${feedId}" class="replies"></div>
+      <input id="replyFeed${feedId}" placeholder="Reply...">
+      <button onclick="replyFeed('${feedId}')">Reply</button>
+    `;
+    feedArea.appendChild(feedDiv);
+    addReactionUI('feed', feedId, feedDiv);
+    loadReplies("feed", feedId, "feedReplies");
+  });
+}, showError);
+
+window.postFeed = function () {
+  if (!currentUser) return alert("Login required");
+  const input = document.getElementById("feedInput");
+  if (!input.value.trim()) return;
+  db.collection("users").doc(currentUser.uid).get()
+    .then(u => {
+      const userData = u.data() || {};
+      return db.collection("feed").add({
+        text: input.value,
+        name: userData.name ?? null,
+        kindred: userData.kindred ?? null,
+        userId: currentUser.uid,
+        created: Date.now()
+        // no image field for regular users
+      });
+    })
+    .then(() => { input.value = ""; })
+    .catch(showError);
+};
 
   window.replyFeed = function (id) {
     if (!currentUser) return alert("Login required");
