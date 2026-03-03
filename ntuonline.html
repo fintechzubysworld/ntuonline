@@ -10,6 +10,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
+  <!-- Google API (for Drive Picker) -->
+  <script src="https://apis.google.com/js/api.js"></script>
+
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -104,6 +107,11 @@
     }
     button.secondary { background: #2d5b52; }
     button.secondary:hover { background: #3e786c; }
+    .drive-btn {
+      background: #2a4a44;
+      margin-left: 8px;
+      white-space: nowrap;
+    }
 
     .table-wrapper {
       overflow-x: auto;
@@ -203,13 +211,26 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    .info-note {
-      background: #1f6f62;
-      border-radius: 30px;
-      padding: 10px 16px;
+    /* Inline flex for input+button */
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .input-group input {
+      flex: 1;
+      margin: 0;
+    }
+    .preview-area {
       margin: 10px 0;
-      font-size: 0.9rem;
-      color: #e0f7f2;
+      padding: 10px;
+      background: #0f2d27;
+      border-radius: 20px;
+      display: none;
+    }
+    .preview-area img {
+      max-width: 100%;
+      border-radius: 12px;
     }
 
     @media (max-width: 480px) {
@@ -217,6 +238,7 @@
       header { flex-direction: column; text-align: center; }
       .card { padding: 18px; }
       button { width: 100%; margin-right: 0; }
+      .input-group { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -235,20 +257,37 @@
 
 <div id="dashboard" style="display:none;">
 
-  <!-- PUBLISH EVENT (simple URL fields) -->
+  <!-- NEW: CREATE FEED POST (with image) -->
+  <div class="card">
+    <h3><i class="fa-regular fa-newspaper"></i> Create Feed Post</h3>
+    <textarea id="feedText" placeholder="Post text..."></textarea>
+    <div class="input-group">
+      <input type="url" id="feedImage" placeholder="Image URL (optional)">
+      <button class="drive-btn" onclick="openGooglePicker('feedImage')">📁 Choose Image</button>
+    </div>
+    <div id="previewFeedImage" class="preview-area"></div>
+    <button onclick="createFeedPost()"><i class="fa-regular fa-paper-plane"></i> Publish Post</button>
+    <div id="feedMessage" class="message"></div>
+  </div>
+
+  <!-- PUBLISH EVENT (image field removed) -->
   <div class="card">
     <h3><i class="fa-regular fa-calendar-plus"></i> Publish New Event</h3>
     <input type="text" id="eventTitle" placeholder="Event Title" required>
     <textarea id="eventDesc" placeholder="Description"></textarea>
     <input type="text" id="eventDate" placeholder="Date (e.g., March 15, 2025)">
 
-    <div class="info-note">
-      <i class="fa-regular fa-lightbulb"></i> Paste any media URL below (Google Drive, YouTube, direct image/video/audio link). They will play inline on the front page.
+    <div class="input-group">
+      <input type="url" id="eventVideo" placeholder="Video URL (optional)">
+      <button class="drive-btn" onclick="openGooglePicker('eventVideo')">📁 Choose Video</button>
     </div>
+    <div id="previewEventVideo" class="preview-area"></div>
 
-    <input type="url" id="eventImage" placeholder="Image URL (optional)">
-    <input type="url" id="eventVideo" placeholder="Video URL (optional)">
-    <input type="url" id="eventAudio" placeholder="Audio URL (optional)">
+    <div class="input-group">
+      <input type="url" id="eventAudio" placeholder="Audio URL (optional)">
+      <button class="drive-btn" onclick="openGooglePicker('eventAudio')">📁 Choose Audio</button>
+    </div>
+    <div id="previewEventAudio" class="preview-area"></div>
 
     <button onclick="publishEvent()"><i class="fa-regular fa-calendar-check"></i> Publish Event</button>
     <div id="eventMessage" class="message"></div>
@@ -276,7 +315,7 @@
     <div id="adminMessage" class="message"></div>
   </div>
 
-  <!-- MODERATION PANEL (with Events tab) -->
+  <!-- MODERATION PANEL (with Events and Feed tabs) -->
   <div class="card">
     <h3><i class="fa-solid fa-gavel"></i> Moderate Content</h3>
     <div class="tab-buttons">
@@ -298,7 +337,7 @@
 </div>
 
 <script>
-  // Firebase config
+  // Firebase config (same as front page)
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -385,7 +424,34 @@
       .catch(err => showMessage('adminMessage', err.message, 'error'));
   };
 
-  // ---------- PUBLISH EVENT ----------
+  // ---------- CREATE FEED POST (with optional image) ----------
+  window.createFeedPost = function() {
+    const text = document.getElementById('feedText').value.trim();
+    if (!text) return showMessage('feedMessage', 'Post text required', 'error');
+    const image = document.getElementById('feedImage').value.trim() || null;
+
+    db.collection('users').doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection('feed').add({
+          text,
+          image,
+          name: userData.name,
+          kindred: userData.kindred,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => {
+        showMessage('feedMessage', 'Post published', 'success');
+        document.getElementById('feedText').value = '';
+        document.getElementById('feedImage').value = '';
+        document.getElementById('previewFeedImage').style.display = 'none';
+      })
+      .catch(err => showMessage('feedMessage', err.message, 'error'));
+  };
+
+  // ---------- PUBLISH EVENT (image field removed) ----------
   window.publishEvent = function() {
     const title = document.getElementById('eventTitle').value.trim();
     if (!title) return showMessage('eventMessage', 'Title required', 'error');
@@ -393,14 +459,15 @@
       title, created: Date.now(),
       description: document.getElementById('eventDesc').value.trim() || null,
       date: document.getElementById('eventDate').value.trim() || null,
-      image: document.getElementById('eventImage').value.trim() || null,
       video: document.getElementById('eventVideo').value.trim() || null,
       audio: document.getElementById('eventAudio').value.trim() || null
     };
     db.collection('events').add(data)
       .then(() => {
         showMessage('eventMessage', 'Event published', 'success');
-        ['eventTitle','eventDesc','eventDate','eventImage','eventVideo','eventAudio'].forEach(id => document.getElementById(id).value = '');
+        ['eventTitle','eventDesc','eventDate','eventVideo','eventAudio'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('previewEventVideo').style.display = 'none';
+        document.getElementById('previewEventAudio').style.display = 'none';
       })
       .catch(err => showMessage('eventMessage', err.message, 'error'));
   };
@@ -452,9 +519,9 @@
       });
   };
 
-  // ---------- LOAD ALL CONTENT ----------
+  // ---------- LOAD ALL CONTENT (moderation) ----------
   function loadAllContent() {
-    // Feed
+    // Feed (including images)
     db.collection('feed').orderBy('created', 'desc').get().then(snap => {
       const container = document.getElementById('moderateFeed');
       container.innerHTML = '';
@@ -464,6 +531,7 @@
           <div class="moderation-item">
             <div class="moderation-meta">📰 Feed | ${d.name} (${d.kindred}) | ${new Date(d.created).toLocaleString()}</div>
             <div>${d.text || ''}</div>
+            ${d.image ? `<div class="embedded-media"><img src="${d.image}" style="max-width:200px; border-radius:12px;"></div>` : ''}
             <button class="delete-btn" onclick="deleteItem('feed/${doc.id}')">Delete</button>
           </div>
         `;
@@ -579,6 +647,83 @@
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     });
   });
+
+  // ==================== GOOGLE DRIVE PICKER (restricted to folder) ====================
+  const API_KEY = 'YOUR_API_KEY';  // <-- REPLACE
+  const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; // <-- REPLACE
+  const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+  const FOLDER_ID = '1lP94Am892vc2_fYNp6MgcPh-2ZDpGFYW';
+
+  let pickerApiLoaded = false;
+  let oauthToken;
+
+  window.openGooglePicker = function(targetInputId) {
+    window.currentPickerTarget = targetInputId;
+    gapi.load('auth', { callback: onAuthApiLoad });
+    gapi.load('picker', { callback: onPickerApiLoad });
+  };
+
+  function onAuthApiLoad() {
+    gapi.auth.authorize(
+      { client_id: CLIENT_ID, scope: SCOPES, immediate: false },
+      handleAuthResult
+    );
+  }
+
+  function onPickerApiLoad() {
+    pickerApiLoaded = true;
+    createPicker();
+  }
+
+  function handleAuthResult(authResult) {
+    if (authResult && !authResult.error) {
+      oauthToken = authResult.access_token;
+      createPicker();
+    } else {
+      alert('Authorization failed: ' + (authResult?.error || 'unknown error'));
+    }
+  }
+
+  function createPicker() {
+    if (pickerApiLoaded && oauthToken) {
+      const driveView = new google.picker.DocsView()
+        .setParent(FOLDER_ID)
+        .setIncludeFolders(true);
+      const picker = new google.picker.PickerBuilder()
+        .addView(driveView)
+        .setOAuthToken(oauthToken)
+        .setDeveloperKey(API_KEY)
+        .setCallback(pickerCallback)
+        .build();
+      picker.setVisible(true);
+    }
+  }
+
+  function pickerCallback(data) {
+    if (data.action === google.picker.Action.PICKED) {
+      const doc = data.docs[0];
+      const fileId = doc.id;
+      const isImage = doc.mimeType && doc.mimeType.startsWith('image/');
+      const mediaUrl = isImage ? `https://drive.google.com/uc?id=${fileId}` : doc.url;
+
+      const targetId = window.currentPickerTarget;
+      if (targetId) {
+        document.getElementById(targetId).value = mediaUrl;
+
+        const previewDivId = 'preview' + targetId.charAt(0).toUpperCase() + targetId.slice(1);
+        const previewDiv = document.getElementById(previewDivId);
+        if (previewDiv) {
+          if (isImage) {
+            previewDiv.innerHTML = `<img src="${mediaUrl}" alt="Preview">`;
+          } else {
+            previewDiv.innerHTML = `<a href="${mediaUrl}" target="_blank">View selected file</a>`;
+          }
+          previewDiv.style.display = 'block';
+        }
+      }
+    }
+  }
+  // ==================== END DRIVE PICKER ====================
 </script>
 
 </body>
