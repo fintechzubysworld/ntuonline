@@ -795,7 +795,13 @@ document.addEventListener('contextmenu', function(e) {
     return { type: 'link', content: url };
   }
 // Prevent any interactive behaviour on media inside posts
-document.addEventListener('contextmenu', function(e) {
+
+});
+  function escapeHtml(unsafe) {
+    return unsafe.replace(/[&<>"']/g, function(m) {
+      if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
+    });
+    document.addEventListener('contextmenu', function(e) {
   const media = e.target.closest('.embedded-media img, .embedded-media video, .embedded-media audio');
   if (media) {
     e.preventDefault();
@@ -809,12 +815,6 @@ document.addEventListener('dblclick', function(e) {
     e.preventDefault();
     return false;
   }
-});
-});
-  function escapeHtml(unsafe) {
-    return unsafe.replace(/[&<>"']/g, function(m) {
-      if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
-    });
   }
   // ==================== END parseContent ====================
 
@@ -1784,6 +1784,7 @@ window.postFeed = function () {
 </script>
 </body>
 </html>
+
 
 
 
