@@ -423,6 +423,36 @@
       display: inline-block;
       font-weight: 600;
     }
+
+    /* Link modal (for external links) */
+    #linkModal .modal-content {
+      max-width: 90vw;
+      width: 90vw;
+      height: 90vh;
+      padding: 0;
+      background: transparent;
+      border: none;
+    }
+    #linkModal iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 48px;
+      background: #1b423b;
+    }
+    #linkModal .close {
+      top: 10px;
+      right: 10px;
+      background: #1f8f7c;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -521,6 +551,14 @@
   </div>
 </div>
 
+<!-- Link Modal (for external links) -->
+<div id="linkModal" class="modal" style="display:none;">
+  <div class="modal-content" style="position: relative; padding: 0; background: transparent; border: none;">
+    <span class="close" onclick="closeLinkModal()">&times;</span>
+    <iframe id="linkIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation" allowfullscreen></iframe>
+  </div>
+</div>
+
 <script>
   // Firebase config
   const firebaseConfig = {
@@ -537,147 +575,171 @@
   const db = firebase.firestore();
   let currentUser = null;
 
-  // parseContent (unchanged)
-  // Enhanced parseContent that handles:
-// - YouTube links (embed iframe)
-// - Google Drive links (convert to embed image/video preview)
-// - Direct image/video/audio files (embed with HTML5 tags)
-// - All other links (clickable hyperlink)
-
-function parseContent(text) {
-  if (!text) return '';
-
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
-
-  let parts = [];
-  let lastIndex = 0;
-  let match;
-
-  while ((match = urlRegex.exec(text)) !== null) {
-    const url = match[0];
-    const index = match.index;
-    if (index > lastIndex) {
-      parts.push({ type: 'text', content: text.substring(lastIndex, index) });
-    }
-
-    // Try to detect and embed the URL
-    parts.push(detectAndEmbed(url));
-
-    lastIndex = index + url.length;
+  // ==================== LINK HANDLER ====================
+  // Open external links in modal instead of new tab
+  function openLinkInModal(url) {
+    const iframe = document.getElementById('linkIframe');
+    iframe.src = url;
+    document.getElementById('linkModal').style.display = 'flex';
   }
 
-  if (lastIndex < text.length) {
-    parts.push({ type: 'text', content: text.substring(lastIndex) });
-  }
+  window.closeLinkModal = function() {
+    document.getElementById('linkModal').style.display = 'none';
+    document.getElementById('linkIframe').src = 'about:blank';
+  };
 
-  // Build HTML from parts
-  let html = '';
-  parts.forEach(part => {
-    if (part.type === 'text') {
-      html += escapeHtml(part.content);
-    } else if (part.type === 'embed') {
-      html += part.html;
-    } else if (part.type === 'link') {
-      html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#8cffe0;">${part.content}</a>`;
+  // Intercept clicks on all links (except those with special classes)
+  document.addEventListener('click', function(e) {
+    let target = e.target.closest('a');
+    if (!target) return;
+    // If it's a clickable-name (profile) or internal link, let it behave normally
+    if (target.classList.contains('clickable-name')) return;
+    if (target.getAttribute('href') && target.getAttribute('href').startsWith('#')) return;
+    // If it's a button inside a link (like reaction button), ignore
+    if (e.target.closest('button')) return;
+
+    // Check if it's an external link (different origin)
+    const href = target.getAttribute('href');
+    if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
+      e.preventDefault();
+      openLinkInModal(href);
     }
   });
+  // ==================== END LINK HANDLER ====================
 
-  return html;
-}
+  // ==================== ENHANCED parseContent ====================
+  function parseContent(text) {
+    if (!text) return '';
 
-function detectAndEmbed(url) {
-  // 1. YouTube
-  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  if (ytMatch) {
-    return {
-      type: 'embed',
-      html: `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen></iframe></div>`
-    };
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
+
+    let parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = urlRegex.exec(text)) !== null) {
+      const url = match[0];
+      const index = match.index;
+      if (index > lastIndex) {
+        parts.push({ type: 'text', content: text.substring(lastIndex, index) });
+      }
+
+      parts.push(detectAndEmbed(url));
+
+      lastIndex = index + url.length;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push({ type: 'text', content: text.substring(lastIndex) });
+    }
+
+    let html = '';
+    parts.forEach(part => {
+      if (part.type === 'text') {
+        html += escapeHtml(part.content);
+      } else if (part.type === 'embed') {
+        html += part.html;
+      } else if (part.type === 'link') {
+        // Use a normal link – our global click handler will open it in the modal
+        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#8cffe0;">${part.content}</a>`;
+      }
+    });
+
+    return html;
   }
 
-  // 2. Google Drive
-  const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
-  if (driveMatch) {
-    const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
-    // If it's an image, use direct image URL
-    if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || url.includes('uc?id=')) {
+  function detectAndEmbed(url) {
+    // 1. YouTube
+    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) {
       return {
         type: 'embed',
-        html: `<div class="embedded-media"><img src="https://drive.google.com/uc?id=${fileId}" alt="Google Drive image" loading="lazy"></div>`
-      };
-    } else {
-      // Assume video or other – use preview iframe
-      return {
-        type: 'embed',
-        html: `<div class="embedded-media"><iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen></iframe></div>`
+        html: `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen></iframe></div>`
       };
     }
+
+    // 2. Google Drive
+    const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
+    if (driveMatch) {
+      const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
+      // If it's an image, use direct image URL
+      if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || url.includes('uc?id=')) {
+        return {
+          type: 'embed',
+          html: `<div class="embedded-media"><img src="https://drive.google.com/uc?id=${fileId}" alt="Google Drive image" loading="lazy"></div>`
+        };
+      } else {
+        // Assume video or other – use preview iframe
+        return {
+          type: 'embed',
+          html: `<div class="embedded-media"><iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen></iframe></div>`
+        };
+      }
+    }
+
+    // 3. Direct image
+    if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i)) {
+      return {
+        type: 'embed',
+        html: `<div class="embedded-media"><img src="${url}" alt="embedded image" loading="lazy"></div>`
+      };
+    }
+
+    // 4. Direct video
+    if (url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i)) {
+      return {
+        type: 'embed',
+        html: `<div class="embedded-media"><video controls style="max-width:100%;"><source src="${url}">Your browser does not support the video tag.</video></div>`
+      };
+    }
+
+    // 5. Direct audio
+    if (url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i)) {
+      return {
+        type: 'embed',
+        html: `<div class="embedded-media"><audio controls style="width:100%;"><source src="${url}">Your browser does not support the audio tag.</audio></div>`
+      };
+    }
+
+    // 6. Otherwise, treat as a plain link
+    return { type: 'link', content: url };
   }
 
-  // 3. Direct image
-  if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i)) {
-    return {
-      type: 'embed',
-      html: `<div class="embedded-media"><img src="${url}" alt="embedded image" loading="lazy"></div>`
-    };
+  function escapeHtml(unsafe) {
+    return unsafe.replace(/[&<>"']/g, function(m) {
+      if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
+    });
   }
-
-  // 4. Direct video
-  if (url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i)) {
-    return {
-      type: 'embed',
-      html: `<div class="embedded-media"><video controls style="max-width:100%;"><source src="${url}">Your browser does not support the video tag.</video></div>`
-    };
-  }
-
-  // 5. Direct audio
-  if (url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i)) {
-    return {
-      type: 'embed',
-      html: `<div class="embedded-media"><audio controls style="width:100%;"><source src="${url}">Your browser does not support the audio tag.</audio></div>`
-    };
-  }
-
-  // 6. Otherwise, treat as a plain link
-  return { type: 'link', content: url };
-}
-
-function escapeHtml(unsafe) {
-  return unsafe.replace(/[&<>"']/g, function(m) {
-    if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
-  });
-}
+  // ==================== END parseContent ====================
 
   // Safely format timestamp to locale string
-function formatTimestamp(ts) {
+  function formatTimestamp(ts) {
     if (!ts) return '';
     try {
-        // Convert Firestore Timestamp or string/number to Date
-        let date = ts.toDate ? ts.toDate() : new Date(ts);
-        // Check if date is valid
-        if (isNaN(date.getTime())) return '';
-        return date.toLocaleString();
+      let date = ts.toDate ? ts.toDate() : new Date(ts);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleString();
     } catch (e) {
-        return '';
+      return '';
     }
-}
+  }
 
-// Safely format relative time (e.g., "2h ago")
-function formatRelativeTime(ts) {
+  // Safely format relative time (e.g., "2h ago")
+  function formatRelativeTime(ts) {
     if (!ts) return '';
     try {
-        let date = ts.toDate ? ts.toDate() : new Date(ts);
-        if (isNaN(date.getTime())) return '';
-        let diffSeconds = Math.floor((Date.now() - date) / 1000);
-        if (diffSeconds < 60) return 'just now';
-        if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + 'm ago';
-        if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + 'h ago';
-        return Math.floor(diffSeconds / 86400) + 'd ago';
+      let date = ts.toDate ? ts.toDate() : new Date(ts);
+      if (isNaN(date.getTime())) return '';
+      let diffSeconds = Math.floor((Date.now() - date) / 1000);
+      if (diffSeconds < 60) return 'just now';
+      if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + 'm ago';
+      if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + 'h ago';
+      return Math.floor(diffSeconds / 86400) + 'd ago';
     } catch (e) {
-        return '';
+      return '';
     }
-}
+  }
 
   // reaction UI (unchanged)
   function addReactionUI(targetType, targetId, container) {
@@ -1202,7 +1264,6 @@ function formatRelativeTime(ts) {
       let mediaHtml = '';
       if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
       if (e.video) {
-        // Use parseContent to handle any media URL (YouTube, image, or link)
         mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
       }
       if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
@@ -1370,15 +1431,15 @@ function formatRelativeTime(ts) {
       });
     }
 
-// Mark all messages from the other user as read
-const unreadQuery = roomRef.collection('messages')
-  .where('from', '==', otherUserId)
-  .where('read', '==', false);
-unreadQuery.get().then(snapshot => {
-  const batch = db.batch();
-  snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
-  return batch.commit();
-}).catch(showError);
+    // Mark all messages from the other user as read
+    const unreadQuery = roomRef.collection('messages')
+      .where('from', '==', otherUserId)
+      .where('read', '==', false);
+    unreadQuery.get().then(snapshot => {
+      const batch = db.batch();
+      snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
+      return batch.commit();
+    }).catch(showError);
 
     db.collection('users').doc(otherUserId).get().then(doc => {
       const otherUser = doc.data();
@@ -1391,7 +1452,6 @@ unreadQuery.get().then(snapshot => {
     const messagesRef = roomRef.collection('messages').orderBy('timestamp', 'asc');
     if (unsubscribeRoomMessages) unsubscribeRoomMessages();
 
- 
     unsubscribeRoomMessages = messagesRef.onSnapshot(snapshot => {
       const container = document.getElementById('privateChatMessages');
       container.innerHTML = '';
@@ -1428,7 +1488,6 @@ unreadQuery.get().then(snapshot => {
       input.value = '';
     }).catch(showError);
   };
-  
 
   window.closeChatModal = function() {
     document.getElementById('chatModal').style.display = 'none';
@@ -1451,82 +1510,80 @@ unreadQuery.get().then(snapshot => {
   };
 
   function loadInbox() {
-  if (!currentUser) return;
-  const inboxList = document.getElementById('inboxList');
-  inboxList.innerHTML = 'Loading...';
+    if (!currentUser) return;
+    const inboxList = document.getElementById('inboxList');
+    inboxList.innerHTML = 'Loading...';
 
-  db.collection('privateChatRooms')
-    .where('participants', 'array-contains', currentUser.uid)
-    .get()
-    .then(async snapshot => {
-      if (snapshot.empty) {
-        inboxList.innerHTML = '<p>No conversations yet.</p>';
-        return;
-      }
+    db.collection('privateChatRooms')
+      .where('participants', 'array-contains', currentUser.uid)
+      .get()
+      .then(async snapshot => {
+        if (snapshot.empty) {
+          inboxList.innerHTML = '<p>No conversations yet.</p>';
+          return;
+        }
 
-      const rooms = [];
-      for (const doc of snapshot.docs) {
-        const room = doc.data();
-        const otherUid = room.participants.find(uid => uid !== currentUser.uid);
-        const userDoc = await db.collection('users').doc(otherUid).get();
-        const otherUser = userDoc.data() || { name: 'Unknown' };
+        const rooms = [];
+        for (const doc of snapshot.docs) {
+          const room = doc.data();
+          const otherUid = room.participants.find(uid => uid !== currentUser.uid);
+          const userDoc = await db.collection('users').doc(otherUid).get();
+          const otherUser = userDoc.data() || { name: 'Unknown' };
 
-        // Count unread messages from the other user
-        const unreadSnapshot = await db.collection('privateChatRooms').doc(doc.id)
-          .collection('messages')
-          .where('from', '==', otherUid)
-          .where('read', '==', false)
-          .get();
-        const unreadCount = unreadSnapshot.size;
+          const unreadSnapshot = await db.collection('privateChatRooms').doc(doc.id)
+            .collection('messages')
+            .where('from', '==', otherUid)
+            .where('read', '==', false)
+            .get();
+          const unreadCount = unreadSnapshot.size;
 
-        let preview = room.lastMessage || 'No messages';
-        if (preview.length > 30) preview = preview.substring(0, 30) + '…';
-        let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
+          let preview = room.lastMessage || 'No messages';
+          if (preview.length > 30) preview = preview.substring(0, 30) + '…';
+          let time = room.lastMessageTime ? formatRelativeTime(room.lastMessageTime) : '';
 
-        rooms.push({
-          id: doc.id,
-          otherUid,
-          otherName: otherUser.name || 'User',
-          preview,
-          time,
-          lastMessageTime: room.lastMessageTime ? room.lastMessageTime.toDate() : new Date(0),
-          unreadCount
-        });
-      }
+          rooms.push({
+            id: doc.id,
+            otherUid,
+            otherName: otherUser.name || 'User',
+            preview,
+            time,
+            lastMessageTime: room.lastMessageTime ? room.lastMessageTime.toDate() : new Date(0),
+            unreadCount
+          });
+        }
 
-      rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
+        rooms.sort((a, b) => b.lastMessageTime - a.lastMessageTime);
 
-      inboxList.innerHTML = '';
-      rooms.forEach(r => {
-        const item = document.createElement('div');
-        item.className = 'inbox-item';
-        item.onclick = () => {
-          closeInboxModal();
-          startPrivateChat(r.otherUid);
-        };
+        inboxList.innerHTML = '';
+        rooms.forEach(r => {
+          const item = document.createElement('div');
+          item.className = 'inbox-item';
+          item.onclick = () => {
+            closeInboxModal();
+            startPrivateChat(r.otherUid);
+          };
 
-        // Build badge HTML if there are unread messages
-        const unreadBadge = r.unreadCount > 0 
-          ? `<span class="unread-badge">${r.unreadCount}</span>` 
-          : '';
+          const unreadBadge = r.unreadCount > 0 
+            ? `<span class="unread-badge">${r.unreadCount}</span>` 
+            : '';
 
-        item.innerHTML = `
-          <div class="inbox-item-info">
-            <div class="inbox-item-name">
-              ${r.otherName} ${unreadBadge}
+          item.innerHTML = `
+            <div class="inbox-item-info">
+              <div class="inbox-item-name">
+                ${r.otherName} ${unreadBadge}
+              </div>
+              <div class="inbox-item-preview">${r.preview}</div>
             </div>
-            <div class="inbox-item-preview">${r.preview}</div>
-          </div>
-          <div class="inbox-item-time">${r.time}</div>
-        `;
-        inboxList.appendChild(item);
+            <div class="inbox-item-time">${r.time}</div>
+          `;
+          inboxList.appendChild(item);
+        });
+      })
+      .catch(err => {
+        console.error('Inbox error:', err);
+        inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
       });
-    })
-    .catch(err => {
-      console.error('Inbox error:', err);
-      inboxList.innerHTML = '<p>Error loading inbox. Please try again.</p>';
-    });
-}
+  }
 
   // Click outside modal to close
   window.onclick = function(event) {
@@ -1536,6 +1593,9 @@ unreadQuery.get().then(snapshot => {
         unsubscribeRoomMessages();
         unsubscribeRoomMessages = null;
         activeChatRoomId = null;
+      }
+      if (event.target.id === 'linkModal') {
+        closeLinkModal();
       }
     }
   };
@@ -1547,4 +1607,3 @@ unreadQuery.get().then(snapshot => {
 </script>
 </body>
 </html>
-
