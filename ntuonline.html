@@ -10,9 +10,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
-  <!-- Google API (for Drive Picker) -->
-  <script src="https://apis.google.com/js/api.js"></script>
-
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -107,11 +104,6 @@
     }
     button.secondary { background: #2d5b52; }
     button.secondary:hover { background: #3e786c; }
-    .drive-btn {
-      background: #2a4a44;
-      margin-left: 8px;
-      white-space: nowrap;
-    }
 
     .table-wrapper {
       overflow-x: auto;
@@ -211,26 +203,13 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    /* Inline flex for input+button */
-    .input-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .input-group input {
-      flex: 1;
-      margin: 0;
-    }
-    .preview-area {
+    .info-note {
+      background: #1f6f62;
+      border-radius: 30px;
+      padding: 10px 16px;
       margin: 10px 0;
-      padding: 10px;
-      background: #0f2d27;
-      border-radius: 20px;
-      display: none;
-    }
-    .preview-area img {
-      max-width: 100%;
-      border-radius: 12px;
+      font-size: 0.9rem;
+      color: #e0f7f2;
     }
 
     @media (max-width: 480px) {
@@ -238,7 +217,6 @@
       header { flex-direction: column; text-align: center; }
       .card { padding: 18px; }
       button { width: 100%; margin-right: 0; }
-      .input-group { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -257,30 +235,20 @@
 
 <div id="dashboard" style="display:none;">
 
-  <!-- PUBLISH EVENT (with Drive buttons) -->
+  <!-- PUBLISH EVENT (simple URL fields) -->
   <div class="card">
     <h3><i class="fa-regular fa-calendar-plus"></i> Publish New Event</h3>
     <input type="text" id="eventTitle" placeholder="Event Title" required>
     <textarea id="eventDesc" placeholder="Description"></textarea>
     <input type="text" id="eventDate" placeholder="Date (e.g., March 15, 2025)">
 
-    <div class="input-group">
-      <input type="url" id="eventImage" placeholder="Image URL">
-      <button class="drive-btn" onclick="openGooglePicker('eventImage')">📁 Choose Image</button>
+    <div class="info-note">
+      <i class="fa-regular fa-lightbulb"></i> Paste any media URL below (Google Drive, YouTube, direct image/video/audio link). They will play inline on the front page.
     </div>
-    <div id="previewImage" class="preview-area"></div>
 
-    <div class="input-group">
-      <input type="url" id="eventVideo" placeholder="Video URL">
-      <button class="drive-btn" onclick="openGooglePicker('eventVideo')">📁 Choose Video</button>
-    </div>
-    <div id="previewVideo" class="preview-area"></div>
-
-    <div class="input-group">
-      <input type="url" id="eventAudio" placeholder="Audio URL">
-      <button class="drive-btn" onclick="openGooglePicker('eventAudio')">📁 Choose Audio</button>
-    </div>
-    <div id="previewAudio" class="preview-area"></div>
+    <input type="url" id="eventImage" placeholder="Image URL (optional)">
+    <input type="url" id="eventVideo" placeholder="Video URL (optional)">
+    <input type="url" id="eventAudio" placeholder="Audio URL (optional)">
 
     <button onclick="publishEvent()"><i class="fa-regular fa-calendar-check"></i> Publish Event</button>
     <div id="eventMessage" class="message"></div>
@@ -433,8 +401,6 @@
       .then(() => {
         showMessage('eventMessage', 'Event published', 'success');
         ['eventTitle','eventDesc','eventDate','eventImage','eventVideo','eventAudio'].forEach(id => document.getElementById(id).value = '');
-        // Clear previews
-        document.querySelectorAll('.preview-area').forEach(el => el.style.display = 'none');
       })
       .catch(err => showMessage('eventMessage', err.message, 'error'));
   };
@@ -613,91 +579,6 @@
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     });
   });
-
-  // ==================== GOOGLE DRIVE PICKER (restricted to folder) ====================
-  // Replace with your actual API key and client ID
-  const API_KEY = 'AIzaSyD91n0Uv-It5GUtfrXyNRXWs8o1eTWiHAo';  // <-- REPLACE
-  const CLIENT_ID = '672649423935-e3g0m98jkikrp6p4e5iesd3mqs4tfpqi.apps.googleusercontent.com'; // <-- REPLACE
-  const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
-
-  // The folder ID you provided
-  const FOLDER_ID = 'https://drive.google.com/drive/folders/1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2';
-
-  let pickerApiLoaded = false;
-  let oauthToken;
-
-  window.openGooglePicker = function(targetInputId) {
-    // Store target input ID in a global so pickerCallback knows where to put the URL
-    window.currentPickerTarget = targetInputId;
-    gapi.load('auth', { callback: onAuthApiLoad });
-    gapi.load('picker', { callback: onPickerApiLoad });
-  };
-
-  function onAuthApiLoad() {
-    gapi.auth.authorize(
-      { client_id: CLIENT_ID, scope: SCOPES, immediate: false },
-      handleAuthResult
-    );
-  }
-
-  function onPickerApiLoad() {
-    pickerApiLoaded = true;
-    createPicker();
-  }
-
-  function handleAuthResult(authResult) {
-    if (authResult && !authResult.error) {
-      oauthToken = authResult.access_token;
-      createPicker();
-    } else {
-      alert('Authorization failed: ' + (authResult?.error || 'unknown error'));
-    }
-  }
-
-  function createPicker() {
-    if (pickerApiLoaded && oauthToken) {
-      // Create a view restricted to the specified folder
-      const driveView = new google.picker.DocsView()
-        .setParent(FOLDER_ID)          // Show only files from this folder
-        .setIncludeFolders(true);       // Also show subfolders if needed
-
-      const picker = new google.picker.PickerBuilder()
-        .addView(driveView)
-        .setOAuthToken(oauthToken)
-        .setDeveloperKey(API_KEY)
-        .setCallback(pickerCallback)
-        .build();
-      picker.setVisible(true);
-    }
-  }
-
-  function pickerCallback(data) {
-    if (data.action === google.picker.Action.PICKED) {
-      const doc = data.docs[0];
-      const fileId = doc.id;
-      const isImage = doc.mimeType && doc.mimeType.startsWith('image/');
-      // Construct embed URL for images, otherwise use the viewer URL
-      const mediaUrl = isImage ? `https://drive.google.com/uc?id=${fileId}` : doc.url;
-
-      const targetId = window.currentPickerTarget;
-      if (targetId) {
-        document.getElementById(targetId).value = mediaUrl;
-
-        // Show a preview
-        const previewDivId = 'preview' + targetId.charAt(0).toUpperCase() + targetId.slice(1);
-        const previewDiv = document.getElementById(previewDivId);
-        if (previewDiv) {
-          if (isImage) {
-            previewDiv.innerHTML = `<img src="${mediaUrl}" alt="Preview">`;
-          } else {
-            previewDiv.innerHTML = `<a href="${mediaUrl}" target="_blank">View selected file</a>`;
-          }
-          previewDiv.style.display = 'block';
-        }
-      }
-    }
-  }
-  // ==================== END DRIVE PICKER ====================
 </script>
 
 </body>
