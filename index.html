@@ -538,57 +538,116 @@
   let currentUser = null;
 
   // parseContent (unchanged)
-  function parseContent(text) {
-    if (!text) return '';
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
-    const imageRegex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|bmp|svg))(?:\?.*)?/gi;
+  // Enhanced parseContent that handles:
+// - YouTube links (embed iframe)
+// - Google Drive links (convert to embed image/video preview)
+// - Direct image/video/audio files (embed with HTML5 tags)
+// - All other links (clickable hyperlink)
 
-    let parts = [];
-    let lastIndex = 0;
-    let match;
+function parseContent(text) {
+  if (!text) return '';
 
-    while ((match = urlRegex.exec(text)) !== null) {
-      const url = match[0];
-      const index = match.index;
-      if (index > lastIndex) {
-        parts.push({ type: 'text', content: text.substring(lastIndex, index) });
-      }
-      let ytMatch = youtubeRegex.exec(url);
-      if (ytMatch) {
-        parts.push({ type: 'youtube', content: ytMatch[1] });
-      } else if (imageRegex.test(url)) {
-        parts.push({ type: 'image', content: url });
-      } else {
-        parts.push({ type: 'link', content: url });
-      }
-      lastIndex = index + url.length;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
+
+  let parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = urlRegex.exec(text)) !== null) {
+    const url = match[0];
+    const index = match.index;
+    if (index > lastIndex) {
+      parts.push({ type: 'text', content: text.substring(lastIndex, index) });
     }
-    if (lastIndex < text.length) {
-      parts.push({ type: 'text', content: text.substring(lastIndex) });
-    }
-    if (parts.length === 0) return escapeHtml(text);
 
-    let html = '';
-    parts.forEach(part => {
-      if (part.type === 'text') {
-        html += escapeHtml(part.content);
-      } else if (part.type === 'link') {
-        html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#8cffe0;">${part.content}</a>`;
-      } else if (part.type === 'image') {
-        html += `<div class="embedded-media"><img src="${part.content}" alt="embedded image" loading="lazy"></div>`;
-      } else if (part.type === 'youtube') {
-        html += `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${part.content}" allowfullscreen></iframe></div>`;
-      }
-    });
-    return html;
+    // Try to detect and embed the URL
+    parts.push(detectAndEmbed(url));
+
+    lastIndex = index + url.length;
   }
 
-  function escapeHtml(unsafe) {
-    return unsafe.replace(/[&<>"']/g, function(m) {
-      if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
-    });
+  if (lastIndex < text.length) {
+    parts.push({ type: 'text', content: text.substring(lastIndex) });
   }
+
+  // Build HTML from parts
+  let html = '';
+  parts.forEach(part => {
+    if (part.type === 'text') {
+      html += escapeHtml(part.content);
+    } else if (part.type === 'embed') {
+      html += part.html;
+    } else if (part.type === 'link') {
+      html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#8cffe0;">${part.content}</a>`;
+    }
+  });
+
+  return html;
+}
+
+function detectAndEmbed(url) {
+  // 1. YouTube
+  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) {
+    return {
+      type: 'embed',
+      html: `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen></iframe></div>`
+    };
+  }
+
+  // 2. Google Drive
+  const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
+  if (driveMatch) {
+    const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
+    // If it's an image, use direct image URL
+    if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || url.includes('uc?id=')) {
+      return {
+        type: 'embed',
+        html: `<div class="embedded-media"><img src="https://drive.google.com/uc?id=${fileId}" alt="Google Drive image" loading="lazy"></div>`
+      };
+    } else {
+      // Assume video or other – use preview iframe
+      return {
+        type: 'embed',
+        html: `<div class="embedded-media"><iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen></iframe></div>`
+      };
+    }
+  }
+
+  // 3. Direct image
+  if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i)) {
+    return {
+      type: 'embed',
+      html: `<div class="embedded-media"><img src="${url}" alt="embedded image" loading="lazy"></div>`
+    };
+  }
+
+  // 4. Direct video
+  if (url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i)) {
+    return {
+      type: 'embed',
+      html: `<div class="embedded-media"><video controls style="max-width:100%;"><source src="${url}">Your browser does not support the video tag.</video></div>`
+    };
+  }
+
+  // 5. Direct audio
+  if (url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i)) {
+    return {
+      type: 'embed',
+      html: `<div class="embedded-media"><audio controls style="width:100%;"><source src="${url}">Your browser does not support the audio tag.</audio></div>`
+    };
+  }
+
+  // 6. Otherwise, treat as a plain link
+  return { type: 'link', content: url };
+}
+
+function escapeHtml(unsafe) {
+  return unsafe.replace(/[&<>"']/g, function(m) {
+    if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;'; return '&#039;';
+  });
+}
 
   // Safely format timestamp to locale string
 function formatTimestamp(ts) {
@@ -1488,3 +1547,4 @@ unreadQuery.get().then(snapshot => {
 </script>
 </body>
 </html>
+
