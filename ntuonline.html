@@ -10,6 +10,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
+  <!-- Google API (for Drive Picker) -->
+  <script src="https://apis.google.com/js/api.js"></script>
+
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -104,6 +107,11 @@
     }
     button.secondary { background: #2d5b52; }
     button.secondary:hover { background: #3e786c; }
+    .drive-btn {
+      background: #2a4a44;
+      margin-left: 8px;
+      white-space: nowrap;
+    }
 
     .table-wrapper {
       overflow-x: auto;
@@ -203,11 +211,34 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
+    /* Inline flex for input+button */
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .input-group input {
+      flex: 1;
+      margin: 0;
+    }
+    .preview-area {
+      margin: 10px 0;
+      padding: 10px;
+      background: #0f2d27;
+      border-radius: 20px;
+      display: none;
+    }
+    .preview-area img {
+      max-width: 100%;
+      border-radius: 12px;
+    }
+
     @media (max-width: 480px) {
       body { padding: 12px; }
       header { flex-direction: column; text-align: center; }
       .card { padding: 18px; }
       button { width: 100%; margin-right: 0; }
+      .input-group { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -226,15 +257,31 @@
 
 <div id="dashboard" style="display:none;">
 
-  <!-- PUBLISH EVENT -->
+  <!-- PUBLISH EVENT (with Drive buttons) -->
   <div class="card">
     <h3><i class="fa-regular fa-calendar-plus"></i> Publish New Event</h3>
     <input type="text" id="eventTitle" placeholder="Event Title" required>
     <textarea id="eventDesc" placeholder="Description"></textarea>
     <input type="text" id="eventDate" placeholder="Date (e.g., March 15, 2025)">
-    <input type="url" id="eventImage" placeholder="Image URL">
-    <input type="url" id="eventVideo" placeholder="Video URL">
-    <input type="url" id="eventAudio" placeholder="Audio URL">
+
+    <div class="input-group">
+      <input type="url" id="eventImage" placeholder="Image URL">
+      <button class="drive-btn" onclick="openGooglePicker('eventImage')">📁 Choose Image</button>
+    </div>
+    <div id="previewImage" class="preview-area"></div>
+
+    <div class="input-group">
+      <input type="url" id="eventVideo" placeholder="Video URL">
+      <button class="drive-btn" onclick="openGooglePicker('eventVideo')">📁 Choose Video</button>
+    </div>
+    <div id="previewVideo" class="preview-area"></div>
+
+    <div class="input-group">
+      <input type="url" id="eventAudio" placeholder="Audio URL">
+      <button class="drive-btn" onclick="openGooglePicker('eventAudio')">📁 Choose Audio</button>
+    </div>
+    <div id="previewAudio" class="preview-area"></div>
+
     <button onclick="publishEvent()"><i class="fa-regular fa-calendar-check"></i> Publish Event</button>
     <div id="eventMessage" class="message"></div>
   </div>
@@ -261,7 +308,7 @@
     <div id="adminMessage" class="message"></div>
   </div>
 
-  <!-- MODERATION PANEL (with new Events tab) -->
+  <!-- MODERATION PANEL (with Events tab) -->
   <div class="card">
     <h3><i class="fa-solid fa-gavel"></i> Moderate Content</h3>
     <div class="tab-buttons">
@@ -270,7 +317,7 @@
       <button class="tab-btn" data-tab="goodwill">Goodwill</button>
       <button class="tab-btn" data-tab="live">Live Comments</button>
       <button class="tab-btn" data-tab="replies">All Replies</button>
-      <button class="tab-btn" data-tab="events">Events</button>   <!-- NEW TAB -->
+      <button class="tab-btn" data-tab="events">Events</button>
     </div>
 
     <div id="tab-feed" class="tab-content active"><div id="moderateFeed"></div></div>
@@ -278,12 +325,12 @@
     <div id="tab-goodwill" class="tab-content"><div id="moderateGoodwill"></div></div>
     <div id="tab-live" class="tab-content"><div id="moderateLive"></div></div>
     <div id="tab-replies" class="tab-content"><div id="moderateReplies"></div></div>
-    <div id="tab-events" class="tab-content"><div id="moderateEvents"></div></div>   <!-- NEW CONTENT -->
+    <div id="tab-events" class="tab-content"><div id="moderateEvents"></div></div>
   </div>
 </div>
 
 <script>
-  // Firebase config (same as before)
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -386,6 +433,8 @@
       .then(() => {
         showMessage('eventMessage', 'Event published', 'success');
         ['eventTitle','eventDesc','eventDate','eventImage','eventVideo','eventAudio'].forEach(id => document.getElementById(id).value = '');
+        // Clear previews
+        document.querySelectorAll('.preview-area').forEach(el => el.style.display = 'none');
       })
       .catch(err => showMessage('eventMessage', err.message, 'error'));
   };
@@ -409,24 +458,19 @@
       .catch(err => showMessage('passMessage', err.message, 'error'));
   };
 
-  // ---------- RECURSIVE DELETE (without listCollections) ----------
+  // ---------- RECURSIVE DELETE ----------
   async function deleteDocumentAndSubcollections(docRef) {
-    // First, delete all documents in the 'replies' subcollection (if any)
     const repliesRef = docRef.collection('replies');
     const repliesSnapshot = await repliesRef.get();
     const deletePromises = [];
     repliesSnapshot.forEach(doc => {
-      // Recursively delete each reply (in case it has its own replies)
       deletePromises.push(deleteDocumentAndSubcollections(doc.ref));
     });
     await Promise.all(deletePromises);
-
-    // Finally, delete the document itself
     await docRef.delete();
     console.log(`Deleted document: ${docRef.path}`);
   }
 
-  // ---------- DELETE ITEM (with reload) ----------
   window.deleteItem = function(path) {
     if (!confirm('Permanently delete this item and all its replies?')) return;
     console.log(`Attempting to delete: ${path}`);
@@ -434,7 +478,7 @@
     deleteDocumentAndSubcollections(docRef)
       .then(() => {
         alert('Deleted successfully');
-        loadAllContent();  // Refresh all moderation lists
+        loadAllContent();
       })
       .catch(err => {
         console.error('Delete error:', err);
@@ -442,7 +486,7 @@
       });
   };
 
-  // ---------- LOAD ALL CONTENT FOR MODERATION (with Events) ----------
+  // ---------- LOAD ALL CONTENT ----------
   function loadAllContent() {
     // Feed
     db.collection('feed').orderBy('created', 'desc').get().then(snap => {
@@ -508,7 +552,7 @@
       });
     }).catch(showError);
 
-    // EVENTS (new)
+    // Events
     db.collection('events').orderBy('created', 'desc').get().then(snap => {
       const container = document.getElementById('moderateEvents');
       container.innerHTML = '';
@@ -525,7 +569,7 @@
       });
     }).catch(showError);
 
-    // All replies
+    // Replies
     const replyContainer = document.getElementById('moderateReplies');
     replyContainer.innerHTML = '';
 
@@ -569,8 +613,92 @@
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     });
   });
+
+  // ==================== GOOGLE DRIVE PICKER (restricted to folder) ====================
+  // Replace with your actual API key and client ID
+  const API_KEY = 'AIzaSyD91n0Uv-It5GUtfrXyNRXWs8o1eTWiHAo';  // <-- REPLACE
+  const CLIENT_ID = '672649423935-e3g0m98jkikrp6p4e5iesd3mqs4tfpqi.apps.googleusercontent.com'; // <-- REPLACE
+  const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+
+  // The folder ID you provided
+  const FOLDER_ID = 'https://drive.google.com/drive/folders/1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2';
+
+  let pickerApiLoaded = false;
+  let oauthToken;
+
+  window.openGooglePicker = function(targetInputId) {
+    // Store target input ID in a global so pickerCallback knows where to put the URL
+    window.currentPickerTarget = targetInputId;
+    gapi.load('auth', { callback: onAuthApiLoad });
+    gapi.load('picker', { callback: onPickerApiLoad });
+  };
+
+  function onAuthApiLoad() {
+    gapi.auth.authorize(
+      { client_id: CLIENT_ID, scope: SCOPES, immediate: false },
+      handleAuthResult
+    );
+  }
+
+  function onPickerApiLoad() {
+    pickerApiLoaded = true;
+    createPicker();
+  }
+
+  function handleAuthResult(authResult) {
+    if (authResult && !authResult.error) {
+      oauthToken = authResult.access_token;
+      createPicker();
+    } else {
+      alert('Authorization failed: ' + (authResult?.error || 'unknown error'));
+    }
+  }
+
+  function createPicker() {
+    if (pickerApiLoaded && oauthToken) {
+      // Create a view restricted to the specified folder
+      const driveView = new google.picker.DocsView()
+        .setParent(FOLDER_ID)          // Show only files from this folder
+        .setIncludeFolders(true);       // Also show subfolders if needed
+
+      const picker = new google.picker.PickerBuilder()
+        .addView(driveView)
+        .setOAuthToken(oauthToken)
+        .setDeveloperKey(API_KEY)
+        .setCallback(pickerCallback)
+        .build();
+      picker.setVisible(true);
+    }
+  }
+
+  function pickerCallback(data) {
+    if (data.action === google.picker.Action.PICKED) {
+      const doc = data.docs[0];
+      const fileId = doc.id;
+      const isImage = doc.mimeType && doc.mimeType.startsWith('image/');
+      // Construct embed URL for images, otherwise use the viewer URL
+      const mediaUrl = isImage ? `https://drive.google.com/uc?id=${fileId}` : doc.url;
+
+      const targetId = window.currentPickerTarget;
+      if (targetId) {
+        document.getElementById(targetId).value = mediaUrl;
+
+        // Show a preview
+        const previewDivId = 'preview' + targetId.charAt(0).toUpperCase() + targetId.slice(1);
+        const previewDiv = document.getElementById(previewDivId);
+        if (previewDiv) {
+          if (isImage) {
+            previewDiv.innerHTML = `<img src="${mediaUrl}" alt="Preview">`;
+          } else {
+            previewDiv.innerHTML = `<a href="${mediaUrl}" target="_blank">View selected file</a>`;
+          }
+          previewDiv.style.display = 'block';
+        }
+      }
+    }
+  }
+  // ==================== END DRIVE PICKER ====================
 </script>
 
 </body>
 </html>
-
