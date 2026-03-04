@@ -328,14 +328,14 @@
   <!-- MARQUEE SPEED CONTROLS (separate card) -->
   <div class="card">
     <h3><i class="fa-regular fa-gauge-high"></i> Marquee Scroll Speeds</h3>
-    <p>Set how fast the marquees scroll (seconds per full cycle).</p>
+    <p>Set how fast the marquees scroll (seconds per full cycle). Range: 1–2000 seconds.</p>
 
     <!-- Top bar slider -->
     <div style="margin: 20px 0;">
       <label style="color:#64ffda; font-weight:600;">Top Bar Speed</label>
       <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-        <input type="range" id="topSpeedSlider" min="10" max="2000" value="40" step="1" style="flex: 2;">
-        <input type="number" id="topSpeedInput" min="10" max="2000" value="40" step="1" style="width: 80px;">
+        <input type="range" id="topSpeedSlider" min="1" max="2000" value="22" step="1" style="flex: 2;">
+        <input type="number" id="topSpeedInput" min="1" max="2000" value="22" step="1" style="width: 80px;">
         <span style="color:#8cffe0;">s</span>
       </div>
     </div>
@@ -344,18 +344,18 @@
     <div style="margin: 20px 0;">
       <label style="color:#64ffda; font-weight:600;">Bottom Bar Speed</label>
       <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-        <input type="range" id="bottomSpeedSlider" min="18" max="500" value="40" step="1" style="flex: 2;">
-        <input type="number" id="bottomSpeedInput" min="18" max="500" value="40" step="1" style="width: 80px;">
+        <input type="range" id="bottomSpeedSlider" min="1" max="2000" value="360" step="1" style="flex: 2;">
+        <input type="number" id="bottomSpeedInput" min="1" max="2000" value="360" step="1" style="width: 80px;">
         <span style="color:#8cffe0;">s</span>
       </div>
     </div>
 
     <!-- Live preview area -->
     <div style="margin-top: 15px; background: #0d312b; padding: 8px; border-radius: 40px; overflow: hidden;">
-      <h6 style="display: inline-block; margin: 0; color: #b5ffe8; white-space: nowrap; font-weight: 400;" id="topSpeedPreview">Top: 40s</h6>
+      <h6 style="display: inline-block; margin: 0; color: #b5ffe8; white-space: nowrap; font-weight: 400;" id="topSpeedPreview">Top: 22s</h6>
     </div>
     <div style="margin-top: 8px; background: #0d312b; padding: 8px; border-radius: 40px; overflow: hidden;">
-      <h6 style="display: inline-block; margin: 0; color: #b5ffe8; white-space: nowrap; font-weight: 400;" id="bottomSpeedPreview">Bottom: 40s</h6>
+      <h6 style="display: inline-block; margin: 0; color: #b5ffe8; white-space: nowrap; font-weight: 400;" id="bottomSpeedPreview">Bottom: 360s</h6>
     </div>
 
     <button onclick="saveMarqueeSpeeds()" style="margin-top: 15px;">Save Both Speeds</button>
@@ -880,12 +880,14 @@
         const data = doc.data();
         if (data.topMarqueeSpeed) {
           let topVal = parseInt(data.topMarqueeSpeed, 10);
+          if (isNaN(topVal) || topVal < 1) topVal = 22;
           topSlider.value = topVal;
           topInput.value = topVal;
           topPreview.textContent = `Top: ${topVal}s`;
         }
         if (data.bottomMarqueeSpeed) {
           let bottomVal = parseInt(data.bottomMarqueeSpeed, 10);
+          if (isNaN(bottomVal) || bottomVal < 1) bottomVal = 360;
           bottomSlider.value = bottomVal;
           bottomInput.value = bottomVal;
           bottomPreview.textContent = `Bottom: ${bottomVal}s`;
@@ -910,14 +912,14 @@
       const topSpeed = Number(topSlider.value);
       const bottomSpeed = Number(bottomSlider.value);
 
-      if (topSpeed < 18 || topSpeed > 500 || bottomSpeed < 18 || bottomSpeed > 500) {
-        alert('Speeds must be between 18 and 500 seconds.');
+      if (topSpeed < 1 || topSpeed > 2000 || bottomSpeed < 1 || bottomSpeed > 2000) {
+        alert('Speeds must be between 1 and 2000 seconds.');
         return;
       }
 
       configDoc.set({
-        topMarqueeSpeed: topSpeed + 's',
-        bottomMarqueeSpeed: bottomSpeed + 's'
+        topMarqueeSpeed: topSpeed,
+        bottomMarqueeSpeed: bottomSpeed
       }, { merge: true })
         .then(() => {
           alert('Marquee speeds updated!');
@@ -930,4 +932,3 @@
 </script>
 </body>
 </html>
-
