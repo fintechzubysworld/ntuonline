@@ -233,6 +233,24 @@
       border-radius: 12px;
     }
 
+    /* Preview for bottom messages */
+    .message-preview {
+      margin-top: 15px;
+      background: #0d312b;
+      padding: 12px;
+      border-radius: 30px;
+      color: #b5ffe8;
+    }
+    .message-preview ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .message-preview li {
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+
     @media (max-width: 480px) {
       body { padding: 12px; }
       header { flex-direction: column; text-align: center; }
@@ -293,14 +311,17 @@
     <div id="eventMessage" class="message"></div>
   </div>
 
-  <!-- BOTTOM BAR MESSAGE CONTROL (fixed card) -->
+  <!-- BOTTOM BAR MESSAGES CONTROL (multiple lines) -->
   <div class="card">
-    <h3><i class="fa-regular fa-message"></i> Bottom Bar Message</h3>
-    <p>This message appears at the bottom of every user’s screen (fixed position).</p>
-    <input type="text" id="bottomMessageInput" placeholder="Enter message" style="width: 100%; margin: 10px 0;" />
-    <button onclick="updateBottomMessage()">Save Message</button>
-    <div style="margin-top: 15px; background: #0d312b; padding: 8px; border-radius: 40px; overflow: hidden;">
-      <h6 style="display: inline-block; margin: 0; color: #b5ffe8; animation: scrollText 22s linear infinite; white-space: nowrap; font-weight: 400;" id="bottomMessagePreview">⚡ Preview</h6>
+    <h3><i class="fa-regular fa-message"></i> Bottom Bar Messages</h3>
+    <p>Enter one message per line. They will rotate automatically in the community page.</p>
+    <textarea id="bottomMessagesInput" rows="5" placeholder="Message 1&#10;Message 2&#10;Message 3" style="width:100%; margin:10px 0;"></textarea>
+    <button onclick="saveBottomMessages()">Save Messages</button>
+
+    <!-- Preview area -->
+    <div class="message-preview" id="bottomMessagesPreview">
+      <strong>Preview:</strong>
+      <ul></ul>
     </div>
   </div>
 
@@ -447,6 +468,7 @@
             dashboardDiv.style.display = 'block';
             loadUsers();
             loadAllContent();
+            loadBottomMessages(); // load existing messages
           } else {
             authCheckDiv.innerHTML = '<h3>Access Denied. You are not an administrator.</h3><button onclick="window.location=\'ntuonline.html\'">Go Home</button>';
             authCheckDiv.style.display = 'block';
@@ -552,7 +574,7 @@
 
   // ---------- RECURSIVE DELETE (optimised with batched writes) ----------
   async function deleteDocumentAndSubcollections(docRef) {
-    const batch = db.batch();
+    let batch = db.batch();
     let operationCount = 0;
 
     async function collectDeletes(ref) {
@@ -611,9 +633,89 @@
       });
     }).catch(showError);
 
-    // Chat, Goodwill, Live, Events, Replies similarly escaped...
-    // (For brevity, only the escaping is added; full implementation omitted but follows same pattern)
-    // ... (see full code in attached file)
+    // Chat
+    db.collection('chat').orderBy('created', 'desc').get().then(snap => {
+      const container = document.getElementById('moderateChat');
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">💬 Chat | ${escapeHTML(d.name)} (${escapeHTML(d.kindred)}) | ${new Date(d.created).toLocaleString()}</div>
+            <div>${escapeHTML(d.text)}</div>
+            <button class="delete-btn" onclick="deleteItem('chat/${doc.id}')">Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
+
+    // Goodwill
+    db.collection('goodwill').orderBy('created', 'desc').get().then(snap => {
+      const container = document.getElementById('moderateGoodwill');
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">🤝 Goodwill | ${escapeHTML(d.name)} (${escapeHTML(d.kindred)}) | ${new Date(d.created).toLocaleString()}</div>
+            <div>${escapeHTML(d.text)}</div>
+            <button class="delete-btn" onclick="deleteItem('goodwill/${doc.id}')">Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
+
+    // Live comments
+    db.collection('live').doc('current').collection('comments').orderBy('created', 'desc').get().then(snap => {
+      const container = document.getElementById('moderateLive');
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">📺 Live Comment | ${escapeHTML(d.name)} (${escapeHTML(d.kindred)}) | ${new Date(d.created).toLocaleString()}</div>
+            <div>${escapeHTML(d.text)}</div>
+            <button class="delete-btn" onclick="deleteItem('live/current/comments/${doc.id}')">Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
+
+    // Events
+    db.collection('events').orderBy('created', 'desc').get().then(snap => {
+      const container = document.getElementById('moderateEvents');
+      container.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">📅 Event | ${escapeHTML(d.title)}</div>
+            <div>${escapeHTML(d.description || '')}</div>
+            <button class="delete-btn" onclick="deleteItem('events/${doc.id}')">Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
+
+    // Replies (all collections) – simplified: show recent replies from feed, chat, goodwill, live
+    const replyPromises = [
+      db.collectionGroup('replies').orderBy('created', 'desc').limit(50).get()
+    ];
+    Promise.all(replyPromises).then(results => {
+      const container = document.getElementById('moderateReplies');
+      container.innerHTML = '';
+      results[0].forEach(doc => {
+        const r = doc.data();
+        const path = doc.ref.path;
+        container.innerHTML += `
+          <div class="moderation-item">
+            <div class="moderation-meta">↩️ Reply | ${escapeHTML(r.name)} (${escapeHTML(r.kindred)}) | ${new Date(r.created).toLocaleString()}</div>
+            <div>${escapeHTML(r.text)}</div>
+            <button class="delete-btn" onclick="deleteItem('${path}')">Delete</button>
+          </div>
+        `;
+      });
+    }).catch(showError);
   }
 
   // ---------- TAB SWITCHING ----------
@@ -626,11 +728,11 @@
     });
   });
 
-  // ==================== GOOGLE DRIVE PICKER (fixed folder ID) ====================
+  // ==================== GOOGLE DRIVE PICKER ====================
   const API_KEY = 'AIzaSyD91n0Uv-It5GUtfrXyNRXWs8o1eTWiHAo';
   const CLIENT_ID = '672649423935-e3g0m98jkikrp6p4e5iesd3mqs4tfpqi.apps.googleusercontent.com';
   const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
-  const FOLDER_ID = '1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2';  // ✅ fixed: ID only, not full URL
+  const FOLDER_ID = '1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2';
 
   let pickerApiLoaded = false;
   let oauthToken;
@@ -665,7 +767,7 @@
   function createPicker() {
     if (pickerApiLoaded && oauthToken) {
       const driveView = new google.picker.DocsView()
-        .setParent(FOLDER_ID)   // ✅ now works correctly
+        .setParent(FOLDER_ID)
         .setIncludeFolders(true);
       const picker = new google.picker.PickerBuilder()
         .addView(driveView)
@@ -702,85 +804,73 @@
     }
   }
   // ==================== END DRIVE PICKER ====================
-</script>
 
-<!-- Bottom Message Script (IIFE, no conflicts) -->
-<script>
-  (function() {
-    if (typeof db === 'undefined') {
-      console.error('Firestore db not initialized.');
-      alert('Firebase not ready. Please refresh.');
+  // ========== BOTTOM MESSAGES (multiple) ==========
+  function loadBottomMessages() {
+    const configDoc = db.collection("config").doc("site");
+    const input = document.getElementById('bottomMessagesInput');
+    const previewUl = document.querySelector('#bottomMessagesPreview ul');
+
+    configDoc.get().then(doc => {
+      let messages = [];
+      if (doc.exists) {
+        const data = doc.data();
+        if (data.bottomMessages && Array.isArray(data.bottomMessages)) {
+          messages = data.bottomMessages;
+        } else if (data.bottomMessage && typeof data.bottomMessage === 'string') {
+          messages = [data.bottomMessage];
+        }
+      }
+      // Fill textarea (one per line)
+      input.value = messages.join('\n');
+      updatePreview(messages);
+    }).catch(err => {
+      console.error("Error loading bottom messages:", err);
+    });
+
+    input.addEventListener('input', function() {
+      const lines = this.value.split('\n').map(l => l.trim()).filter(l => l !== '');
+      updatePreview(lines);
+    });
+
+    function updatePreview(arr) {
+      previewUl.innerHTML = '';
+      if (arr.length === 0) {
+        previewUl.innerHTML = '<li><em>(no messages)</em></li>';
+      } else {
+        arr.forEach(msg => {
+          const li = document.createElement('li');
+          li.textContent = '⚡ ' + msg;
+          previewUl.appendChild(li);
+        });
+      }
+    }
+  }
+
+  window.saveBottomMessages = function() {
+    const raw = document.getElementById('bottomMessagesInput').value;
+    const messages = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
+    if (messages.length === 0) {
+      alert('Please enter at least one message.');
       return;
     }
-
-    const configDoc = db.collection("config").doc("site");
-
-    // Load existing message
-    configDoc.get()
-      .then(doc => {
-        const input = document.getElementById("bottomMessageInput");
-        const preview = document.getElementById("bottomMessagePreview");
-        if (doc.exists && doc.data().bottomMessage) {
-          input.value = doc.data().bottomMessage;
-          preview.textContent = "⚡ " + doc.data().bottomMessage;
-        } else {
-          preview.textContent = "⚡ No message set";
-        }
+    db.collection("config").doc("site").set({ bottomMessages: messages }, { merge: true })
+      .then(() => {
+        alert('✅ Bottom messages saved!');
       })
       .catch(err => {
-        console.error("Error loading bottom message:", err);
-        alert("Could not load message: " + err.message);
+        alert('❌ Failed to save: ' + err.message);
       });
+  };
 
-    // Live preview as admin types
-    const inputField = document.getElementById("bottomMessageInput");
-    if (inputField) {
-      inputField.addEventListener("input", function(e) {
-        const val = e.target.value.trim();
-        const preview = document.getElementById("bottomMessagePreview");
-        preview.textContent = val ? "⚡ " + val : "⚡ (empty)";
-      });
-    }
-
-    // Save function (global)
-    window.updateBottomMessage = function() {
-      const newMessage = document.getElementById("bottomMessageInput").value.trim();
-      if (!newMessage) {
-        alert("Message cannot be empty");
-        return;
-      }
-      configDoc.set({ bottomMessage: newMessage }, { merge: true })
-        .then(() => {
-          alert("✅ Bottom message updated!");
-        })
-        .catch(err => {
-          console.error("Error saving message:", err);
-          alert("❌ Failed to save: " + err.message);
-        });
-    };
-  })();
-</script>
-
-<!-- Marquee Speed Script (IIFE, with element checks and number conversion) -->
-<script>
+  // ========== MARQUEE SPEEDS ==========
   (function() {
-    if (typeof db === 'undefined') {
-      alert('Firebase not ready.');
-      return;
-    }
-
-    // Elements with existence checks
     const topSlider = document.getElementById('topSpeedSlider');
     const topInput = document.getElementById('topSpeedInput');
     const topPreview = document.getElementById('topSpeedPreview');
     const bottomSlider = document.getElementById('bottomSpeedSlider');
     const bottomInput = document.getElementById('bottomSpeedInput');
     const bottomPreview = document.getElementById('bottomSpeedPreview');
-
-    if (!topSlider || !topInput || !topPreview || !bottomSlider || !bottomInput || !bottomPreview) {
-      console.error('Marquee speed elements missing');
-      return;
-    }
 
     const configDoc = db.collection("config").doc("site");
 
@@ -803,7 +893,6 @@
       }
     }).catch(err => console.error(err));
 
-    // Link sliders and number inputs
     function linkSliderAndInput(slider, input, preview, label) {
       slider.addEventListener('input', function() {
         input.value = this.value;
@@ -817,7 +906,6 @@
     linkSliderAndInput(topSlider, topInput, topPreview, 'Top');
     linkSliderAndInput(bottomSlider, bottomInput, bottomPreview, 'Bottom');
 
-    // Save both speeds
     window.saveMarqueeSpeeds = function() {
       const topSpeed = Number(topSlider.value);
       const bottomSpeed = Number(bottomSlider.value);
@@ -840,6 +928,5 @@
     };
   })();
 </script>
-
 </body>
 </html>
