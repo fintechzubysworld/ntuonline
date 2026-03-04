@@ -437,6 +437,21 @@
       border-radius: 10px;
     }
 
+    /* Edit profile modal fields */
+    .edit-profile-field {
+      margin-bottom: 15px;
+    }
+    .edit-profile-field label {
+      display: block;
+      margin-bottom: 5px;
+      color: #b5ffe8;
+    }
+    .readonly-field {
+      background: #1a4a42;
+      color: #b0ddd4;
+      cursor: not-allowed;
+    }
+
     @keyframes scrollText {
       0% { transform: translateX(100%); }
       80% { transform: translateX(-100%); }
@@ -620,7 +635,7 @@
     <div id="liveComments"></div>
   </div>
 
-  <!-- PRIVATE CHAT -->
+  <!-- PRIVATE CHAT SEARCH -->
   <div class="card">
     <h3><i class="fa-regular fa-comments"></i> Start Private Chat</h3>
     <input type="text" id="searchUserInput" placeholder="Search by name or email...">
@@ -650,13 +665,35 @@
   </div>
 </div>
 
-<!-- Profile Modal -->
+<!-- Profile Modal (read‑only for viewing others) -->
 <div id="profileModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeProfileModal()">&times;</span>
     <h3><i class="fa-regular fa-user"></i> User Profile</h3>
     <div id="profileInfo"></div>
     <button id="startPrivateChatBtn" onclick="startPrivateChatFromProfile()">💬 Private Chat</button>
+  </div>
+</div>
+
+<!-- Edit Profile Modal (for own profile) -->
+<div id="editProfileModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeEditProfileModal()">&times;</span>
+    <h3><i class="fa-regular fa-user-pen"></i> Edit Your Profile</h3>
+    <div class="edit-profile-field">
+      <label>Name</label>
+      <input type="text" id="editName" placeholder="Your name">
+    </div>
+    <div class="edit-profile-field">
+      <label>Kindred</label>
+      <input type="text" id="editKindred" placeholder="Your kindred">
+    </div>
+    <div class="edit-profile-field">
+      <label>Email</label>
+      <input type="email" id="editEmail" class="readonly-field" readonly disabled>
+    </div>
+    <button onclick="saveProfileChanges()">Save Changes</button>
+    <div id="editProfileMessage" class="message" style="margin-top:15px;"></div>
   </div>
 </div>
 
@@ -1061,6 +1098,7 @@
   }
   // ==================== END MESSAGING SETUP ====================
 
+  // ========== NAVIGATION (updated with Profile button) ==========
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -1071,6 +1109,7 @@
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
           <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
+          <button onclick="showEditProfile()"><i class="fa-regular fa-user"></i> Profile</button>
           <button onclick="logout()">Logout</button>
           ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
         `;
@@ -1088,6 +1127,87 @@
   });
 
   function showError(err) { alert("Error: " + err.message); console.error(err); }
+
+  // ========== EDIT PROFILE FUNCTIONS ==========
+  window.showEditProfile = function() {
+    if (!currentUser) return alert("You must be logged in.");
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+      if (!doc.exists) return;
+      const data = doc.data();
+      document.getElementById('editName').value = data.name || '';
+      document.getElementById('editKindred').value = data.kindred || '';
+      document.getElementById('editEmail').value = data.email || '';
+      document.getElementById('editProfileMessage').style.display = 'none';
+      document.getElementById('editProfileModal').style.display = 'flex';
+    }).catch(showError);
+  };
+
+  window.closeEditProfileModal = function() {
+    document.getElementById('editProfileModal').style.display = 'none';
+  };
+
+  window.saveProfileChanges = function() {
+    const name = document.getElementById('editName').value.trim();
+    const kindred = document.getElementById('editKindred').value.trim();
+    if (!name || !kindred) {
+      showMessage('editProfileMessage', 'Name and kindred cannot be empty', 'error');
+      return;
+    }
+    db.collection('users').doc(currentUser.uid).update({
+      name,
+      kindred
+    }).then(() => {
+      showMessage('editProfileMessage', 'Profile updated successfully', 'success');
+      setTimeout(() => closeEditProfileModal(), 1500);
+    }).catch(err => {
+      showMessage('editProfileMessage', err.message, 'error');
+    });
+  };
+
+  // Helper to show messages inside modals
+  function showMessage(containerId, text, type) {
+    const div = document.getElementById(containerId);
+    div.textContent = text;
+    div.className = `message ${type}`;
+    div.style.display = 'block';
+    setTimeout(() => { div.style.display = 'none'; }, 3000);
+  }
+
+  // ========== PROFILE VIEW (for others) – hide private chat if own profile ==========
+  window.showProfile = function(userId) {
+    if (!userId) return;
+    db.collection('users').doc(userId).get().then(doc => {
+      if (!doc.exists) return;
+      const user = doc.data();
+      document.getElementById('profileInfo').innerHTML = `
+        <p><strong>Name:</strong> ${user.name || '?'}</p>
+        <p><strong>Kindred:</strong> ${user.kindred || '?'}</p>
+        <p><strong>Email:</strong> ${user.email || '?'}</p>
+        <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
+      `;
+      currentProfileUserId = userId;
+      // Hide private chat button if viewing own profile
+      const chatBtn = document.getElementById('startPrivateChatBtn');
+      if (currentUser && userId === currentUser.uid) {
+        chatBtn.style.display = 'none';
+      } else {
+        chatBtn.style.display = 'inline-flex';
+      }
+      document.getElementById('profileModal').style.display = 'flex';
+    }).catch(showError);
+  };
+
+  window.closeProfileModal = function() {
+    document.getElementById('profileModal').style.display = 'none';
+    currentProfileUserId = null;
+  };
+
+  window.startPrivateChatFromProfile = function() {
+    if (currentProfileUserId) {
+      startPrivateChat(currentProfileUserId);
+      closeProfileModal();
+    }
+  };
 
   // ---------- FEED (modified to use scroll container) ----------
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
@@ -1546,36 +1666,8 @@
     }, showError);
   }
 
-  // ---------- USER PROFILES ----------
+  // ---------- USER PROFILES (already above) ----------
   let currentProfileUserId = null;
-
-  window.showProfile = function(userId) {
-    if (!userId) return;
-    db.collection('users').doc(userId).get().then(doc => {
-      if (!doc.exists) return;
-      const user = doc.data();
-      document.getElementById('profileInfo').innerHTML = `
-        <p><strong>Name:</strong> ${user.name || '?'}</p>
-        <p><strong>Kindred:</strong> ${user.kindred || '?'}</p>
-        <p><strong>Email:</strong> ${user.email || '?'}</p>
-        <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
-      `;
-      currentProfileUserId = userId;
-      document.getElementById('profileModal').style.display = 'flex';
-    }).catch(showError);
-  };
-
-  window.closeProfileModal = function() {
-    document.getElementById('profileModal').style.display = 'none';
-    currentProfileUserId = null;
-  };
-
-  window.startPrivateChatFromProfile = function() {
-    if (currentProfileUserId) {
-      startPrivateChat(currentProfileUserId);
-      closeProfileModal();
-    }
-  };
 
   // ---------- PRIVATE CHAT (Room-based) ----------
   let activeChatRoomId = null;
