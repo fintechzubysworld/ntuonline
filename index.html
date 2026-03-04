@@ -364,7 +364,7 @@
       color: #b0ddd4;
     }
 
-    /* Marquee (top) */
+    /* Marquee (top) – speed controlled dynamically */
     .marquee {
       width: 100%;
       overflow: hidden;
@@ -377,9 +377,9 @@
     .marquee h6 {
       display: inline-block;
       margin: 0;
-      font-size: 0.7rem;
+      font-size: 0.9rem;
       color: #b5ffe8;
-      animation: scrollText 22s linear infinite;
+      animation: scrollText var(--top-speed, 22s) linear infinite;
       white-space: nowrap;
       font-weight: 400;
       letter-spacing: 0.5px;
@@ -403,18 +403,20 @@
     .bottom-marquee .marquee-content {
       display: inline-block;
       white-space: nowrap;
-      animation: scrollText 40s linear infinite;
+      animation: scrollText var(--bottom-speed, 360s) linear infinite;
       font-size: 0.9rem;
       color: #b5ffe8;
       font-weight: 400;
       letter-spacing: 0.5px;
     }
-    .bottom-marquee:hover .marquee-content {
+    .bottom-marquee:hover .marquee-content,
+    .marquee:hover h6 {
       animation-play-state: paused;
     }
 
     @keyframes scrollText {
       0% { transform: translateX(100%); }
+      80% { transform: translateX(-100%); }
       100% { transform: translateX(-100%); }
     }
 
@@ -548,7 +550,7 @@
   <div id="navArea"></div>
 </header>
 <div class="marquee">
-  <h6>⚡ Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
+  <h6 id="topMarqueeText">⚡ Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
 </div>
 
 <div class="section">
@@ -1798,13 +1800,31 @@
     navigator.serviceWorker.register('sw.js');
   }
 
+  // ========== MARQUEE SPEEDS AND MESSAGES ==========
+  const configDoc = db.collection("config").doc("site");
+
+  // Update top marquee speed
+  configDoc.onSnapshot(doc => {
+    if (doc.exists) {
+      const data = doc.data();
+      // Top marquee speed
+      let topSpeed = data.topMarqueeSpeed ? parseInt(data.topMarqueeSpeed, 10) : 22;
+      if (isNaN(topSpeed) || topSpeed < 1) topSpeed = 22;
+      document.querySelector('.marquee h6').style.setProperty('--top-speed', topSpeed + 's');
+
+      // Bottom marquee speed
+      let bottomSpeed = data.bottomMarqueeSpeed ? parseInt(data.bottomMarqueeSpeed, 10) : 360;
+      if (isNaN(bottomSpeed) || bottomSpeed < 1) bottomSpeed = 360;
+      document.querySelector('.bottom-marquee .marquee-content').style.setProperty('--bottom-speed', bottomSpeed + 's');
+    }
+  }, error => console.error("Error loading marquee speeds:", error));
+
   // ========== BOTTOM MARQUEE WITH ROTATING MESSAGES ==========
   const bottomMarquee = document.getElementById('bottomMarqueeText');
   let messages = ['⚡ Welcome to Ntuconnect']; // default
   let currentIndex = 0;
 
-  // Update messages from Firestore and start rotation
-  db.collection("config").doc("site").onSnapshot(doc => {
+  configDoc.onSnapshot(doc => {
     if (doc.exists) {
       const data = doc.data();
       // Handle new array format
@@ -1842,6 +1862,3 @@
 </script>
 </body>
 </html>
-
-
-
