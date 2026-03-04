@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <style>
-    /* ===== ADMIN STYLES (unchanged, only critical fixes) ===== */
+    /* ===== ADMIN STYLES (unchanged) ===== */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
@@ -107,6 +107,8 @@
     }
     button.secondary { background: #2d5b52; }
     button.secondary:hover { background: #3e786c; }
+    button.danger { background: #b54a3f; }
+    button.danger:hover { background: #c45f54; }
     .drive-btn {
       background: #2a4a44;
       margin-left: 8px;
@@ -251,6 +253,15 @@
       font-size: 0.9rem;
     }
 
+    /* Live status */
+    .live-status {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 30px;
+      background: #0f332d;
+      border-left: 4px solid #2dab95;
+    }
+
     @media (max-width: 480px) {
       body { padding: 12px; }
       header { flex-direction: column; text-align: center; }
@@ -311,6 +322,27 @@
     <div id="eventMessage" class="message"></div>
   </div>
 
+  <!-- LIVE STREAM CONTROL (NEW) -->
+  <div class="card">
+    <h3><i class="fa-regular fa-circle-play"></i> Live Stream Control</h3>
+    <p>Set the YouTube video ID and title for the live stream.</p>
+
+    <input type="text" id="liveTitle" placeholder="Live Title (e.g., Sunday Service)">
+    <input type="text" id="liveVideoId" placeholder="YouTube Video ID (e.g., dQw4w9WgXcQ)">
+
+    <div class="input-group" style="margin: 15px 0;">
+      <button onclick="updateLiveStream()" style="flex:1;">🎥 Start / Update Live</button>
+      <button onclick="stopLiveStream()" class="danger" style="flex:1;">⏹️ Stop Live</button>
+    </div>
+
+    <div id="liveMessage" class="message"></div>
+
+    <!-- Current live status -->
+    <div class="live-status" id="liveStatus">
+      <strong>Current Live Stream:</strong> <span id="liveStatusText">Not live</span>
+    </div>
+  </div>
+
   <!-- BOTTOM BAR MESSAGES CONTROL (multiple lines) -->
   <div class="card">
     <h3><i class="fa-regular fa-message"></i> Bottom Bar Messages</h3>
@@ -325,7 +357,7 @@
     </div>
   </div>
 
-  <!-- MARQUEE SPEED CONTROLS (separate card) -->
+  <!-- MARQUEE SPEED CONTROLS -->
   <div class="card">
     <h3><i class="fa-regular fa-gauge-high"></i> Marquee Scroll Speeds</h3>
     <p>Set how fast the marquees scroll (seconds per full cycle). Range: 1–2000 seconds.</p>
@@ -436,7 +468,7 @@
     setTimeout(() => { div.style.display = 'none'; }, 5000);
   }
 
-  // Simple escape function to prevent XSS in moderation panel
+  // Simple escape function to prevent XSS
   function escapeHTML(str) {
     return String(str).replace(/[&<>"]/g, function(m) {
       if (m === '&') return '&amp;';
@@ -468,7 +500,8 @@
             dashboardDiv.style.display = 'block';
             loadUsers();
             loadAllContent();
-            loadBottomMessages(); // load existing messages
+            loadBottomMessages();
+            loadLiveStatus(); // load live stream status
           } else {
             authCheckDiv.innerHTML = '<h3>Access Denied. You are not an administrator.</h3><button onclick="window.location=\'ntuonline.html\'">Go Home</button>';
             authCheckDiv.style.display = 'block';
@@ -505,7 +538,7 @@
       .catch(err => showMessage('adminMessage', err.message, 'error'));
   };
 
-  // ---------- CREATE FEED POST (with optional image) ----------
+  // ---------- CREATE FEED POST ----------
   window.createFeedPost = function() {
     const text = document.getElementById('feedText').value.trim();
     if (!text) return showMessage('feedMessage', 'Post text required', 'error');
@@ -553,6 +586,50 @@
       .catch(err => showMessage('eventMessage', err.message, 'error'));
   };
 
+  // ---------- LIVE STREAM CONTROL ----------
+  function loadLiveStatus() {
+    db.collection('live').doc('current').onSnapshot(doc => {
+      const statusSpan = document.getElementById('liveStatusText');
+      if (doc.exists) {
+        const data = doc.data();
+        statusSpan.innerHTML = `<strong>${escapeHTML(data.title || 'Untitled')}</strong> (Video ID: ${escapeHTML(data.videoId || 'none')})`;
+        // Pre-fill the form with current values
+        document.getElementById('liveTitle').value = data.title || '';
+        document.getElementById('liveVideoId').value = data.videoId || '';
+      } else {
+        statusSpan.textContent = 'Not live';
+        document.getElementById('liveTitle').value = '';
+        document.getElementById('liveVideoId').value = '';
+      }
+    }, showError);
+  }
+
+  window.updateLiveStream = function() {
+    const title = document.getElementById('liveTitle').value.trim();
+    const videoId = document.getElementById('liveVideoId').value.trim();
+    if (!title || !videoId) {
+      return showMessage('liveMessage', 'Both title and video ID are required', 'error');
+    }
+    db.collection('live').doc('current').set({
+      title,
+      videoId,
+      updated: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+      showMessage('liveMessage', 'Live stream updated', 'success');
+    })
+    .catch(err => showMessage('liveMessage', err.message, 'error'));
+  };
+
+  window.stopLiveStream = function() {
+    if (!confirm('Stop the live stream? It will disappear from the community page.')) return;
+    db.collection('live').doc('current').delete()
+      .then(() => {
+        showMessage('liveMessage', 'Live stream stopped', 'success');
+      })
+      .catch(err => showMessage('liveMessage', err.message, 'error'));
+  };
+
   // ---------- CHANGE PASSWORD ----------
   window.changePassword = function() {
     const curr = document.getElementById('currentPass').value;
@@ -572,7 +649,7 @@
       .catch(err => showMessage('passMessage', err.message, 'error'));
   };
 
-  // ---------- RECURSIVE DELETE (optimised with batched writes) ----------
+  // ---------- RECURSIVE DELETE ----------
   async function deleteDocumentAndSubcollections(docRef) {
     let batch = db.batch();
     let operationCount = 0;
@@ -580,12 +657,11 @@
     async function collectDeletes(ref) {
       const repliesSnap = await ref.collection('replies').get();
       for (const replyDoc of repliesSnap.docs) {
-        await collectDeletes(replyDoc.ref); // recurse deeper replies
+        await collectDeletes(replyDoc.ref);
         batch.delete(replyDoc.ref);
         operationCount++;
-        if (operationCount >= 450) { // safe limit (500 max per batch)
+        if (operationCount >= 450) {
           await batch.commit();
-          // start new batch
           batch = db.batch();
           operationCount = 0;
         }
@@ -596,12 +672,10 @@
     batch.delete(docRef);
     operationCount++;
     await batch.commit();
-    console.log(`Deleted document: ${docRef.path}`);
   }
 
   window.deleteItem = function(path) {
     if (!confirm('Permanently delete this item and all its replies?')) return;
-    console.log(`Attempting to delete: ${path}`);
     const docRef = db.doc(path);
     deleteDocumentAndSubcollections(docRef)
       .then(() => {
@@ -614,9 +688,9 @@
       });
   };
 
-  // ---------- LOAD ALL CONTENT (moderation) with XSS escaping ----------
+  // ---------- LOAD ALL CONTENT (moderation) ----------
   function loadAllContent() {
-    // Feed (including images)
+    // Feed
     db.collection('feed').orderBy('created', 'desc').get().then(snap => {
       const container = document.getElementById('moderateFeed');
       container.innerHTML = '';
@@ -626,7 +700,7 @@
           <div class="moderation-item">
             <div class="moderation-meta">📰 Feed | ${escapeHTML(d.name)} (${escapeHTML(d.kindred)}) | ${new Date(d.created).toLocaleString()}</div>
             <div>${escapeHTML(d.text || '')}</div>
-            ${d.image ? `<div class="embedded-media"><img src="${escapeHTML(d.image)}" style="max-width:200px; border-radius:12px;"></div>` : ''}
+            ${d.image ? `<div><img src="${escapeHTML(d.image)}" style="max-width:200px; border-radius:12px;"></div>` : ''}
             <button class="delete-btn" onclick="deleteItem('feed/${doc.id}')">Delete</button>
           </div>
         `;
@@ -697,14 +771,11 @@
       });
     }).catch(showError);
 
-    // Replies (all collections) – simplified: show recent replies from feed, chat, goodwill, live
-    const replyPromises = [
-      db.collectionGroup('replies').orderBy('created', 'desc').limit(50).get()
-    ];
-    Promise.all(replyPromises).then(results => {
+    // Replies (all collections)
+    db.collectionGroup('replies').orderBy('created', 'desc').limit(50).get().then(snap => {
       const container = document.getElementById('moderateReplies');
       container.innerHTML = '';
-      results[0].forEach(doc => {
+      snap.forEach(doc => {
         const r = doc.data();
         const path = doc.ref.path;
         container.innerHTML += `
@@ -805,7 +876,7 @@
   }
   // ==================== END DRIVE PICKER ====================
 
-  // ========== BOTTOM MESSAGES (multiple) ==========
+  // ========== BOTTOM MESSAGES ==========
   function loadBottomMessages() {
     const configDoc = db.collection("config").doc("site");
     const input = document.getElementById('bottomMessagesInput');
@@ -821,7 +892,6 @@
           messages = [data.bottomMessage];
         }
       }
-      // Fill textarea (one per line)
       input.value = messages.join('\n');
       updatePreview(messages);
     }).catch(err => {
@@ -874,7 +944,6 @@
 
     const configDoc = db.collection("config").doc("site");
 
-    // Load current speeds
     configDoc.get().then(doc => {
       if (doc.exists) {
         const data = doc.data();
