@@ -401,10 +401,15 @@
   margin: 0;
   font-size: 0.9rem;
   color: #b5ffe8;
-  animation: scrollText 100s linear infinite;
+  animation: scrollText 360s linear infinite;
   white-space: nowrap;
   font-weight: 400;
   letter-spacing: 0.5px;
+  repeat: 3s
+}
+.marquee:hover h6,
+.bottom-marquee:hover h6 {
+  animation-play-state: paused;
 }
 /* Add bottom padding to body so content is not hidden behind the fixed bar */
 body {
@@ -412,8 +417,15 @@ body {
 }
 
     @keyframes scrollText {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
+       0% {
+    transform: translateX(100%);
+  }
+  80% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
     }
 
     /* clickable name */
@@ -1819,6 +1831,7 @@ window.postFeed = function () {
 </div>
 </body>
 </html>
+
 
 
 
