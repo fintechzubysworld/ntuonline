@@ -29,10 +29,10 @@
       line-height: 1.5;
       min-height: 100vh;
       padding: 16px;
-      padding-bottom: 50px; /* space for fixed bottom marquee */
+      padding-bottom: 50px;
     }
 
-    /* ===== HEADER – AQUA BREEZE ===== */
+    /* ===== HEADER ===== */
     header {
       background: rgba(26, 138, 120, 0.85);
       backdrop-filter: blur(12px);
@@ -92,7 +92,7 @@
       text-shadow: 0 0 5px #64ffda;
     }
 
-    /* ===== SECTION & CARDS – GLASSY ===== */
+    /* ===== SECTION & CARDS ===== */
     .section {
       max-width: 1300px;
       margin: 0 auto;
@@ -251,7 +251,7 @@
       font-weight: 600;
     }
 
-    /* ===== MODALS – AQUAMARINE GLOW ===== */
+    /* ===== MODALS ===== */
     .modal {
       position: fixed;
       z-index: 2000;
@@ -270,7 +270,7 @@
       padding: 28px 26px;
       border-radius: 48px;
       width: 100%;
-      max-width: 500px;
+      max-width: 600px;
       max-height: 90vh;
       overflow-y: auto;
       color: white;
@@ -291,7 +291,7 @@
     }
     .close:hover { color: #a2ffee; transform: scale(1.1); }
 
-    /* Auth modal specific */
+    /* Auth modal */
     #authContainer.modal {
       display: none;
     }
@@ -314,17 +314,28 @@
       border-radius: 22px;
       max-width: 80%;
       word-wrap: break-word;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
     }
     .chat-message.sent {
       background: #1f8f7c;
       color: white;
       margin-left: auto;
+      flex-direction: row-reverse;
     }
     .chat-message.received {
       background: #2b5a51;
       color: white;
       margin-right: auto;
     }
+    .chat-message .avatar-sm {
+      flex-shrink: 0;
+    }
+    .chat-message .message-content {
+      word-break: break-word;
+    }
+
     .chat-input-area {
       display: flex;
       gap: 10px;
@@ -364,7 +375,7 @@
       color: #b0ddd4;
     }
 
-    /* Marquee (top) – speed controlled dynamically */
+    /* Marquee */
     .marquee {
       width: 100%;
       overflow: hidden;
@@ -385,7 +396,7 @@
       letter-spacing: 0.5px;
     }
 
-    /* Fixed bottom bar – rotating messages */
+    /* Fixed bottom bar */
     .bottom-marquee {
       position: fixed;
       bottom: 0;
@@ -416,15 +427,13 @@
 
     /* Feed auto-scroll container */
     .feed-scroll-container {
-      height: 400px;          /* fixed height */
-      overflow-y: auto;       /* scrollbar appears when needed */
-      scroll-behavior: smooth; /* smooth manual scrolling */
+      height: 400px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
       margin-top: 15px;
       border-radius: 20px;
-      padding-right: 5px;     /* avoid cutting off scrollbar */
+      padding-right: 5px;
     }
-
-    /* Optional: style the scrollbar to match theme */
     .feed-scroll-container::-webkit-scrollbar {
       width: 8px;
     }
@@ -437,7 +446,77 @@
       border-radius: 10px;
     }
 
-    /* Edit profile modal fields */
+    /* Avatar styles */
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 8px;
+      vertical-align: middle;
+      border: 2px solid #2dab95;
+    }
+    .avatar-sm {
+      width: 24px;
+      height: 24px;
+      margin-right: 4px;
+    }
+    .avatar-lg {
+      width: 64px;
+      height: 64px;
+      margin-right: 16px;
+    }
+    .avatar-placeholder {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #2d5b52;
+      color: #b5ffe8;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      margin-right: 8px;
+      font-size: 1rem;
+    }
+    .avatar-placeholder-sm {
+      width: 24px;
+      height: 24px;
+      font-size: 0.8rem;
+    }
+    .avatar-placeholder-lg {
+      width: 64px;
+      height: 64px;
+      font-size: 2rem;
+    }
+
+    /* Avatar picker grid */
+    .avatar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+      gap: 10px;
+      margin: 15px 0;
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #0f332d;
+      border-radius: 20px;
+    }
+    .avatar-option {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .avatar-option:hover {
+      border-color: #64ffda;
+    }
+    .avatar-option.selected {
+      border-color: #2dab95;
+    }
+
     .edit-profile-field {
       margin-bottom: 15px;
     }
@@ -458,12 +537,18 @@
       100% { transform: translateX(-100%); }
     }
 
-    /* clickable name */
-    .clickable-name {
+    /* clickable name with avatar */
+    .user-badge {
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
       color: #a2ffee;
       font-weight: 600;
-      cursor: pointer;
       text-decoration: none;
+      margin-bottom: 4px;
+    }
+    .user-badge span {
+      margin-left: 4px;
     }
 
     /* ===== MOBILE OPTIMIZATIONS ===== */
@@ -475,13 +560,9 @@
       button { width: 100%; }
       .embedded-media iframe { height: 200px; }
       .modal-content { padding: 20px; }
-      .feed-scroll-container { height: 300px; } /* smaller on mobile */
-    }
-
-    @media (max-width: 360px) {
-      .card h3 { font-size: 1.2rem; }
-      .feed-item, .chat-item, .goodwill-item { padding: 12px; }
-      .reaction-btn { padding: 6px 12px; }
+      .feed-scroll-container { height: 300px; }
+      .avatar-grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); }
+      .avatar-option { width: 50px; height: 50px; }
     }
 
     .unread-badge {
@@ -670,12 +751,12 @@
   <div class="modal-content">
     <span class="close" onclick="closeProfileModal()">&times;</span>
     <h3><i class="fa-regular fa-user"></i> User Profile</h3>
-    <div id="profileInfo"></div>
+    <div id="profileInfo" style="display: flex; align-items: center; gap: 20px;"></div>
     <button id="startPrivateChatBtn" onclick="startPrivateChatFromProfile()">💬 Private Chat</button>
   </div>
 </div>
 
-<!-- Edit Profile Modal (for own profile) -->
+<!-- Edit Profile Modal (with avatar picker) -->
 <div id="editProfileModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeEditProfileModal()">&times;</span>
@@ -691,6 +772,13 @@
     <div class="edit-profile-field">
       <label>Email</label>
       <input type="email" id="editEmail" class="readonly-field" readonly disabled>
+    </div>
+    <div class="edit-profile-field">
+      <label>Choose Avatar</label>
+      <div id="avatarPicker" class="avatar-grid">
+        <div class="avatar-placeholder avatar-placeholder-lg">Loading...</div>
+      </div>
+      <small style="color:#9bc5bc;">Click an avatar to select it. If none are shown, the admin hasn't uploaded any yet.</small>
     </div>
     <button onclick="saveProfileChanges()">Save Changes</button>
     <div id="editProfileMessage" class="message" style="margin-top:15px;"></div>
@@ -719,7 +807,7 @@
   </div>
 </div>
 
-<!-- Link Modal (for external links) -->
+<!-- Link Modal -->
 <div id="linkModal" class="modal" style="display:none;">
   <div class="modal-content" style="position: relative; padding: 0; background: transparent; border: none;">
     <span class="close" onclick="closeLinkModal()">&times;</span>
@@ -731,7 +819,7 @@
   </div>
 </div>
 
-<!-- Fixed bottom marquee (multiple rotating messages) -->
+<!-- Fixed bottom marquee -->
 <div class="bottom-marquee">
   <div class="marquee-content" id="bottomMarqueeText">⚡ Loading messages...</div>
 </div>
@@ -751,6 +839,38 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   let currentUser = null;
+
+  // Drive API for avatars
+  const DRIVE_API_KEY = 'AIzaSyD91n0Uv-It5GUtfrXyNRXWs8o1eTWiHAo';
+  const AVATAR_FOLDER_ID = '1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2';
+
+  // Cache avatars in sessionStorage
+  let cachedAvatars = null;
+
+  // Fetch avatar images from Drive folder
+  async function fetchAvatarsFromDrive() {
+    if (cachedAvatars) return cachedAvatars;
+    try {
+      const url = `https://www.googleapis.com/drive/v3/files?q='${AVATAR_FOLDER_ID}'+in+parents&fields=files(id,name,mimeType,thumbnailLink)&key=${DRIVE_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.files) {
+        const images = data.files.filter(f => f.mimeType.startsWith('image/'));
+        const avatars = images.map(f => ({
+          id: f.id,
+          name: f.name,
+          url: `https://drive.google.com/uc?id=${f.id}`,
+          thumbnail: f.thumbnailLink || `https://drive.google.com/thumbnail?id=${f.id}&sz=s100`
+        }));
+        cachedAvatars = avatars;
+        return avatars;
+      }
+      return [];
+    } catch (err) {
+      console.error('Error fetching avatars:', err);
+      return [];
+    }
+  }
 
   // ==================== LINK HANDLER ====================
   function openLinkInModal(url) {
@@ -795,7 +915,7 @@
     if (target.classList.contains('clickable-name')) return;
     if (target.getAttribute('href') && target.getAttribute('href').startsWith('#')) return;
     if (e.target.closest('button')) return;
-    if (target.closest('.event-item')) return; // events open normally
+    if (target.closest('.event-item')) return;
 
     const href = target.getAttribute('href');
     if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
@@ -810,7 +930,6 @@
     if (!text) return '';
 
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s]*)/g;
 
     let parts = [];
     let lastIndex = 0;
@@ -998,6 +1117,14 @@
     return unsubscribe;
   }
 
+  // Helper to create user badge with avatar
+  function userBadgeHTML(name, kindred, userId, avatar) {
+    const avatarHtml = avatar 
+      ? `<img class="avatar avatar-sm" src="${avatar}" alt="">`
+      : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+    return `<span class="user-badge" onclick="showProfile('${userId}')">${avatarHtml}<span>${escapeHtml(name)} (${escapeHtml(kindred)})</span></span>`;
+  }
+
   // AUTH
   let authMode = "login";
   const navArea = document.getElementById("navArea");
@@ -1025,7 +1152,8 @@
         .then(cred => db.collection("users").doc(cred.user.uid).set({
           name, kindred, email, online: true, lastSeen: null,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          isAdmin: false
+          isAdmin: false,
+          avatar: null
         }))
         .then(() => { alert("Registered"); authContainer.style.display = "none"; clearAuth(); })
         .catch(showError);
@@ -1066,7 +1194,7 @@
         return;
       }
 
-      const vapidKey = 'BIHlrUCxwT4_GZMFu2D0MVz5n0Grhx-iGMpOskT0T012wEQZewobWTiZklX2Vs3xwj1YKmTHwtec8y5fH2dsjcA'; // <-- REPLACE WITH YOUR VAPID KEY
+      const vapidKey = 'BIHlrUCxwT4_GZMFu2D0MVz5n0Grhx-iGMpOskT0T012wEQZewobWTiZklX2Vs3xwj1YKmTHwtec8y5fH2dsjcA';
       const token = await messaging.getToken({ vapidKey });
       if (token) {
         await db.collection('users').doc(currentUser.uid).update({
@@ -1098,7 +1226,7 @@
   }
   // ==================== END MESSAGING SETUP ====================
 
-  // ========== NAVIGATION (updated with Profile button) ==========
+  // ========== NAVIGATION ==========
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -1128,18 +1256,38 @@
 
   function showError(err) { alert("Error: " + err.message); console.error(err); }
 
-  // ========== EDIT PROFILE FUNCTIONS ==========
-  window.showEditProfile = function() {
+  // ========== EDIT PROFILE FUNCTIONS (with avatar picker) ==========
+  window.showEditProfile = async function() {
     if (!currentUser) return alert("You must be logged in.");
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
-      if (!doc.exists) return;
-      const data = doc.data();
-      document.getElementById('editName').value = data.name || '';
-      document.getElementById('editKindred').value = data.kindred || '';
-      document.getElementById('editEmail').value = data.email || '';
-      document.getElementById('editProfileMessage').style.display = 'none';
-      document.getElementById('editProfileModal').style.display = 'flex';
-    }).catch(showError);
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    if (!doc.exists) return;
+    const data = doc.data();
+    document.getElementById('editName').value = data.name || '';
+    document.getElementById('editKindred').value = data.kindred || '';
+    document.getElementById('editEmail').value = data.email || '';
+
+    // Load avatars from Drive
+    const avatars = await fetchAvatarsFromDrive();
+    const picker = document.getElementById('avatarPicker');
+    if (avatars.length === 0) {
+      picker.innerHTML = '<div style="text-align:center;">No avatars available</div>';
+    } else {
+      let html = '';
+      avatars.forEach(av => {
+        const selectedClass = (data.avatar === av.url) ? 'selected' : '';
+        html += `<img src="${av.thumbnail}" class="avatar-option ${selectedClass}" data-url="${av.url}" onclick="selectAvatar(this)">`;
+      });
+      picker.innerHTML = html;
+    }
+
+    document.getElementById('editProfileMessage').style.display = 'none';
+    document.getElementById('editProfileModal').style.display = 'flex';
+  };
+
+  window.selectAvatar = function(img) {
+    document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+    img.classList.add('selected');
+    document.getElementById('editProfileModal').dataset.selectedAvatar = img.dataset.url;
   };
 
   window.closeEditProfileModal = function() {
@@ -1153,15 +1301,18 @@
       showMessage('editProfileMessage', 'Name and kindred cannot be empty', 'error');
       return;
     }
-    db.collection('users').doc(currentUser.uid).update({
-      name,
-      kindred
-    }).then(() => {
-      showMessage('editProfileMessage', 'Profile updated successfully', 'success');
-      setTimeout(() => closeEditProfileModal(), 1500);
-    }).catch(err => {
-      showMessage('editProfileMessage', err.message, 'error');
-    });
+    let avatar = document.getElementById('editProfileModal').dataset.selectedAvatar;
+    const updateData = { name, kindred };
+    if (avatar) updateData.avatar = avatar;
+
+    db.collection('users').doc(currentUser.uid).update(updateData)
+      .then(() => {
+        showMessage('editProfileMessage', 'Profile updated successfully', 'success');
+        setTimeout(() => closeEditProfileModal(), 1500);
+      })
+      .catch(err => {
+        showMessage('editProfileMessage', err.message, 'error');
+      });
   };
 
   // Helper to show messages inside modals
@@ -1173,20 +1324,25 @@
     setTimeout(() => { div.style.display = 'none'; }, 3000);
   }
 
-  // ========== PROFILE VIEW (for others) – hide private chat if own profile ==========
+  // ========== PROFILE VIEW (for others) ==========
   window.showProfile = function(userId) {
     if (!userId) return;
     db.collection('users').doc(userId).get().then(doc => {
       if (!doc.exists) return;
       const user = doc.data();
+      const avatarHtml = user.avatar 
+        ? `<img class="avatar avatar-lg" src="${user.avatar}" alt="">`
+        : `<span class="avatar-placeholder avatar-placeholder-lg"><i class="fa-regular fa-user fa-2x"></i></span>`;
       document.getElementById('profileInfo').innerHTML = `
-        <p><strong>Name:</strong> ${user.name || '?'}</p>
-        <p><strong>Kindred:</strong> ${user.kindred || '?'}</p>
-        <p><strong>Email:</strong> ${user.email || '?'}</p>
-        <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
+        ${avatarHtml}
+        <div>
+          <p><strong>Name:</strong> ${user.name || '?'}</p>
+          <p><strong>Kindred:</strong> ${user.kindred || '?'}</p>
+          <p><strong>Email:</strong> ${user.email || '?'}</p>
+          <p><strong>Status:</strong> ${user.online ? '🟢 Online' : '🔴 Offline'}</p>
+        </div>
       `;
       currentProfileUserId = userId;
-      // Hide private chat button if viewing own profile
       const chatBtn = document.getElementById('startPrivateChatBtn');
       if (currentUser && userId === currentUser.uid) {
         chatBtn.style.display = 'none';
@@ -1209,7 +1365,7 @@
     }
   };
 
-  // ---------- FEED (modified to use scroll container) ----------
+  // ---------- FEED ----------
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     const feedArea = document.getElementById("feedArea");
     feedArea.innerHTML = "";
@@ -1223,8 +1379,9 @@
       if (p.image) {
         imageHtml = `<div class="embedded-media">${parseContent(p.image)}</div>`;
       }
+      const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
       feedDiv.innerHTML = `
-        <strong><span class="clickable-name" onclick="showProfile('${p.userId || ''}')">${p.name ?? '?'}</span> (${p.kindred ?? '?'})</strong>
+        ${userBadge}
         <div>${parseContent(p.text)}</div>
         ${imageHtml}
         <div class="timestamp">${formatTimestamp(p.created)}</div>
@@ -1250,6 +1407,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1269,6 +1427,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1285,8 +1444,9 @@
         const r = doc.data();
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
         replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>
+          ${userBadge}
           <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
         `;
@@ -1309,6 +1469,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1324,8 +1485,9 @@
       const chatId = doc.id;
       const chatDiv = document.createElement('div');
       chatDiv.className = "chat-item";
+      const userBadge = userBadgeHTML(m.name || '?', m.kindred || '?', m.userId || '', m.avatar);
       chatDiv.innerHTML = `
-        <strong><span class="clickable-name" onclick="showProfile('${m.userId || ''}')">${m.name ?? '?'}</span> (${m.kindred ?? '?'})</strong>
+        ${userBadge}
         <span>: ${parseContent(m.text)}</span>
         <div class="timestamp">${formatTimestamp(m.created)}</div>
         <div id="chatReplies${chatId}" class="replies"></div>
@@ -1350,6 +1512,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1366,8 +1529,10 @@
         const r = doc.data();
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
         replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          ${userBadge}
+          <span>: ${parseContent(r.text)}</span>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
         `;
         container.appendChild(replyDiv);
@@ -1389,6 +1554,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1404,8 +1570,9 @@
       const goodwillId = doc.id;
       const goodwillDiv = document.createElement('div');
       goodwillDiv.className = "goodwill-item";
+      const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
       goodwillDiv.innerHTML = `
-        <strong><span class="clickable-name" onclick="showProfile('${g.userId || ''}')">${g.name ?? '?'}</span> (${g.kindred ?? '?'})</strong>
+        ${userBadge}
         <div>${parseContent(g.text)}</div>
         <div class="timestamp">${formatTimestamp(g.created)}</div>
         <div id="goodwillReplies${goodwillId}" class="replies"></div>
@@ -1430,6 +1597,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1446,8 +1614,10 @@
         const r = doc.data();
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
         replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          ${userBadge}
+          <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
         `;
         container.appendChild(replyDiv);
@@ -1482,6 +1652,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1497,8 +1668,10 @@
       const commentId = doc.id;
       const commentDiv = document.createElement('div');
       commentDiv.className = "live-comment-item";
+      const userBadge = userBadgeHTML(c.name || '?', c.kindred || '?', c.userId || '', c.avatar);
       commentDiv.innerHTML = `
-        <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>: ${parseContent(c.text)}
+        ${userBadge}
+        <span>: ${parseContent(c.text)}</span>
         <div class="timestamp">${formatTimestamp(c.created)}</div>
         <div id="liveReplies${commentId}" class="replies"></div>
         <input id="liveReplyInput${commentId}" placeholder="Reply...">
@@ -1522,6 +1695,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1538,8 +1712,10 @@
         const r = doc.data();
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
         replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          ${userBadge}
+          <span>: ${parseContent(r.text)}</span>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
         `;
         container.appendChild(replyDiv);
@@ -1548,7 +1724,7 @@
     }, showError);
   }
 
-  // ---------- EVENTS (with comments) ----------
+  // ---------- EVENTS (with comments, now with avatars) ----------
   db.collection("events").orderBy("created", "desc").onSnapshot(s => {
     const eventArea = document.getElementById("eventArea");
     eventArea.innerHTML = "";
@@ -1579,11 +1755,6 @@
     });
   }, showError);
 
-  function extractYoutubeId(url) {
-    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    return match ? match[1] : null;
-  }
-
   window.commentEvent = function(eventId) {
     if (!currentUser) return alert("Login required");
     const input = document.getElementById("eventCommentInput" + eventId);
@@ -1596,6 +1767,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1613,8 +1785,9 @@
         const commentId = doc.id;
         const commentDiv = document.createElement('div');
         commentDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(c.name || '?', c.kindred || '?', c.userId || '', c.avatar);
         commentDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${c.userId || ''}')">${c.name ?? '?'}</span> (${c.kindred ?? '?'})</strong>
+          ${userBadge}
           <div>${parseContent(c.text)}</div>
           <div class="timestamp">${formatTimestamp(c.created)}</div>
           <div id="eventCommentReplies${commentId}"></div>
@@ -1640,6 +1813,7 @@
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
           userId: currentUser.uid,
+          avatar: userData.avatar || null,
           created: Date.now()
         });
       })
@@ -1656,8 +1830,10 @@
         const r = doc.data();
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
         replyDiv.innerHTML = `
-          <strong><span class="clickable-name" onclick="showProfile('${r.userId || ''}')">${r.name ?? '?'}</span> (${r.kindred ?? '?'})</strong>: ${parseContent(r.text)}
+          ${userBadge}
+          <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
         `;
         container.appendChild(replyDiv);
@@ -1666,10 +1842,7 @@
     }, showError);
   }
 
-  // ---------- USER PROFILES (already above) ----------
-  let currentProfileUserId = null;
-
-  // ---------- PRIVATE CHAT (Room-based) ----------
+  // ---------- PRIVATE CHAT (Room-based) with avatars ----------
   let activeChatRoomId = null;
   let activeChatOtherUserId = null;
   let unsubscribeRoomMessages = null;
@@ -1725,9 +1898,15 @@
         const msg = doc.data();
         const div = document.createElement('div');
         div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
+        const avatarHtml = msg.avatar 
+          ? `<img class="avatar avatar-sm" src="${msg.avatar}" alt="">`
+          : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
         div.innerHTML = `
-          <div>${parseContent(msg.text)}</div>
-          <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
+          ${avatarHtml}
+          <div class="message-content">
+            <div>${parseContent(msg.text)}</div>
+            <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
+          </div>
         `;
         container.appendChild(div);
       });
@@ -1740,18 +1919,23 @@
     const text = input.value.trim();
     if (!text || !activeChatRoomId) return;
 
-    const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
-    roomRef.collection('messages').add({
-      from: currentUser.uid,
-      text: text,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      read: false
-    }).then(() => {
-      roomRef.update({
-        lastMessage: text,
-        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+    db.collection('users').doc(currentUser.uid).get().then(userDoc => {
+      const userData = userDoc.data() || {};
+      const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
+      roomRef.collection('messages').add({
+        from: currentUser.uid,
+        text: text,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        read: false,
+        name: userData.name,
+        avatar: userData.avatar || null
+      }).then(() => {
+        roomRef.update({
+          lastMessage: text,
+          lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(showError);
+        input.value = '';
       }).catch(showError);
-      input.value = '';
     }).catch(showError);
   };
 
@@ -1884,11 +2068,17 @@
           const userDiv = document.createElement('div');
           userDiv.className = 'user-result';
           userDiv.onclick = () => startPrivateChat(user.id);
+          const avatarHtml = user.avatar 
+            ? `<img class="avatar avatar-sm" src="${user.avatar}" style="margin-right:8px;">`
+            : `<span class="avatar-placeholder avatar-placeholder-sm" style="margin-right:8px;"><i class="fa-regular fa-user"></i></span>`;
           userDiv.innerHTML = `
-            <div class="user-result-info">
-              <span class="user-result-name">${user.name || '?'}</span>
-              <span class="user-result-email">${user.email || ''}</span>
-              <span class="user-result-status">${user.online ? '● Online' : '○ Offline'}</span>
+            <div style="display: flex; align-items: center;">
+              ${avatarHtml}
+              <div class="user-result-info">
+                <span class="user-result-name">${user.name || '?'}</span>
+                <span class="user-result-email">${user.email || ''}</span>
+                <span class="user-result-status">${user.online ? '● Online' : '○ Offline'}</span>
+              </div>
             </div>
             <i class="fa-regular fa-comment"></i>
           `;
@@ -1921,57 +2111,47 @@
   // ========== MARQUEE SPEEDS AND MESSAGES ==========
   const configDoc = db.collection("config").doc("site");
 
-  // Update top marquee speed
   configDoc.onSnapshot(doc => {
     if (doc.exists) {
       const data = doc.data();
-      // Top marquee speed
       let topSpeed = data.topMarqueeSpeed ? parseInt(data.topMarqueeSpeed, 10) : 22;
       if (isNaN(topSpeed) || topSpeed < 1) topSpeed = 22;
       document.querySelector('.marquee h6').style.setProperty('--top-speed', topSpeed + 's');
 
-      // Bottom marquee speed
       let bottomSpeed = data.bottomMarqueeSpeed ? parseInt(data.bottomMarqueeSpeed, 10) : 360;
       if (isNaN(bottomSpeed) || bottomSpeed < 1) bottomSpeed = 360;
       document.querySelector('.bottom-marquee .marquee-content').style.setProperty('--bottom-speed', bottomSpeed + 's');
     }
   }, error => console.error("Error loading marquee speeds:", error));
 
-  // ========== BOTTOM MARQUEE WITH ROTATING MESSAGES ==========
+  // ========== BOTTOM MARQUEE ==========
   const bottomMarquee = document.getElementById('bottomMarqueeText');
-  let messages = ['⚡ Welcome to Ntuconnect']; // default
+  let messages = ['⚡ Welcome to Ntuconnect'];
   let currentIndex = 0;
 
   configDoc.onSnapshot(doc => {
     if (doc.exists) {
       const data = doc.data();
-      // Handle new array format
       if (data.bottomMessages && Array.isArray(data.bottomMessages) && data.bottomMessages.length > 0) {
         messages = data.bottomMessages.map(m => '⚡ ' + m);
-      }
-      // Legacy single message
-      else if (data.bottomMessage && typeof data.bottomMessage === 'string') {
+      } else if (data.bottomMessage && typeof data.bottomMessage === 'string') {
         messages = ['⚡ ' + data.bottomMessage];
-      }
-      // Fallback
-      else {
+      } else {
         messages = ['⚡ Welcome to Ntuconnect'];
       }
     } else {
       messages = ['⚡ Welcome to Ntuconnect'];
     }
 
-    // Reset index and update display
     currentIndex = 0;
     bottomMarquee.textContent = messages[0] || '⚡ Welcome to Ntuconnect';
 
-    // Clear any existing interval and start a new one
     if (window.messageRotationInterval) clearInterval(window.messageRotationInterval);
     if (messages.length > 1) {
       window.messageRotationInterval = setInterval(() => {
         currentIndex = (currentIndex + 1) % messages.length;
         bottomMarquee.textContent = messages[currentIndex];
-      }, 8000); // rotate every 8 seconds
+      }, 8000);
     }
   }, error => {
     console.error("Error loading bottom messages:", error);
@@ -1989,18 +2169,14 @@
       if (isHoveringFeed || !feedScrollContainer) return;
       const container = feedScrollContainer;
       const maxScroll = container.scrollHeight - container.clientHeight;
-      if (maxScroll <= 0) return; // nothing to scroll
-
-      // Scroll down by 2px each interval (smooth)
+      if (maxScroll <= 0) return;
       container.scrollTop += 2;
-      // When we reach the bottom, jump to top
       if (container.scrollTop >= maxScroll) {
         container.scrollTop = 0;
       }
-    }, 100); // adjust speed (every 100ms)
+    }, 100);
   }
 
-  // Pause on hover
   feedScrollContainer.addEventListener('mouseenter', () => {
     isHoveringFeed = true;
   });
@@ -2008,16 +2184,7 @@
     isHoveringFeed = false;
   });
 
-  // Start auto-scroll after a short delay to let content load
   setTimeout(startFeedAutoScroll, 2000);
-
-  // Recalculate maxScroll when new posts are added (every 5 sec)
-  setInterval(() => {
-    if (feedScrollContainer && !isHoveringFeed) {
-      // If scroll is stuck because of dynamic content, restart interval
-      // (interval already running, we just need to ensure it continues)
-    }
-  }, 5000);
 </script>
 </body>
 </html>
