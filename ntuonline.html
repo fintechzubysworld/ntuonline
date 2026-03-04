@@ -9,6 +9,42 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script>
+  // Reference to the config document
+  const configDoc = db.collection("config").doc("site");
+
+  // Load existing message on page load
+  configDoc.get().then(doc => {
+    if (doc.exists && doc.data().bottomMessage) {
+      document.getElementById("bottomMessageInput").value = doc.data().bottomMessage;
+      document.getElementById("bottomMessagePreview").textContent = "⚡ " + doc.data().bottomMessage;
+    } else {
+      document.getElementById("bottomMessagePreview").textContent = "⚡ No message set";
+    }
+  }).catch(showError);
+
+  // Preview as admin types (optional)
+  document.getElementById("bottomMessageInput").addEventListener("input", function(e) {
+    const val = e.target.value.trim();
+    document.getElementById("bottomMessagePreview").textContent = val ? "⚡ " + val : "⚡ (empty)";
+  });
+
+  // Update Firestore when admin saves
+  window.updateBottomMessage = function() {
+    const newMessage = document.getElementById("bottomMessageInput").value.trim();
+    if (!newMessage) {
+      alert("Message cannot be empty");
+      return;
+    }
+    configDoc.set({
+      bottomMessage: newMessage
+    }, { merge: true })
+    .then(() => {
+      alert("Bottom message updated!");
+    })
+    .catch(showError);
+  };
+</script>
 
   <!-- Google API (for Drive Picker) -->
   <script src="https://apis.google.com/js/api.js"></script>
@@ -292,6 +328,18 @@
     <button onclick="publishEvent()"><i class="fa-regular fa-calendar-check"></i> Publish Event</button>
     <div id="eventMessage" class="message"></div>
   </div>
+
+  <!-- ===== BOTTOM BAR MESSAGE CONTROL ===== -->
+<div class="card" style="margin-top: 2rem;">
+  <h3><i class="fa-regular fa-message"></i> Bottom Bar Message</h3>
+  <p>This message appears at the bottom of every user’s screen (fixed position).</p>
+  <input type="text" id="bottomMessageInput" placeholder="Enter message" style="width: 100%; margin: 10px 0;" />
+  <button onclick="updateBottomMessage()">Save Message</button>
+  <div style="margin-top: 15px; background: #0d312b; padding: 8px; border-radius: 40px; overflow: hidden;">
+    <h6 style="display: inline-block; margin: 0; color: #b5ffe8; animation: scrollText 22s linear infinite; white-space: nowrap; font-weight: 400;" id="bottomMessagePreview">⚡ Preview</h6>
+  </div>
+  <small style="color: #9bc5bc;">The message updates live for all users when saved.</small>
+</div>
 
   <!-- CHANGE PASSWORD -->
   <div class="card">
@@ -728,4 +776,5 @@
 
 </body>
 </html>
+
 
