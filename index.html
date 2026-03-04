@@ -364,7 +364,7 @@
       color: #b0ddd4;
     }
 
-    /* Marquee */
+    /* Marquee (top) */
     .marquee {
       width: 100%;
       overflow: hidden;
@@ -385,7 +385,7 @@
       letter-spacing: 0.5px;
     }
 
-    /* Fixed bottom bar */
+    /* Fixed bottom bar – now with rotating text */
     .bottom-marquee {
       position: fixed;
       bottom: 0;
@@ -396,19 +396,20 @@
       border-top: 1px solid #3a887b;
       z-index: 1000;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .bottom-marquee h6 {
+    .bottom-marquee .marquee-content {
       display: inline-block;
-      margin: 0;
+      white-space: nowrap;
+      animation: scrollText 360s linear infinite;
       font-size: 0.9rem;
       color: #b5ffe8;
-      animation: scrollText 360s linear infinite;
-      white-space: nowrap;
       font-weight: 400;
       letter-spacing: 0.5px;
     }
-    .marquee:hover h6,
-    .bottom-marquee:hover h6 {
+    .bottom-marquee:hover .marquee-content {
       animation-play-state: paused;
     }
 
@@ -454,7 +455,7 @@
       font-weight: 600;
     }
 
-    /* Link modal (for external links) */
+    /* Link modal */
     #linkModal .modal-content {
       max-width: 90vw;
       width: 90vw;
@@ -504,7 +505,7 @@
       margin-top: 20px;
     }
 
-    /* Search results for private chat */
+    /* User search results */
     .user-result {
       background: #0f332d;
       border-radius: 40px;
@@ -583,7 +584,7 @@
     <div id="goodwillArea"></div>
   </div>
 
-  <!-- LIVE STREAM CARD (ADDED) -->
+  <!-- LIVE STREAM CARD -->
   <div class="card">
     <h3><i class="fa-regular fa-circle-play"></i> Live Stream</h3>
     <div id="liveArea"></div>
@@ -666,9 +667,9 @@
   </div>
 </div>
 
-<!-- Fixed bottom marquee (admin‑updatable) – placed before the script that updates it -->
+<!-- Fixed bottom marquee (multiple rotating messages) -->
 <div class="bottom-marquee">
-  <h6 id="bottomMarqueeText">⚡ Loading message...</h6>
+  <div class="marquee-content" id="bottomMarqueeText">⚡ Loading messages...</div>
 </div>
 
 <script>
@@ -1798,22 +1799,46 @@
     navigator.serviceWorker.register('sw.js');
   }
 
-  // Real‑time bottom message from Firestore (config/site)
-  // Moved AFTER the element to ensure it exists on first run
+  // ========== BOTTOM MARQUEE WITH ROTATING MESSAGES ==========
+  const bottomMarquee = document.getElementById('bottomMarqueeText');
+  let messages = ['⚡ Welcome to Ntuconnect']; // default
+  let currentIndex = 0;
+
+  // Update messages from Firestore and start rotation
   db.collection("config").doc("site").onSnapshot(doc => {
-    const el = document.getElementById("bottomMarqueeText");
-    if (el) {
-      if (doc.exists) {
-        const data = doc.data();
-        el.textContent = data.bottomMessage || "⚡ Welcome to Ntuconnect";
-      } else {
-        el.textContent = "⚡ Welcome to Ntuconnect";
+    if (doc.exists) {
+      const data = doc.data();
+      // Handle new array format
+      if (data.bottomMessages && Array.isArray(data.bottomMessages) && data.bottomMessages.length > 0) {
+        messages = data.bottomMessages.map(m => '⚡ ' + m);
       }
+      // Legacy single message
+      else if (data.bottomMessage && typeof data.bottomMessage === 'string') {
+        messages = ['⚡ ' + data.bottomMessage];
+      }
+      // Fallback
+      else {
+        messages = ['⚡ Welcome to Ntuconnect'];
+      }
+    } else {
+      messages = ['⚡ Welcome to Ntuconnect'];
+    }
+
+    // Reset index and update display
+    currentIndex = 0;
+    bottomMarquee.textContent = messages[0] || '⚡ Welcome to Ntuconnect';
+
+    // Clear any existing interval and start a new one
+    if (window.messageRotationInterval) clearInterval(window.messageRotationInterval);
+    if (messages.length > 1) {
+      window.messageRotationInterval = setInterval(() => {
+        currentIndex = (currentIndex + 1) % messages.length;
+        bottomMarquee.textContent = messages[currentIndex];
+      }, 8000); // rotate every 8 seconds (adjust as desired)
     }
   }, error => {
-    console.error("Error loading bottom message:", error);
-    const el = document.getElementById("bottomMarqueeText");
-    if (el) el.textContent = "⚡ Welcome to Ntuconnect";
+    console.error("Error loading bottom messages:", error);
+    bottomMarquee.textContent = '⚡ Welcome to Ntuconnect';
   });
 </script>
 </body>
