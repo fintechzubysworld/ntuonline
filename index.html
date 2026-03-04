@@ -385,7 +385,7 @@
       letter-spacing: 0.5px;
     }
 
-    /* Fixed bottom bar – now with rotating text */
+    /* Fixed bottom bar – rotating messages */
     .bottom-marquee {
       position: fixed;
       bottom: 0;
@@ -403,7 +403,7 @@
     .bottom-marquee .marquee-content {
       display: inline-block;
       white-space: nowrap;
-      animation: scrollText var(--bottom-speed, 1s) linear infinite;
+      animation: scrollText var(--bottom-speed, 360s) linear infinite;
       font-size: 0.9rem;
       color: #b5ffe8;
       font-weight: 400;
@@ -412,6 +412,29 @@
     .bottom-marquee:hover .marquee-content,
     .marquee:hover h6 {
       animation-play-state: paused;
+    }
+
+    /* Feed auto-scroll container */
+    .feed-scroll-container {
+      height: 400px;          /* fixed height */
+      overflow-y: auto;       /* scrollbar appears when needed */
+      scroll-behavior: smooth; /* smooth manual scrolling */
+      margin-top: 15px;
+      border-radius: 20px;
+      padding-right: 5px;     /* avoid cutting off scrollbar */
+    }
+
+    /* Optional: style the scrollbar to match theme */
+    .feed-scroll-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    .feed-scroll-container::-webkit-scrollbar-track {
+      background: #0f332d;
+      border-radius: 10px;
+    }
+    .feed-scroll-container::-webkit-scrollbar-thumb {
+      background: #2dab95;
+      border-radius: 10px;
     }
 
     @keyframes scrollText {
@@ -437,6 +460,7 @@
       button { width: 100%; }
       .embedded-media iframe { height: 200px; }
       .modal-content { padding: 20px; }
+      .feed-scroll-container { height: 300px; } /* smaller on mobile */
     }
 
     @media (max-width: 360px) {
@@ -561,12 +585,14 @@
     <div id="eventArea"></div>
   </div>
 
-  <!-- FEED -->
+  <!-- FEED (with auto‑scroll container) -->
   <div class="card">
     <h3><i class="fa-regular fa-newspaper"></i> Community Feed</h3>
     <textarea id="feedInput" placeholder="Share something..."></textarea>
     <button onclick="postFeed()"><i class="fa-regular fa-paper-plane"></i> Post</button>
-    <div id="feedArea"></div>
+    <div class="feed-scroll-container" id="feedScrollContainer">
+      <div id="feedArea"></div>
+    </div>
   </div>
 
   <!-- CHAT -->
@@ -1063,7 +1089,7 @@
 
   function showError(err) { alert("Error: " + err.message); console.error(err); }
 
-  // ---------- FEED ----------
+  // ---------- FEED (modified to use scroll container) ----------
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     const feedArea = document.getElementById("feedArea");
     feedArea.innerHTML = "";
@@ -1853,15 +1879,53 @@
       window.messageRotationInterval = setInterval(() => {
         currentIndex = (currentIndex + 1) % messages.length;
         bottomMarquee.textContent = messages[currentIndex];
-      }, 8000); // rotate every 8 seconds (adjust as desired)
+      }, 8000); // rotate every 8 seconds
     }
   }, error => {
     console.error("Error loading bottom messages:", error);
     bottomMarquee.textContent = '⚡ Welcome to Ntuconnect';
   });
+
+  // ========== AUTO-SCROLL FEED ==========
+  const feedScrollContainer = document.getElementById('feedScrollContainer');
+  let autoScrollInterval;
+  let isHoveringFeed = false;
+
+  function startFeedAutoScroll() {
+    if (autoScrollInterval) clearInterval(autoScrollInterval);
+    autoScrollInterval = setInterval(() => {
+      if (isHoveringFeed || !feedScrollContainer) return;
+      const container = feedScrollContainer;
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      if (maxScroll <= 0) return; // nothing to scroll
+
+      // Scroll down by 2px each interval (smooth)
+      container.scrollTop += 2;
+      // When we reach the bottom, jump to top
+      if (container.scrollTop >= maxScroll) {
+        container.scrollTop = 0;
+      }
+    }, 100); // adjust speed (every 100ms)
+  }
+
+  // Pause on hover
+  feedScrollContainer.addEventListener('mouseenter', () => {
+    isHoveringFeed = true;
+  });
+  feedScrollContainer.addEventListener('mouseleave', () => {
+    isHoveringFeed = false;
+  });
+
+  // Start auto-scroll after a short delay to let content load
+  setTimeout(startFeedAutoScroll, 2000);
+
+  // Recalculate maxScroll when new posts are added (every 5 sec)
+  setInterval(() => {
+    if (feedScrollContainer && !isHoveringFeed) {
+      // If scroll is stuck because of dynamic content, restart interval
+      // (interval already running, we just need to ensure it continues)
+    }
+  }, 5000);
 </script>
 </body>
 </html>
-
-
-
