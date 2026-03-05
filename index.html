@@ -1023,7 +1023,7 @@
     </div>
   </div>
 
-  <!-- ADMIN panel – now with live stream management and video studio -->
+  <!-- ADMIN panel – with camera switch -->
   <div id="admin" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
@@ -1042,14 +1042,17 @@
         <div id="adminMessage" style="margin-top:15px;"></div>
       </div>
 
-      <!-- NEW: Video Studio (WebRTC broadcast) -->
+      <!-- Video Studio with camera switch -->
       <div style="background: #0f2d27; border-radius: 24px; padding: 20px;">
-        <h4 style="color:#64e3cf; margin-bottom:15px;"><i class="fa-regular fa-camera"></i> Video Studio (Camera Broadcast)</h4>
+        <h4 style="color:#64e3cf; margin-bottom:15px;"><i class="fa-regular fa-camera"></i> Video Studio</h4>
         <video id="adminLocalVideo" autoplay muted playsinline style="width:100%; max-height:200px; background:#000; border-radius:16px; margin-bottom:10px;"></video>
-        <button id="startBroadcastBtn" onclick="startBroadcast()"><i class="fa-regular fa-video"></i> Start Camera Broadcast</button>
-        <button id="stopBroadcastBtn" onclick="stopBroadcast()" style="margin-left:10px;" disabled><i class="fa-regular fa-circle-stop"></i> Stop</button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="startBroadcastBtn" onclick="startBroadcast()"><i class="fa-regular fa-video"></i> Start Broadcast</button>
+          <button id="switchCamBtn" onclick="switchCamera()" disabled><i class="fa-regular fa-rotate"></i> Switch Camera</button>
+          <button id="stopBroadcastBtn" onclick="stopBroadcast()" disabled><i class="fa-regular fa-circle-stop"></i> Stop</button>
+        </div>
         <div id="broadcastStatus" style="margin-top:12px; color:#8cffe0;"></div>
-        <p style="font-size:0.85rem; margin-top:10px;">When active, viewers will see your camera feed on the homepage and livestream page automatically.</p>
+        <p style="font-size:0.85rem; margin-top:10px;">When active, viewers see your camera feed on the homepage and livestream page.</p>
       </div>
 
       <button onclick="window.location='ntuonline.html'" style="margin-top:20px;"><i class="fa-regular fa-shield"></i> Advanced Admin</button>
@@ -1524,6 +1527,7 @@
         // update broadcast button states based on admin
         isAdminUser().then(admin => {
           document.getElementById('startBroadcastBtn').disabled = !admin;
+          document.getElementById('switchCamBtn').disabled = !admin;
           document.getElementById('stopBroadcastBtn').disabled = !admin;
         });
       }).catch(showError);
@@ -1532,6 +1536,7 @@
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
       document.getElementById('startBroadcastBtn').disabled = true;
+      document.getElementById('switchCamBtn').disabled = true;
       document.getElementById('stopBroadcastBtn').disabled = true;
     }
   });
@@ -2524,6 +2529,7 @@
   let adminLocalStream = null;
   let viewerPeer = null;
   let viewerCall = null;
+  let currentFacingMode = 'user'; // track current camera
 
   async function isAdminUser() {
     if (!currentUser) return false;
@@ -2537,7 +2543,10 @@
     if (!admin) return alert('Admin privileges required.');
 
     try {
-      adminLocalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      adminLocalStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: currentFacingMode }, 
+        audio: true 
+      });
       document.getElementById('adminLocalVideo').srcObject = adminLocalStream;
 
       adminPeer = new Peer('admin-broadcast-' + Date.now());
@@ -2552,6 +2561,7 @@
         });
         document.getElementById('broadcastStatus').innerText = '🔴 LIVE with ID: ' + id;
         document.getElementById('startBroadcastBtn').disabled = true;
+        document.getElementById('switchCamBtn').disabled = false;
         document.getElementById('stopBroadcastBtn').disabled = false;
       });
 
@@ -2584,7 +2594,42 @@
     db.collection('broadcast').doc('active').set({ active: false }, { merge: true });
     document.getElementById('broadcastStatus').innerText = '';
     document.getElementById('startBroadcastBtn').disabled = false;
+    document.getElementById('switchCamBtn').disabled = true;
     document.getElementById('stopBroadcastBtn').disabled = true;
+  };
+
+  window.switchCamera = async function() {
+    if (!adminLocalStream) return;
+    // toggle facing mode
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: currentFacingMode }, 
+        audio: true 
+      });
+      // replace video track in the local stream
+      const videoTrack = newStream.getVideoTracks()[0];
+      const audioTrack = newStream.getAudioTracks()[0];
+      const sender = adminPeer?.connections?.forEach(conn => {
+        conn?.peerConnection?.getSenders?.().forEach(s => {
+          if (s.track?.kind === 'video') s.replaceTrack(videoTrack);
+          if (s.track?.kind === 'audio' && audioTrack) s.replaceTrack(audioTrack);
+        });
+      });
+      // update local preview
+      adminLocalStream.getVideoTracks()[0].stop();
+      adminLocalStream.removeTrack(adminLocalStream.getVideoTracks()[0]);
+      adminLocalStream.addTrack(videoTrack);
+      if (audioTrack) {
+        adminLocalStream.getAudioTracks()[0]?.stop();
+        adminLocalStream.removeTrack(adminLocalStream.getAudioTracks()[0]);
+        adminLocalStream.addTrack(audioTrack);
+      }
+      document.getElementById('adminLocalVideo').srcObject = adminLocalStream;
+    } catch (err) {
+      console.error('Switch camera error:', err);
+      alert('Could not switch camera.');
+    }
   };
 
   function connectToBroadcast(peerId) {
