@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ntuconnect</title>
 
-  <!-- Firebase -->
+  <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-  <!-- Firebase Messaging -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
+
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -32,28 +32,54 @@
       padding-bottom: 50px;
     }
 
-    /* ===== HEADER ===== */
+    /* ===== HEADER (reduced height) ===== */
     header {
       background: rgba(26, 138, 120, 0.85);
       backdrop-filter: blur(12px);
-      padding: 0.9rem 1.8rem;
+      padding: 0.4rem 1.8rem;
       border-radius: 60px;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 15px 30px -8px rgba(0, 180, 160, 0.4);
       border: 1px solid rgba(100, 230, 210, 0.3);
+      position: sticky;
+      top: 10px;
+      z-index: 1000;
+      transition: opacity 0.2s;
     }
 
-    header h2 {
-      font-weight: 500;
-      font-size: 1.6rem;
-      letter-spacing: -0.5px;
+    .header-left {
       display: flex;
       align-items: center;
-      gap: 10px;
-      color: #ffffff;
+      gap: 1rem;
+    }
+
+    /* Kebab icon */
+    .logo {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.1);
+      padding: 0.5rem;
+      border-radius: 50%;
+      transition: background 0.2s;
+      font-size: 1.4rem;
+    }
+    .logo i {
+      color: white;
+    }
+    .logo:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .site-title {
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: white;
       text-shadow: 0 2px 5px rgba(0,80,70,0.3);
     }
 
@@ -92,7 +118,104 @@
       text-shadow: 0 0 5px #64ffda;
     }
 
-    /* ===== SECTION & CARDS ===== */
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      position: fixed;
+      top: 80px;
+      left: -280px;
+      width: 280px;
+      height: calc(100% - 80px);
+      background: #173e37;
+      color: #ecf0f1;
+      transition: left 0.3s ease;
+      z-index: 999;
+      overflow-y: auto;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+      border-right: 1px solid rgba(100, 230, 210, 0.2);
+    }
+
+    .sidebar.open {
+      left: 0;
+    }
+
+    .sidebar-menu {
+      list-style: none;
+      padding: 1.5rem 0;
+    }
+
+    .sidebar-menu li {
+      padding: 0.9rem 1.5rem;
+      border-bottom: 1px solid #1f5a4f;
+      transition: background 0.2s;
+    }
+
+    .sidebar-menu li:hover {
+      background: #256b5e;
+    }
+
+    .sidebar-menu li a {
+      color: #ecf0f1;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 1.1rem;
+    }
+
+    .sidebar-menu li a i {
+      width: 24px;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+
+    /* Overlay for mobile */
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 80px;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 80px);
+      background: rgba(0,0,0,0.5);
+      z-index: 998;
+    }
+
+    .overlay.active {
+      display: block;
+    }
+
+    /* ===== MAIN CONTENT AREA ===== */
+    main {
+      margin-top: 0;
+      padding: 0;
+      transition: margin-left 0.3s ease;
+      min-height: calc(100vh - 140px);
+    }
+
+    @media (min-width: 992px) {
+      .sidebar.open + .overlay + main,
+      .sidebar.open ~ main {
+        margin-left: 280px;
+      }
+    }
+
+    /* Content panels */
+    .content {
+      display: none;
+      animation: fade 0.2s ease;
+    }
+
+    .content.active {
+      display: block;
+    }
+
+    @keyframes fade {
+      from { opacity: 0.5; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== CARDS ===== */
     .section {
       max-width: 1300px;
       margin: 0 auto;
@@ -222,7 +345,6 @@
       height: 210px;
     }
 
-    /* Reaction bar */
     .reaction-bar {
       margin-top: 12px;
       display: flex;
@@ -292,12 +414,8 @@
     .close:hover { color: #a2ffee; transform: scale(1.1); }
 
     /* Auth modal */
-    #authContainer.modal {
-      display: none;
-    }
-    #authContainer .modal-content {
-      background: #1f4f47;
-    }
+    #authContainer.modal { display: none; }
+    #authContainer .modal-content { background: #1f4f47; }
 
     /* Chat modal */
     .chat-messages {
@@ -329,22 +447,13 @@
       color: white;
       margin-right: auto;
     }
-    .chat-message .avatar-sm {
-      flex-shrink: 0;
-    }
-    .chat-message .message-content {
-      word-break: break-word;
-    }
 
     .chat-input-area {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
     }
-    .chat-input-area input {
-      flex: 1 1 200px;
-      margin: 0;
-    }
+    .chat-input-area input { flex: 1 1 200px; margin: 0; }
 
     /* Inbox */
     .inbox-list {
@@ -363,17 +472,9 @@
       gap: 12px;
       transition: background 0.2s;
     }
-    .inbox-item:hover {
-      background: #1b5349;
-    }
-    .inbox-item-name {
-      font-weight: 600;
-      color: #64ffda;
-    }
-    .inbox-item-preview {
-      font-size: 0.85rem;
-      color: #b0ddd4;
-    }
+    .inbox-item:hover { background: #1b5349; }
+    .inbox-item-name { font-weight: 600; color: #64ffda; }
+    .inbox-item-preview { font-size: 0.85rem; color: #b0ddd4; }
 
     /* Marquee */
     .marquee {
@@ -384,6 +485,7 @@
       margin-bottom: 20px;
       border-radius: 60px;
       border: 1px solid #3a887b;
+      transition: opacity 0.2s;
     }
     .marquee h6 {
       display: inline-block;
@@ -396,7 +498,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* Fixed bottom bar */
     .bottom-marquee {
       position: fixed;
       bottom: 0;
@@ -410,6 +511,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: opacity 0.2s;
     }
     .bottom-marquee .marquee-content {
       display: inline-block;
@@ -421,9 +523,7 @@
       letter-spacing: 0.5px;
     }
     .bottom-marquee:hover .marquee-content,
-    .marquee:hover h6 {
-      animation-play-state: paused;
-    }
+    .marquee:hover h6 { animation-play-state: paused; }
 
     /* Feed auto-scroll container */
     .feed-scroll-container {
@@ -456,16 +556,8 @@
       vertical-align: middle;
       border: 2px solid #2dab95;
     }
-    .avatar-sm {
-      width: 24px;
-      height: 24px;
-      margin-right: 4px;
-    }
-    .avatar-lg {
-      width: 64px;
-      height: 64px;
-      margin-right: 16px;
-    }
+    .avatar-sm { width: 24px; height: 24px; margin-right: 4px; }
+    .avatar-lg { width: 64px; height: 64px; margin-right: 16px; }
     .avatar-placeholder {
       display: inline-flex;
       align-items: center;
@@ -478,16 +570,8 @@
       margin-right: 8px;
       font-size: 1rem;
     }
-    .avatar-placeholder-sm {
-      width: 24px;
-      height: 24px;
-      font-size: 0.8rem;
-    }
-    .avatar-placeholder-lg {
-      width: 64px;
-      height: 64px;
-      font-size: 2rem;
-    }
+    .avatar-placeholder-sm { width: 24px; height: 24px; font-size: 0.8rem; }
+    .avatar-placeholder-lg { width: 64px; height: 64px; font-size: 2rem; }
 
     /* Avatar picker grid */
     .avatar-grid {
@@ -510,26 +594,12 @@
       border: 3px solid transparent;
       transition: border-color 0.2s;
     }
-    .avatar-option:hover {
-      border-color: #64ffda;
-    }
-    .avatar-option.selected {
-      border-color: #2dab95;
-    }
+    .avatar-option:hover { border-color: #64ffda; }
+    .avatar-option.selected { border-color: #2dab95; }
 
-    .edit-profile-field {
-      margin-bottom: 15px;
-    }
-    .edit-profile-field label {
-      display: block;
-      margin-bottom: 5px;
-      color: #b5ffe8;
-    }
-    .readonly-field {
-      background: #1a4a42;
-      color: #b0ddd4;
-      cursor: not-allowed;
-    }
+    .edit-profile-field { margin-bottom: 15px; }
+    .edit-profile-field label { display: block; margin-bottom: 5px; color: #b5ffe8; }
+    .readonly-field { background: #1a4a42; color: #b0ddd4; cursor: not-allowed; }
 
     @keyframes scrollText {
       0% { transform: translateX(100%); }
@@ -537,7 +607,6 @@
       100% { transform: translateX(-100%); }
     }
 
-    /* clickable name with avatar */
     .user-badge {
       display: inline-flex;
       align-items: center;
@@ -547,19 +616,13 @@
       text-decoration: none;
       margin-bottom: 4px;
     }
-    .user-badge span {
-      margin-left: 4px;
-    }
+    .user-badge span { margin-left: 4px; }
 
-    /* ===== MOBILE OPTIMIZATIONS ===== */
     @media (max-width: 480px) {
       body { padding: 10px; }
-      header { padding: 0.7rem 1.2rem; }
+      header { padding: 0.4rem 1.2rem; flex-wrap: wrap; }
+      .site-title { font-size: 1.3rem; }
       .card { padding: 18px; }
-      .section { gap: 16px; }
-      button { width: 100%; }
-      .embedded-media iframe { height: 200px; }
-      .modal-content { padding: 20px; }
       .feed-scroll-container { height: 300px; }
       .avatar-grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); }
       .avatar-option { width: 50px; height: 50px; }
@@ -626,7 +689,6 @@
       margin-top: 20px;
     }
 
-    /* User search results */
     .user-result {
       background: #0f332d;
       border-radius: 40px;
@@ -638,96 +700,150 @@
       cursor: pointer;
       transition: 0.2s;
     }
-    .user-result:hover {
-      background: #1f6a5e;
-    }
-    .user-result-info {
-      display: flex;
-      flex-direction: column;
-    }
-    .user-result-name {
-      font-weight: 600;
-      color: #64ffda;
-    }
-    .user-result-email {
-      font-size: 0.8rem;
-      color: #b0ddd4;
-    }
-    .user-result-status {
-      font-size: 0.7rem;
-      color: #8cffe0;
-    }
+    .user-result:hover { background: #1f6a5e; }
+    .user-result-info { display: flex; flex-direction: column; }
+    .user-result-name { font-weight: 600; color: #64ffda; }
+    .user-result-email { font-size: 0.8rem; color: #b0ddd4; }
+    .user-result-status { font-size: 0.7rem; color: #8cffe0; }
 
-    .feed-item .embedded-media img {
-      pointer-events: none;
+    .electricity-frame {
+      width: 100%;
+      height: 80vh;
+      border: none;
+      border-radius: 32px;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
 
+<!-- Header with kebab icon and reduced height -->
 <header>
-  <h2><i class="fa-solid fa-water" style="color:#8cffe0;"></i> Ntuconnect</h2>
-  <div id="navArea"></div>
+  <div class="header-left">
+    <div class="logo" id="sidebarToggle">
+      <i class="fas fa-bars"></i>  <!-- three‑line kebab icon -->
+    </div>
+    <span class="site-title">Ntuconnect</span>
+  </div>
+  <div id="navArea"></div>  <!-- dynamic login / user menu (profile & admin removed) -->
 </header>
+
+<!-- Top marquee -->
 <div class="marquee">
   <h6 id="topMarqueeText">⚡ Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
 </div>
 
-<div class="section">
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <ul class="sidebar-menu">
+    <li><a href="#" data-content="feeds"><i class="fas fa-rss"></i> Feeds</a></li>
+    <li><a href="#" data-content="livestream"><i class="fas fa-video"></i> Livestream</a></li>
+    <li><a href="#" data-content="events"><i class="fas fa-calendar-alt"></i> Events</a></li>
+    <li><a href="#" data-content="goodwill"><i class="fas fa-hand-holding-heart"></i> Goodwill Messages</a></li>
+    <li><a href="#" data-content="community"><i class="fas fa-users"></i> Community Chats</a></li>
+    <li><a href="#" data-content="private"><i class="fas fa-lock"></i> Private Chats</a></li>
+    <li><a href="#" data-content="profile"><i class="fas fa-user"></i> Profile</a></li>
+    <li><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
+    <li><a href="#" id="ntuElectricityLink"><i class="fas fa-bolt"></i> Ntu Electricity</a></li>
+  </ul>
+</nav>
 
-  <!-- EVENTS CARD -->
-  <div class="card">
-    <h3><i class="fa-regular fa-calendar"></i> Events</h3>
-    <div id="eventArea"></div>
-  </div>
+<!-- Overlay for mobile -->
+<div class="overlay" id="overlay"></div>
 
-  <!-- FEED (with auto‑scroll container) -->
-  <div class="card">
-    <h3><i class="fa-regular fa-newspaper"></i> Community Feed</h3>
-    <textarea id="feedInput" placeholder="Share something..."></textarea>
-    <button onclick="postFeed()"><i class="fa-regular fa-paper-plane"></i> Post</button>
-    <div class="feed-scroll-container" id="feedScrollContainer">
-      <div id="feedArea"></div>
+<!-- Main content: each panel corresponds to sidebar item -->
+<main id="mainContent">
+  <!-- FEEDS panel -->
+  <div id="feeds" class="content active">
+    <div class="card">
+      <h3><i class="fa-regular fa-newspaper"></i> Community Feed</h3>
+      <textarea id="feedInput" placeholder="Share something..."></textarea>
+      <button onclick="postFeed()"><i class="fa-regular fa-paper-plane"></i> Post</button>
+      <div class="feed-scroll-container" id="feedScrollContainer">
+        <div id="feedArea"></div>
+      </div>
     </div>
   </div>
 
-  <!-- CHAT -->
-  <div class="card">
-    <h3><i class="fa-regular fa-message"></i> Community Chat</h3>
-    <div id="chatArea"></div>
-    <input id="chatInput" placeholder="Type a message...">
-    <button onclick="sendChat()"><i class="fa-regular fa-paper-plane"></i> Send</button>
+  <!-- LIVESTREAM panel -->
+  <div id="livestream" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-circle-play"></i> Live Stream</h3>
+      <div id="liveArea"></div>
+      <textarea id="liveCommentInput" placeholder="Comment on live..."></textarea>
+      <button onclick="commentLive()"><i class="fa-regular fa-paper-plane"></i> Comment</button>
+      <div id="liveComments"></div>
+    </div>
   </div>
 
-  <!-- GOODWILL -->
-  <div class="card">
-    <h3><i class="fa-regular fa-handshake"></i> Goodwill Messages</h3>
-    <textarea id="goodwillInput" placeholder="Write a goodwill message..."></textarea>
-    <button onclick="postGoodwill()"><i class="fa-regular fa-heart"></i> Post</button>
-    <div id="goodwillArea"></div>
+  <!-- EVENTS panel -->
+  <div id="events" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-calendar"></i> Events</h3>
+      <div id="eventArea"></div>
+    </div>
   </div>
 
-  <!-- LIVE STREAM CARD -->
-  <div class="card">
-    <h3><i class="fa-regular fa-circle-play"></i> Live Stream</h3>
-    <div id="liveArea"></div>
-    <textarea id="liveCommentInput" placeholder="Comment on live..."></textarea>
-    <button onclick="commentLive()"><i class="fa-regular fa-paper-plane"></i> Comment</button>
-    <div id="liveComments"></div>
+  <!-- GOODWILL panel -->
+  <div id="goodwill" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-handshake"></i> Goodwill Messages</h3>
+      <textarea id="goodwillInput" placeholder="Write a goodwill message..."></textarea>
+      <button onclick="postGoodwill()"><i class="fa-regular fa-heart"></i> Post</button>
+      <div id="goodwillArea"></div>
+    </div>
   </div>
 
-  <!-- PRIVATE CHAT SEARCH -->
-  <div class="card">
-    <h3><i class="fa-regular fa-comments"></i> Start Private Chat</h3>
-    <input type="text" id="searchUserInput" placeholder="Search by name or email...">
-    <button onclick="searchUsers()"><i class="fa-regular fa-magnifying-glass"></i> Search</button>
-    <div id="userSearchResults"></div>
+  <!-- COMMUNITY CHATS panel -->
+  <div id="community" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-message"></i> Community Chat</h3>
+      <div id="chatArea"></div>
+      <input id="chatInput" placeholder="Type a message...">
+      <button onclick="sendChat()"><i class="fa-regular fa-paper-plane"></i> Send</button>
+    </div>
   </div>
 
-</div>
+  <!-- PRIVATE CHATS panel -->
+  <div id="private" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-comments"></i> Start Private Chat</h3>
+      <input type="text" id="searchUserInput" placeholder="Search by name or email...">
+      <button onclick="searchUsers()"><i class="fa-regular fa-magnifying-glass"></i> Search</button>
+      <div id="userSearchResults"></div>
+    </div>
+  </div>
 
-<!-- AUTH MODAL -->
-<div id="authContainer" class="modal" style="display: none;">
+  <!-- PROFILE panel -->
+  <div id="profile" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-user"></i> Your Profile</h3>
+      <div id="profileDisplay" style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+        <!-- filled by JS -->
+      </div>
+      <button onclick="showEditProfile()"><i class="fa-regular fa-pen-to-square"></i> Edit Profile</button>
+    </div>
+  </div>
+
+  <!-- ADMIN panel -->
+  <div id="admin" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
+      <p style="margin-bottom: 15px;">Administrative functions.</p>
+      <button onclick="window.location='ntuonline.html'"><i class="fa-regular fa-shield"></i> Go to Admin Page</button>
+    </div>
+  </div>
+
+  <!-- NTU ELECTRICITY panel (iframe) -->
+  <div id="electricity" class="content">
+    <div class="card" style="padding: 0; background: transparent; backdrop-filter: none; box-shadow: none;">
+      <iframe class="electricity-frame" src="https://fintechzubysworld.github.io/Ntu-Elekrit/" title="Ntu Electricity"></iframe>
+    </div>
+  </div>
+</main>
+
+<!-- All modals from new code -->
+<div id="authContainer" class="modal">
   <div class="modal-content">
     <span class="close" onclick="document.getElementById('authContainer').style.display='none'">&times;</span>
     <h3 id="authHeader" style="color:#8cffe0;">Login</h3>
@@ -746,7 +862,6 @@
   </div>
 </div>
 
-<!-- Profile Modal (read‑only for viewing others) -->
 <div id="profileModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeProfileModal()">&times;</span>
@@ -756,7 +871,6 @@
   </div>
 </div>
 
-<!-- Edit Profile Modal (with avatar picker) -->
 <div id="editProfileModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeEditProfileModal()">&times;</span>
@@ -775,17 +889,14 @@
     </div>
     <div class="edit-profile-field">
       <label>Choose Avatar</label>
-      <div id="avatarPicker" class="avatar-grid">
-        <div class="avatar-placeholder avatar-placeholder-lg">Loading...</div>
-      </div>
-      <small style="color:#9bc5bc;">Click an avatar to select it. If none are shown, the admin hasn't uploaded any yet.</small>
+      <div id="avatarPicker" class="avatar-grid"></div>
+      <small style="color:#9bc5bc;">Click an avatar to select it.</small>
     </div>
     <button onclick="saveProfileChanges()">Save Changes</button>
     <div id="editProfileMessage" class="message" style="margin-top:15px;"></div>
   </div>
 </div>
 
-<!-- Inbox Modal -->
 <div id="inboxModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeInboxModal()">&times;</span>
@@ -794,7 +905,6 @@
   </div>
 </div>
 
-<!-- Private Chat Modal -->
 <div id="chatModal" class="modal" style="display:none;">
   <div class="modal-content chat-modal">
     <span class="close" onclick="closeChatModal()">&times;</span>
@@ -807,13 +917,12 @@
   </div>
 </div>
 
-<!-- Link Modal -->
 <div id="linkModal" class="modal" style="display:none;">
   <div class="modal-content" style="position: relative; padding: 0; background: transparent; border: none;">
     <span class="close" onclick="closeLinkModal()">&times;</span>
     <iframe id="linkIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation" allowfullscreen></iframe>
     <div id="linkFallback">
-      <p style="margin-bottom: 20px;">🔒 This site cannot be embedded due to its security settings.</p>
+      <p style="margin-bottom: 20px;">🔒 This site cannot be embedded.</p>
       <a id="fallbackLink" href="#" target="_blank" rel="noopener">Open in New Tab</a>
     </div>
   </div>
@@ -825,7 +934,7 @@
 </div>
 
 <script>
-  // Firebase config
+  // ==================== FIREBASE CONFIG ====================
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -843,11 +952,8 @@
   // Drive API for avatars
   const DRIVE_API_KEY = 'AIzaSyD91n0Uv-It5GUtfrXyNRXWs8o1eTWiHAo';
   const AVATAR_FOLDER_ID = '1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2';
-
-  // Cache avatars in sessionStorage
   let cachedAvatars = null;
 
-  // Fetch avatar images from Drive folder
   async function fetchAvatarsFromDrive() {
     if (cachedAvatars) return cachedAvatars;
     try {
@@ -908,7 +1014,6 @@
     document.getElementById('linkFallback').style.display = 'none';
   };
 
-  // Intercept clicks on all links (except those with special classes)
   document.addEventListener('click', function(e) {
     let target = e.target.closest('a');
     if (!target) return;
@@ -916,41 +1021,32 @@
     if (target.getAttribute('href') && target.getAttribute('href').startsWith('#')) return;
     if (e.target.closest('button')) return;
     if (target.closest('.event-item')) return;
-
     const href = target.getAttribute('href');
     if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
       e.preventDefault();
       openLinkInModal(href);
     }
   });
-  // ==================== END LINK HANDLER ====================
 
-  // ==================== ENHANCED parseContent ====================
+  // ==================== PARSE CONTENT ====================
   function parseContent(text) {
     if (!text) return '';
-
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-
     let parts = [];
     let lastIndex = 0;
     let match;
-
     while ((match = urlRegex.exec(text)) !== null) {
       const url = match[0];
       const index = match.index;
       if (index > lastIndex) {
         parts.push({ type: 'text', content: text.substring(lastIndex, index) });
       }
-
       parts.push(detectAndEmbed(url));
-
       lastIndex = index + url.length;
     }
-
     if (lastIndex < text.length) {
       parts.push({ type: 'text', content: text.substring(lastIndex) });
     }
-
     let html = '';
     parts.forEach(part => {
       if (part.type === 'text') {
@@ -961,7 +1057,6 @@
         html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#8cffe0;">${part.content}</a>`;
       }
     });
-
     return html;
   }
 
@@ -973,7 +1068,6 @@
         html: `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen></iframe></div>`
       };
     }
-
     const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
     if (driveMatch) {
       const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
@@ -989,37 +1083,26 @@
         };
       }
     }
-
     if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i)) {
       return {
         type: 'embed',
         html: `<div class="embedded-media"><img src="${url}" alt="embedded image" loading="lazy"></div>`
       };
     }
-
     if (url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i)) {
       return {
         type: 'embed',
         html: `<div class="embedded-media"><video controls style="max-width:100%;"><source src="${url}">Your browser does not support the video tag.</video></div>`
       };
     }
-
     if (url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i)) {
       return {
         type: 'embed',
         html: `<div class="embedded-media"><audio controls style="width:100%;"><source src="${url}">Your browser does not support the audio tag.</audio></div>`
       };
     }
-
     return { type: 'link', content: url };
   }
-
-  document.addEventListener('contextmenu', function(e) {
-    if (e.target.closest('.feed-item .embedded-media img, .feed-item .embedded-media video')) {
-      e.preventDefault();
-      return false;
-    }
-  });
 
   function escapeHtml(unsafe) {
     return unsafe.replace(/[&<>"']/g, function(m) {
@@ -1027,17 +1110,13 @@
     });
   }
 
-  // ==================== END parseContent ====================
-
   function formatTimestamp(ts) {
     if (!ts) return '';
     try {
       let date = ts.toDate ? ts.toDate() : new Date(ts);
       if (isNaN(date.getTime())) return '';
       return date.toLocaleString();
-    } catch (e) {
-      return '';
-    }
+    } catch (e) { return ''; }
   }
 
   function formatRelativeTime(ts) {
@@ -1050,11 +1129,10 @@
       if (diffSeconds < 3600) return Math.floor(diffSeconds / 60) + 'm ago';
       if (diffSeconds < 86400) return Math.floor(diffSeconds / 3600) + 'h ago';
       return Math.floor(diffSeconds / 86400) + 'd ago';
-    } catch (e) {
-      return '';
-    }
+    } catch (e) { return ''; }
   }
 
+  // Reactions
   function addReactionUI(targetType, targetId, container) {
     const reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
@@ -1064,23 +1142,17 @@
       </button>
     `;
     container.appendChild(reactDiv);
-
     const likeBtn = reactDiv.querySelector('.like-btn');
     const countSpan = likeBtn.querySelector('.reaction-count');
     const userId = currentUser?.uid;
-
     let docRef;
     if (targetType.includes('/')) {
-      if (!targetId) {
-        docRef = db.doc(targetType);
-      } else {
-        docRef = db.collection(targetType).doc(targetId);
-      }
+      if (!targetId) docRef = db.doc(targetType);
+      else docRef = db.collection(targetType).doc(targetId);
     } else {
       docRef = db.collection(targetType).doc(targetId);
     }
     const reactionsRef = docRef.collection('reactions');
-
     const unsubscribe = reactionsRef.onSnapshot(snapshot => {
       let count = 0;
       let userLiked = false;
@@ -1099,7 +1171,6 @@
         likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count">${count}</span>`;
       }
     });
-
     likeBtn.addEventListener('click', async () => {
       if (!currentUser) return alert('Login required');
       const reactionDoc = reactionsRef.doc(currentUser.uid);
@@ -1113,11 +1184,9 @@
         });
       }
     });
-
     return unsubscribe;
   }
 
-  // Helper to create user badge with avatar
   function userBadgeHTML(name, kindred, userId, avatar) {
     const avatarHtml = avatar 
       ? `<img class="avatar avatar-sm" src="${avatar}" alt="">`
@@ -1125,7 +1194,7 @@
     return `<span class="user-badge" onclick="showProfile('${userId}')">${avatarHtml}<span>${escapeHtml(name)} (${escapeHtml(kindred)})</span></span>`;
   }
 
-  // AUTH
+  // ==================== AUTH ====================
   let authMode = "login";
   const navArea = document.getElementById("navArea");
   const authContainer = document.getElementById("authContainer");
@@ -1178,73 +1247,65 @@
     auth.signOut().catch(showError);
   };
 
-  // ==================== FIREBASE MESSAGING SETUP ====================
+  // Messaging setup (optional)
   let messaging = null;
   if (firebase.messaging.isSupported()) {
     messaging = firebase.messaging();
   }
-
   async function setupNotifications() {
     if (!messaging || !currentUser) return;
-
     try {
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        console.log('Notification permission denied.');
-        return;
-      }
-
+      if (permission !== 'granted') return;
       const vapidKey = 'BIHlrUCxwT4_GZMFu2D0MVz5n0Grhx-iGMpOskT0T012wEQZewobWTiZklX2Vs3xwj1YKmTHwtec8y5fH2dsjcA';
       const token = await messaging.getToken({ vapidKey });
       if (token) {
-        await db.collection('users').doc(currentUser.uid).update({
-          fcmToken: token,
-          fcmTokenLastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        console.log('FCM token saved:', token);
-      } else {
-        console.log('No registration token available.');
+        await db.collection('users').doc(currentUser.uid).update({ fcmToken: token, fcmTokenLastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
       }
-
       messaging.onTokenRefresh(() => {
         messaging.getToken({ vapidKey }).then(refreshedToken => {
-          db.collection('users').doc(currentUser.uid).update({
-            fcmToken: refreshedToken,
-            fcmTokenLastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-          }).catch(showError);
+          db.collection('users').doc(currentUser.uid).update({ fcmToken: refreshedToken, fcmTokenLastUpdated: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
         }).catch(showError);
       });
-
       messaging.onMessage((payload) => {
-        console.log('Message received in foreground: ', payload);
         alert(`💬 ${payload.notification?.title || 'New message'}\n${payload.notification?.body || ''}`);
       });
-
-    } catch (err) {
-      console.error('Unable to get permission or token:', err);
-    }
+    } catch (err) { console.error('Notification error:', err); }
   }
-  // ==================== END MESSAGING SETUP ====================
 
-  // ========== NAVIGATION ==========
+  // Track current active content and sidebar state for header/marquee visibility
+  let currentContent = 'feeds'; // default
+
+  // Function to update visibility of header, top marquee, bottom marquee
+  function updateHeaderMarqueeVisibility() {
+    const show = (currentContent === 'feeds' && !sidebar.classList.contains('open'));
+    document.querySelector('header').style.display = show ? 'flex' : 'none';
+    document.querySelector('.marquee').style.display = show ? 'block' : 'none';
+    document.querySelector('.bottom-marquee').style.display = show ? 'flex' : 'none';
+  }
+
+  // ==================== AUTH STATE ====================
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
       db.collection("users").doc(user.uid).update({ online: true }).catch(showError);
       db.collection("users").doc(user.uid).get().then(doc => {
         const userData = doc.data() || {};
-        const isAdmin = userData.isAdmin || false;
+        // Profile and admin buttons removed from header – only inbox and logout remain
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
           <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
-          <button onclick="showEditProfile()"><i class="fa-regular fa-user"></i> Profile</button>
           <button onclick="logout()">Logout</button>
-          ${isAdmin ? `<button onclick="window.location='ntuonline.html'">Admin</button>` : ""}
         `;
+        // Update profile panel
+        updateProfilePanel(userData);
         setupNotifications();
+        updateHeaderMarqueeVisibility(); // apply visibility rule
       }).catch(showError);
     } else {
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
+      document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
+      updateHeaderMarqueeVisibility();
     }
   });
 
@@ -1256,7 +1317,27 @@
 
   function showError(err) { alert("Error: " + err.message); console.error(err); }
 
-  // ========== EDIT PROFILE FUNCTIONS (with avatar picker) ==========
+  // Update profile panel in #profile
+  function updateProfilePanel(userData) {
+    const display = document.getElementById('profileDisplay');
+    if (!userData) {
+      display.innerHTML = '<p>No profile data.</p>';
+      return;
+    }
+    const avatarHtml = userData.avatar 
+      ? `<img class="avatar avatar-lg" src="${userData.avatar}" alt="">`
+      : `<span class="avatar-placeholder avatar-placeholder-lg"><i class="fa-regular fa-user fa-2x"></i></span>`;
+    display.innerHTML = `
+      ${avatarHtml}
+      <div>
+        <p><strong>Name:</strong> ${userData.name || '?'}</p>
+        <p><strong>Kindred:</strong> ${userData.kindred || '?'}</p>
+        <p><strong>Email:</strong> ${userData.email || '?'}</p>
+      </div>
+    `;
+  }
+
+  // ==================== EDIT PROFILE ====================
   window.showEditProfile = async function() {
     if (!currentUser) return alert("You must be logged in.");
     const doc = await db.collection('users').doc(currentUser.uid).get();
@@ -1266,7 +1347,6 @@
     document.getElementById('editKindred').value = data.kindred || '';
     document.getElementById('editEmail').value = data.email || '';
 
-    // Load avatars from Drive
     const avatars = await fetchAvatarsFromDrive();
     const picker = document.getElementById('avatarPicker');
     if (avatars.length === 0) {
@@ -1279,7 +1359,6 @@
       });
       picker.innerHTML = html;
     }
-
     document.getElementById('editProfileMessage').style.display = 'none';
     document.getElementById('editProfileModal').style.display = 'flex';
   };
@@ -1309,13 +1388,12 @@
       .then(() => {
         showMessage('editProfileMessage', 'Profile updated successfully', 'success');
         setTimeout(() => closeEditProfileModal(), 1500);
+        // Refresh profile panel
+        db.collection('users').doc(currentUser.uid).get().then(doc => updateProfilePanel(doc.data()));
       })
-      .catch(err => {
-        showMessage('editProfileMessage', err.message, 'error');
-      });
+      .catch(err => showMessage('editProfileMessage', err.message, 'error'));
   };
 
-  // Helper to show messages inside modals
   function showMessage(containerId, text, type) {
     const div = document.getElementById(containerId);
     div.textContent = text;
@@ -1324,7 +1402,7 @@
     setTimeout(() => { div.style.display = 'none'; }, 3000);
   }
 
-  // ========== PROFILE VIEW (for others) ==========
+  // ==================== PROFILE VIEW (others) ====================
   window.showProfile = function(userId) {
     if (!userId) return;
     db.collection('users').doc(userId).get().then(doc => {
@@ -1365,7 +1443,7 @@
     }
   };
 
-  // ---------- FEED ----------
+  // ==================== FEED ====================
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     const feedArea = document.getElementById("feedArea");
     feedArea.innerHTML = "";
@@ -1456,7 +1534,7 @@
     }, showError);
   }
 
-  // ---------- CHAT ----------
+  // ==================== CHAT (Community) ====================
   window.sendChat = function () {
     if (!currentUser) return alert("Login required");
     const input = document.getElementById("chatInput");
@@ -1541,7 +1619,7 @@
     }, showError);
   }
 
-  // ---------- GOODWILL ----------
+  // ==================== GOODWILL ====================
   window.postGoodwill = function () {
     if (!currentUser) return alert("Login required");
     const input = document.getElementById("goodwillInput");
@@ -1626,7 +1704,7 @@
     }, showError);
   }
 
-  // ---------- LIVE STREAM ----------
+  // ==================== LIVE STREAM ====================
   db.collection("live").doc("current").onSnapshot(doc => {
     const liveArea = document.getElementById("liveArea");
     if (doc.exists) {
@@ -1724,7 +1802,7 @@
     }, showError);
   }
 
-  // ---------- EVENTS (with comments, now with avatars) ----------
+  // ==================== EVENTS ====================
   db.collection("events").orderBy("created", "desc").onSnapshot(s => {
     const eventArea = document.getElementById("eventArea");
     eventArea.innerHTML = "";
@@ -1733,9 +1811,7 @@
       const eventId = doc.id;
       let mediaHtml = '';
       if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
-      if (e.video) {
-        mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
-      }
+      if (e.video) mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
       if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
 
       const eventDiv = document.createElement('div');
@@ -1842,7 +1918,7 @@
     }, showError);
   }
 
-  // ---------- PRIVATE CHAT (Room-based) with avatars ----------
+  // ==================== PRIVATE CHAT (Room-based) ====================
   let activeChatRoomId = null;
   let activeChatOtherUserId = null;
   let unsubscribeRoomMessages = null;
@@ -1870,7 +1946,6 @@
       });
     }
 
-    // Mark all messages from the other user as read
     const unreadQuery = roomRef.collection('messages')
       .where('from', '==', otherUserId)
       .where('read', '==', false);
@@ -1949,7 +2024,7 @@
     activeChatOtherUserId = null;
   };
 
-  // ---------- INBOX ----------
+  // ==================== INBOX ====================
   window.showInbox = function() {
     document.getElementById('inboxModal').style.display = 'flex';
     loadInbox();
@@ -2035,7 +2110,7 @@
       });
   }
 
-  // ---------- SEARCH USERS FOR PRIVATE CHAT ----------
+  // ==================== SEARCH USERS ====================
   window.searchUsers = function() {
     if (!currentUser) return alert('Please log in first.');
     const query = document.getElementById('searchUserInput').value.trim().toLowerCase();
@@ -2088,29 +2163,67 @@
       .catch(showError);
   };
 
-  // ---------- CLICK OUTSIDE MODAL ----------
-  window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-      event.target.style.display = 'none';
-      if (event.target.id === 'chatModal' && unsubscribeRoomMessages) {
-        unsubscribeRoomMessages();
-        unsubscribeRoomMessages = null;
-        activeChatRoomId = null;
-      }
-      if (event.target.id === 'linkModal') {
-        closeLinkModal();
-      }
-    }
-  };
+  // ==================== SIDEBAR TOGGLE & CONTENT SWITCHING ====================
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const toggleBtn = document.getElementById('sidebarToggle');
+  const sidebarLinks = document.querySelectorAll('.sidebar-menu a[data-content]');
+  const ntuLink = document.getElementById('ntuElectricityLink');
+  const contentDivs = document.querySelectorAll('.content');
 
-  // Service worker registration
-  if (typeof navigator.serviceWorker !== 'undefined') {
-    navigator.serviceWorker.register('sw.js');
+  toggleBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+    updateHeaderMarqueeVisibility(); // hide/show based on new sidebar state
+  });
+
+  overlay.addEventListener('click', function() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    updateHeaderMarqueeVisibility();
+  });
+
+  function showContent(targetId) {
+    contentDivs.forEach(div => div.classList.remove('active'));
+    const targetDiv = document.getElementById(targetId);
+    if (targetDiv) targetDiv.classList.add('active');
+    currentContent = targetId;
+    updateHeaderMarqueeVisibility(); // header only shows on feeds & sidebar closed
   }
 
-  // ========== MARQUEE SPEEDS AND MESSAGES ==========
-  const configDoc = db.collection("config").doc("site");
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('data-content');
+      showContent(targetId);
+      if (window.innerWidth < 992) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      }
+    });
+  });
 
+  ntuLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    showContent('electricity');
+    if (window.innerWidth < 992) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    }
+  });
+
+  window.addEventListener('resize', function() {
+    if (window.innerWidth >= 992) {
+      overlay.classList.remove('active');
+    } else {
+      if (sidebar.classList.contains('open')) overlay.classList.add('active');
+    }
+    updateHeaderMarqueeVisibility(); // ensure header visibility after resize
+  });
+
+  // ==================== MARQUEE SPEEDS & MESSAGES ====================
+  const configDoc = db.collection("config").doc("site");
   configDoc.onSnapshot(doc => {
     if (doc.exists) {
       const data = doc.data();
@@ -2124,7 +2237,6 @@
     }
   }, error => console.error("Error loading marquee speeds:", error));
 
-  // ========== BOTTOM MARQUEE ==========
   const bottomMarquee = document.getElementById('bottomMarqueeText');
   let messages = ['⚡ Welcome to Ntuconnect'];
   let currentIndex = 0;
@@ -2158,7 +2270,7 @@
     bottomMarquee.textContent = '⚡ Welcome to Ntuconnect';
   });
 
-  // ========== AUTO-SCROLL FEED ==========
+  // ==================== AUTO-SCROLL FEED ====================
   const feedScrollContainer = document.getElementById('feedScrollContainer');
   let autoScrollInterval;
   let isHoveringFeed = false;
@@ -2177,14 +2289,28 @@
     }, 100);
   }
 
-  feedScrollContainer.addEventListener('mouseenter', () => {
-    isHoveringFeed = true;
-  });
-  feedScrollContainer.addEventListener('mouseleave', () => {
-    isHoveringFeed = false;
-  });
+  feedScrollContainer.addEventListener('mouseenter', () => { isHoveringFeed = true; });
+  feedScrollContainer.addEventListener('mouseleave', () => { isHoveringFeed = false; });
 
   setTimeout(startFeedAutoScroll, 2000);
+
+  // ==================== CLICK OUTSIDE MODAL ====================
+  window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+      event.target.style.display = 'none';
+      if (event.target.id === 'chatModal' && unsubscribeRoomMessages) {
+        unsubscribeRoomMessages();
+        unsubscribeRoomMessages = null;
+        activeChatRoomId = null;
+      }
+      if (event.target.id === 'linkModal') closeLinkModal();
+    }
+  };
+
+  // Service worker registration
+  if (typeof navigator.serviceWorker !== 'undefined') {
+    navigator.serviceWorker.register('sw.js');
+  }
 </script>
 </body>
 </html>
