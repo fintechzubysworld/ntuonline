@@ -2445,6 +2445,7 @@
       if (targetId === 'home') {
         sidebar.classList.remove('open');
         overlay.classList.remove('active');
+        updateHeaderMarqueeVisibility(); // ensure they appear immediately
       } else {
         // Otherwise, close only on mobile (original behaviour)
         if (window.innerWidth < 992) {
