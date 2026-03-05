@@ -988,7 +988,7 @@
     </div>
   </div>
 
-  <!-- ADMIN panel – now with live stream management -->
+  <!-- ADMIN panel – now with live stream management (admin only) -->
   <div id="admin" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
@@ -1001,7 +1001,7 @@
           <option value="tiktok">TikTok</option>
           <option value="instagram">Instagram</option>
         </select>
-        <input type="text" id="liveIdentifier" placeholder="Video ID / Username / URL">
+        <input type="text" id="liveIdentifier" placeholder="Paste video URL or ID">
         <button onclick="updateLiveStream()">Update Live Stream</button>
         <div id="adminMessage" style="margin-top:15px;"></div>
       </div>
@@ -1925,17 +1925,38 @@
     });
   }, showError);
 
+  // ==================== HELPER: Extract video ID from URL ====================
+  function extractVideoId(platform, input) {
+    if (!input) return '';
+    if (platform === 'youtube') {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = input.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : input;
+    } else if (platform === 'tiktok') {
+      // Extract TikTok video ID from URL (e.g., https://www.tiktok.com/@user/video/123456789)
+      const regExp = /tiktok\.com\/@[^\/]+\/video\/(\d+)/;
+      const match = input.match(regExp);
+      return match ? match[1] : input; // fallback to raw input
+    } else if (platform === 'instagram') {
+      // Extract Instagram shortcode from URL (e.g., https://www.instagram.com/p/ABC123/)
+      const regExp = /instagram\.com\/p\/([^\/?#]+)/;
+      const match = input.match(regExp);
+      return match ? match[1] : input;
+    }
+    return input;
+  }
+
   // ==================== FULL LIVE (multi‑platform) ====================
   function getLiveEmbedHTML(platform, identifier) {
     if (!identifier) return '<p style="text-align:center;">🔴 Currently Offline</p>';
+    const videoId = extractVideoId(platform, identifier);
     if (platform === 'youtube') {
-      return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${identifier}" allowfullscreen></iframe>`;
+      return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>`;
     } else if (platform === 'tiktok') {
-      // TikTok embed: use the video URL or oEmbed
-      return `<iframe width="100%" height="315" src="https://www.tiktok.com/embed/v2/${identifier}" allowfullscreen></iframe>`;
+      // Use TikTok's oEmbed or direct embed – if it's a numeric ID, assume video ID
+      return `<iframe width="100%" height="315" src="https://www.tiktok.com/embed/v2/${videoId}" allowfullscreen></iframe>`;
     } else if (platform === 'instagram') {
-      // Instagram embed: use the post URL
-      return `<iframe width="100%" height="315" src="https://www.instagram.com/p/${identifier}/embed" allowfullscreen></iframe>`;
+      return `<iframe width="100%" height="315" src="https://www.instagram.com/p/${videoId}/embed" allowfullscreen></iframe>`;
     }
     return '<p style="text-align:center;">Unsupported platform</p>';
   }
@@ -1963,7 +1984,6 @@
     const miniLive = document.getElementById("miniLiveArea");
     if (miniLive) {
       if (identifier) {
-        // For mini preview, show a placeholder with platform icon
         const icons = {
           youtube: '<i class="fab fa-youtube" style="font-size:2rem; color:#ff0000;"></i>',
           tiktok: '<i class="fab fa-tiktok" style="font-size:2rem;"></i>',
@@ -1979,12 +1999,19 @@
     }
   }, showError);
 
-  // ==================== ADMIN: UPDATE LIVE STREAM ====================
-  window.updateLiveStream = function() {
-    if (!currentUser) return alert('You must be logged in as admin.');
+  // ==================== ADMIN: UPDATE LIVE STREAM (admin only) ====================
+  window.updateLiveStream = async function() {
+    if (!currentUser) return alert('You must be logged in.');
+    
+    // Check if user is admin
+    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+    if (!userDoc.exists || !userDoc.data().isAdmin) {
+      return alert('Only administrators can update the live stream.');
+    }
+
     const platform = document.getElementById('livePlatformSelect').value;
     const identifier = document.getElementById('liveIdentifier').value.trim();
-    if (!identifier) return alert('Please enter a video ID or username.');
+    if (!identifier) return alert('Please enter a video URL or ID.');
 
     db.collection('live').doc('current').set({
       platform: platform,
