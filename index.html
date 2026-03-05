@@ -122,7 +122,7 @@
     .floating-toggle {
       position: fixed;
       top: 20px;
-      left: 20px;
+      right: 20px; /* moved to the right */
       background: rgba(26, 138, 120, 0.9);
       backdrop-filter: blur(8px);
       width: 48px;
@@ -144,7 +144,7 @@
       transform: scale(1.05);
     }
 
-    /* ===== SIDEBAR ===== */
+    /* ===== SIDEBAR (left side – default) ===== */
     .sidebar {
       position: fixed;
       top: 80px;
@@ -743,7 +743,7 @@
 </head>
 <body>
 
-<!-- Floating sidebar toggle (appears when header is hidden) -->
+<!-- Floating sidebar toggle (appears when header is hidden) – now on the right -->
 <div class="floating-toggle" id="floatingSidebarToggle">
   <i class="fas fa-bars"></i>
 </div>
@@ -767,7 +767,7 @@
 <!-- Sidebar (with Home link added) -->
 <nav class="sidebar" id="sidebar">
   <ul class="sidebar-menu">
-    <!-- New Home link (points to Feeds) -->
+    <!-- Home link (points to Feeds) -->
     <li><a href="#" data-content="feeds"><i class="fas fa-home"></i> Home</a></li>
     <li><a href="#" data-content="feeds"><i class="fas fa-rss"></i> Feeds</a></li>
     <li><a href="#" data-content="livestream"><i class="fas fa-video"></i> Livestream</a></li>
@@ -2242,9 +2242,16 @@
       e.preventDefault();
       const targetId = this.getAttribute('data-content');
       showContent(targetId);
-      if (window.innerWidth < 992) {
+      // If the target is feeds (Home or Feeds), close the sidebar to show header/marquees
+      if (targetId === 'feeds') {
         sidebar.classList.remove('open');
         overlay.classList.remove('active');
+      } else {
+        // otherwise, close only on mobile (original behaviour)
+        if (window.innerWidth < 992) {
+          sidebar.classList.remove('open');
+          overlay.classList.remove('active');
+        }
       }
     });
   });
