@@ -851,7 +851,9 @@
 <!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
   <ul class="sidebar-menu">
-    <li><a href="#" data-content="feeds"><i class="fas fa-home"></i> Home</a></li>
+    <!-- Home link – shows dashboard and reveals header/marquees -->
+    <li><a href="#" data-content="home"><i class="fas fa-home"></i> Home</a></li>
+    <!-- Feeds link – shows only full feed view, no header/marquees -->
     <li><a href="#" data-content="feeds"><i class="fas fa-rss"></i> Feeds</a></li>
     <li><a href="#" data-content="livestream"><i class="fas fa-video"></i> Livestream</a></li>
     <li><a href="#" data-content="events"><i class="fas fa-calendar-alt"></i> Events</a></li>
@@ -869,8 +871,8 @@
 
 <!-- Main content -->
 <main id="mainContent">
-  <!-- HOME (feeds) panel – dashboard with mini cards -->
-  <div id="feeds" class="content active">
+  <!-- HOME panel – dashboard with mini cards, header/marquees visible when active and sidebar closed -->
+  <div id="home" class="content active">
     <div class="dashboard-grid">
       <!-- Mini Live Stream -->
       <div class="mini-card">
@@ -906,6 +908,18 @@
         <div class="view-all">
           <button onclick="showContent('goodwill')">View all</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEEDS full panel – only feed, no header/marquees -->
+  <div id="feeds" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-newspaper"></i> Community Feed</h3>
+      <textarea id="feedInput" placeholder="Share something..."></textarea>
+      <button onclick="postFeed()"><i class="fa-regular fa-paper-plane"></i> Post</button>
+      <div class="feed-scroll-container" id="feedScrollContainer">
+        <div id="feedArea"></div>
       </div>
     </div>
   </div>
@@ -1416,11 +1430,11 @@
     } catch (err) { console.error('Notification error:', err); }
   }
 
-  // Track current active content and sidebar state
-  let currentContent = 'feeds';
+  // Track current active content and sidebar state – now home controls header/marquees
+  let currentContent = 'home'; // default to home
 
   function updateHeaderMarqueeVisibility() {
-    const show = (currentContent === 'feeds' && !sidebar.classList.contains('open'));
+    const show = (currentContent === 'home' && !sidebar.classList.contains('open'));
     document.querySelector('header').style.display = show ? 'flex' : 'none';
     document.querySelector('.marquee').style.display = show ? 'block' : 'none';
     document.querySelector('.bottom-marquee').style.display = show ? 'flex' : 'none';
@@ -1583,7 +1597,7 @@
     }
   };
 
-  // ==================== FULL FEED ====================
+  // ==================== FULL FEED (feeds panel) ====================
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     const feedArea = document.getElementById("feedArea");
     if (feedArea) {
@@ -1676,7 +1690,7 @@
     }, showError);
   }
 
-  // ==================== MINI FEED ====================
+  // ==================== MINI FEED (home panel) ====================
   db.collection("feed").orderBy("created", "desc").limit(3).onSnapshot(s => {
     const miniFeed = document.getElementById("miniFeedArea");
     if (!miniFeed) return;
@@ -2427,8 +2441,8 @@
       e.preventDefault();
       const targetId = this.getAttribute('data-content');
       showContent(targetId);
-      // If target is feeds (Home), close sidebar to show header and marquees
-      if (targetId === 'feeds') {
+      // If target is home, close sidebar to show header and marquees
+      if (targetId === 'home') {
         sidebar.classList.remove('open');
         overlay.classList.remove('active');
       } else {
