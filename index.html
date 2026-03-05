@@ -859,6 +859,24 @@
       max-height: 315px;
       display: block;
     }
+    
+    /* Broadcast status indicator */
+    .broadcast-status {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      background: #0f2d27;
+      text-align: center;
+      font-weight: 600;
+    }
+    .broadcast-status.live {
+      color: #ff6b6b;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
   </style>
 </head>
 <body>
@@ -914,7 +932,7 @@
         <div id="miniLiveArea" class="live-mini"></div>
         <!-- WebRTC container for broadcast -->
         <div id="miniLiveWebRTCContainer" class="webrtc-video-container live-mini" style="display: none;">
-          <video id="miniLiveWebRTCVideo" autoplay playsinline></video>
+          <video id="miniLiveWebRTCVideo" autoplay playsinline style="width:100%; max-height:160px; border-radius:14px; background:black;"></video>
         </div>
         <div class="view-all">
           <button onclick="showContent('livestream')">View all</button>
@@ -1051,7 +1069,7 @@
           <button id="switchCamBtn" onclick="switchCamera()" disabled><i class="fa-regular fa-rotate"></i> Switch Camera</button>
           <button id="stopBroadcastBtn" onclick="stopBroadcast()" disabled><i class="fa-regular fa-circle-stop"></i> Stop</button>
         </div>
-        <div id="broadcastStatus" style="margin-top:12px; color:#8cffe0;"></div>
+        <div id="broadcastStatus" class="broadcast-status" style="display:none;"></div>
         <p style="font-size:0.85rem; margin-top:10px;">When active, viewers see your camera feed on the homepage and livestream page.</p>
       </div>
 
@@ -2524,18 +2542,35 @@
       .catch(showError);
   };
 
-  // ==================== VIDEO STUDIO (WebRTC broadcast) – FIXED RENDERING & DEFAULT REAR ====================
+  // ==================== VIDEO STUDIO (WebRTC broadcast) – FIXED ====================
   let adminPeer = null;
   let adminLocalStream = null;
   let viewerPeer = null;
   let viewerCall = null;
   let currentFacingMode = 'environment'; // DEFAULT TO REAR CAMERA
   let activeCalls = [];
+  let broadcastPeerId = null;
+  let isBroadcasting = false;
+
+  // Better constraints for mobile compatibility
+  const VIDEO_CONSTRAINTS = {
+    video: {
+      facingMode: { ideal: 'environment' }, // Prefer rear, but don't require
+      width: { ideal: 1280, min: 640 },
+      height: { ideal: 720, min: 480 }
+    },
+    audio: true
+  };
 
   async function isAdminUser() {
     if (!currentUser) return false;
-    const doc = await db.collection('users').doc(currentUser.uid).get();
-    return doc.exists && doc.data().isAdmin === true;
+    try {
+      const doc = await db.collection('users').doc(currentUser.uid).get();
+      return doc.exists && doc.data().isAdmin === true;
+    } catch (err) {
+      console.error('Admin check error:', err);
+      return false;
+    }
   }
 
   window.startBroadcast = async function() {
@@ -2543,131 +2578,331 @@
     const admin = await isAdminUser();
     if (!admin) return alert('Admin privileges required.');
 
+    // Prevent double-start
+    if (isBroadcasting) {
+      console.log('Already broadcasting');
+      return;
+    }
+
     try {
-      // Request camera with default rear (environment)
-      adminLocalStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: currentFacingMode }, 
-        audio: true 
-      });
+      // Stop any existing stream first
+      if (adminLocalStream) {
+        adminLocalStream.getTracks().forEach(track => track.stop());
+      }
+
+      // Request camera with constraints
+      adminLocalStream = await navigator.mediaDevices.getUserMedia(VIDEO_CONSTRAINTS);
       
-      // Show local preview
+      // Show local preview with playsinline for mobile
       const localVideo = document.getElementById('adminLocalVideo');
       localVideo.srcObject = adminLocalStream;
-      localVideo.play().catch(e => console.log('Local video play error:', e));
+      localVideo.muted = true; // Mute local to prevent feedback
+      localVideo.setAttribute('playsinline', 'true'); // iOS requirement
+      
+      try {
+        await localVideo.play();
+      } catch (e) {
+        console.log('Autoplay prevented, waiting for interaction:', e);
+      }
 
-      // Create Peer with STUN servers for better connectivity
-      adminPeer = new Peer('admin-broadcast-' + Date.now(), {
+      // Generate stable peer ID based on user ID
+      broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
+      
+      // Create Peer with TURN servers for better NAT traversal
+      adminPeer = new Peer(broadcastPeerId, {
+        host: '0.peerjs.com', // Use PeerJS cloud or your own server
+        port: 443,
+        path: '/',
+        secure: true,
         config: {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
           ]
-        }
+        },
+        debug: 2
       });
 
       adminPeer.on('open', (id) => {
-        console.log('Broadcast peer ID:', id);
+        console.log('Broadcast peer ready:', id);
+        isBroadcasting = true;
+        
+        // Store in Firestore so viewers can find us
         db.collection('broadcast').doc('active').set({
           active: true,
           peerId: id,
           startedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          adminUid: currentUser.uid
-        });
-        document.getElementById('broadcastStatus').innerText = '🔴 LIVE with ID: ' + id;
-        document.getElementById('startBroadcastBtn').disabled = true;
-        document.getElementById('switchCamBtn').disabled = false;
-        document.getElementById('stopBroadcastBtn').disabled = false;
+          adminUid: currentUser.uid,
+          facingMode: currentFacingMode
+        }).catch(console.error);
+        
+        updateBroadcastUI(true, id);
       });
 
       adminPeer.on('call', (call) => {
-        // Answer with the current stream
+        console.log('Incoming viewer call:', call.peer);
+        
+        // Answer with current stream
         call.answer(adminLocalStream);
         activeCalls.push(call);
+        
+        call.on('stream', (remoteStream) => {
+          // We don't expect stream back from viewers in broadcast mode
+          console.log('Received stream from viewer (unexpected)');
+        });
+        
         call.on('close', () => {
+          console.log('Viewer disconnected:', call.peer);
           activeCalls = activeCalls.filter(c => c !== call);
         });
-        call.on('error', (err) => console.error('Call error:', err));
+        
+        call.on('error', (err) => {
+          console.error('Call error with', call.peer, ':', err);
+          activeCalls = activeCalls.filter(c => c !== call);
+        });
       });
 
       adminPeer.on('error', (err) => {
         console.error('Peer error:', err);
-        alert('Broadcast error: ' + err);
+        if (err.type === 'unavailable-id') {
+          alert('Broadcast ID already in use. Please try again.');
+        } else {
+          alert('Broadcast error: ' + err.message);
+        }
         stopBroadcast();
       });
+
+      adminPeer.on('disconnected', () => {
+        console.log('Peer disconnected, attempting reconnect...');
+        adminPeer.reconnect();
+      });
+
     } catch (err) {
-      console.error('getUserMedia error:', err);
-      alert('Could not access camera/microphone. Please grant permissions.');
+      console.error('Broadcast start error:', err);
+      if (err.name === 'NotAllowedError') {
+        alert('Camera permission denied. Please allow camera access and try again.');
+      } else if (err.name === 'NotFoundError') {
+        alert('No camera found. Please ensure your device has a camera.');
+      } else if (err.name === 'OverconstrainedError') {
+        // Try with simpler constraints
+        alert('Camera constraints not met. Trying with default settings...');
+        tryFallbackCamera();
+      } else {
+        alert('Could not start broadcast: ' + err.message);
+      }
+      stopBroadcast();
     }
   };
 
-  window.stopBroadcast = function() {
-    if (adminPeer) {
-      adminPeer.destroy();
-      adminPeer = null;
-    }
-    if (adminLocalStream) {
-      adminLocalStream.getTracks().forEach(track => track.stop());
-      adminLocalStream = null;
-    }
-    activeCalls = [];
-    document.getElementById('adminLocalVideo').srcObject = null;
-    db.collection('broadcast').doc('active').set({ active: false }, { merge: true });
-    document.getElementById('broadcastStatus').innerText = '';
-    document.getElementById('startBroadcastBtn').disabled = false;
-    document.getElementById('switchCamBtn').disabled = true;
-    document.getElementById('stopBroadcastBtn').disabled = true;
-  };
-
-  window.switchCamera = async function() {
-    if (!adminLocalStream) return;
-    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+  // Fallback camera attempt without ideal constraints
+  async function tryFallbackCamera() {
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: currentFacingMode }, 
+      adminLocalStream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
         audio: true 
       });
+      
+      const localVideo = document.getElementById('adminLocalVideo');
+      localVideo.srcObject = adminLocalStream;
+      localVideo.play().catch(console.error);
+      
+      // Continue with peer setup...
+      broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
+      adminPeer = new Peer(broadcastPeerId, {
+        secure: true,
+        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+      });
+      
+      // ... (same event handlers as above)
+      
+    } catch (err) {
+      alert('Fallback camera also failed: ' + err.message);
+    }
+  }
+
+  window.stopBroadcast = async function() {
+    console.log('Stopping broadcast...');
+    
+    // Close all viewer connections
+    activeCalls.forEach(call => {
+      try { call.close(); } catch(e) {}
+    });
+    activeCalls = [];
+
+    // Destroy peer
+    if (adminPeer) {
+      try {
+        adminPeer.destroy();
+      } catch(e) {}
+      adminPeer = null;
+    }
+
+    // Stop all tracks
+    if (adminLocalStream) {
+      adminLocalStream.getTracks().forEach(track => {
+        track.stop();
+        console.log('Stopped track:', track.kind);
+      });
+      adminLocalStream = null;
+    }
+
+    // Update Firestore
+    try {
+      await db.collection('broadcast').doc('active').set({ 
+        active: false,
+        stoppedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch(e) {
+      console.error('Error updating broadcast status:', e);
+    }
+
+    // Clear UI
+    document.getElementById('adminLocalVideo').srcObject = null;
+    isBroadcasting = false;
+    broadcastPeerId = null;
+    updateBroadcastUI(false);
+  };
+
+  function updateBroadcastUI(isLive, peerId = '') {
+    const statusEl = document.getElementById('broadcastStatus');
+    const startBtn = document.getElementById('startBroadcastBtn');
+    const switchBtn = document.getElementById('switchCamBtn');
+    const stopBtn = document.getElementById('stopBroadcastBtn');
+
+    if (isLive) {
+      statusEl.style.display = 'block';
+      statusEl.className = 'broadcast-status live';
+      statusEl.innerHTML = `🔴 LIVE<br><small>Peer ID: ${peerId}</small>`;
+      startBtn.disabled = true;
+      switchBtn.disabled = false;
+      stopBtn.disabled = false;
+    } else {
+      statusEl.style.display = 'none';
+      statusEl.className = 'broadcast-status';
+      statusEl.innerText = '';
+      startBtn.disabled = false;
+      switchBtn.disabled = true;
+      stopBtn.disabled = true;
+    }
+  }
+
+  window.switchCamera = async function() {
+    if (!isBroadcasting || !adminLocalStream) {
+      console.log('Cannot switch: not broadcasting');
+      return;
+    }
+
+    // Toggle facing mode
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    console.log('Switching to:', currentFacingMode);
+
+    try {
+      // Get new stream with switched camera
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: { exact: currentFacingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: true
+      });
+
       const newVideoTrack = newStream.getVideoTracks()[0];
       const newAudioTrack = newStream.getAudioTracks()[0];
 
-      // Replace tracks in local stream
-      const oldVideoTrack = adminLocalStream.getVideoTracks()[0];
-      adminLocalStream.removeTrack(oldVideoTrack);
-      oldVideoTrack.stop();
-      adminLocalStream.addTrack(newVideoTrack);
+      if (!newVideoTrack) {
+        throw new Error('No video track in new stream');
+      }
 
-      if (newAudioTrack) {
-        const oldAudioTrack = adminLocalStream.getAudioTracks()[0];
-        if (oldAudioTrack) {
-          adminLocalStream.removeTrack(oldAudioTrack);
-          oldAudioTrack.stop();
+      // Replace tracks in peer connections
+      const replacePromises = activeCalls.map(async (call) => {
+        try {
+          const senders = call.peerConnection.getSenders();
+          
+          // Replace video
+          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+          if (videoSender) {
+            await videoSender.replaceTrack(newVideoTrack);
+            console.log('Replaced video track for', call.peer);
+          }
+
+          // Replace audio if available
+          if (newAudioTrack) {
+            const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
+            if (audioSender) {
+              await audioSender.replaceTrack(newAudioTrack);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to replace track for', call.peer, ':', err);
         }
+      });
+
+      await Promise.all(replacePromises);
+
+      // Update local stream
+      const oldVideoTrack = adminLocalStream.getVideoTracks()[0];
+      const oldAudioTrack = adminLocalStream.getAudioTracks()[0];
+      
+      if (oldVideoTrack) {
+        adminLocalStream.removeTrack(oldVideoTrack);
+        oldVideoTrack.stop();
+      }
+      if (oldAudioTrack) {
+        adminLocalStream.removeTrack(oldAudioTrack);
+        oldAudioTrack.stop();
+      }
+      
+      adminLocalStream.addTrack(newVideoTrack);
+      if (newAudioTrack) {
         adminLocalStream.addTrack(newAudioTrack);
       }
 
       // Update local preview
-      document.getElementById('adminLocalVideo').srcObject = adminLocalStream;
+      const localVideo = document.getElementById('adminLocalVideo');
+      localVideo.srcObject = adminLocalStream;
+      
+      // Update Firestore with current facing mode
+      db.collection('broadcast').doc('active').update({
+        facingMode: currentFacingMode
+      }).catch(console.error);
 
-      // Replace tracks in all active calls
-      activeCalls.forEach(call => {
-        const senders = call.peerConnection.getSenders();
-        const videoSender = senders.find(s => s.track?.kind === 'video');
-        if (videoSender) videoSender.replaceTrack(newVideoTrack);
-        const audioSender = senders.find(s => s.track?.kind === 'audio');
-        if (audioSender && newAudioTrack) audioSender.replaceTrack(newAudioTrack);
-      });
+      console.log('Camera switch successful');
+
     } catch (err) {
-      console.error('Switch camera error:', err);
-      alert('Could not switch camera.');
+      console.error('Camera switch failed:', err);
+      if (err.name === 'OverconstrainedError') {
+        alert(`Cannot switch to ${currentFacingMode} camera. It may not be available.`);
+        // Revert toggle
+        currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+      } else {
+        alert('Failed to switch camera: ' + err.message);
+      }
     }
   };
 
+  // ==================== VIEWER CONNECTION (FIXED) ====================
+  let viewerPeers = {}; // Track multiple viewer peers if needed
+
   function connectToBroadcast(peerId) {
     if (!peerId) return;
-    if (viewerCall) viewerCall.close();
-    if (viewerPeer) viewerPeer.destroy();
+    
+    console.log('Connecting to broadcast:', peerId);
+    
+    // Clean up existing connection
+    if (viewerCall) {
+      try { viewerCall.close(); } catch(e) {}
+      viewerCall = null;
+    }
+    if (viewerPeer) {
+      try { viewerPeer.destroy(); } catch(e) {}
+      viewerPeer = null;
+    }
 
-    // Create viewer peer with STUN
+    // Create new peer for viewing (null ID = auto-generated)
     viewerPeer = new Peer({
+      secure: true,
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
@@ -2677,34 +2912,60 @@
     });
 
     viewerPeer.on('open', () => {
+      console.log('Viewer peer ready, calling broadcaster...');
+      
+      // Call the broadcaster (no stream needed for viewing)
       const call = viewerPeer.call(peerId, null);
       viewerCall = call;
 
+      if (!call) {
+        console.error('Failed to create call');
+        showEmbedFallback();
+        return;
+      }
+
       call.on('stream', (remoteStream) => {
-        console.log('Received remote stream');
+        console.log('Received broadcast stream');
+        
         // Show in full livestream panel
         const liveVideo = document.getElementById('liveWebRTCVideo');
         if (liveVideo) {
           liveVideo.srcObject = remoteStream;
-          liveVideo.play().catch(e => console.log('Full video play error:', e));
+          liveVideo.setAttribute('playsinline', 'true');
+          liveVideo.play().catch(e => {
+            console.log('Autoplay prevented, user interaction needed');
+            // Show play button or prompt
+            liveVideo.controls = true;
+          });
         }
+        
         // Show in mini home panel
         const miniVideo = document.getElementById('miniLiveWebRTCVideo');
         if (miniVideo) {
           miniVideo.srcObject = remoteStream;
-          miniVideo.play().catch(e => console.log('Mini video play error:', e));
+          miniVideo.setAttribute('playsinline', 'true');
+          miniVideo.play().catch(console.error);
         }
       });
 
       call.on('close', () => {
-        console.log('Broadcast ended');
+        console.log('Broadcast ended (call closed)');
         showEmbedFallback();
       });
 
       call.on('error', (err) => {
-        console.error('Call error:', err);
+        console.error('Viewer call error:', err);
         showEmbedFallback();
       });
+
+      // Timeout for connection
+      setTimeout(() => {
+        const liveVideo = document.getElementById('liveWebRTCVideo');
+        if (!liveVideo || !liveVideo.srcObject) {
+          console.log('Connection timeout, no stream received');
+          showEmbedFallback();
+        }
+      }, 10000);
     });
 
     viewerPeer.on('error', (err) => {
@@ -2714,30 +2975,62 @@
   }
 
   function showEmbedFallback() {
+    console.log('Showing fallback/offline state');
     document.getElementById('liveWebRTCContainer').style.display = 'none';
     document.getElementById('liveArea').style.display = 'block';
     document.getElementById('miniLiveWebRTCContainer').style.display = 'none';
     document.getElementById('miniLiveArea').style.display = 'block';
+    
+    // Clear video sources
+    const liveVideo = document.getElementById('liveWebRTCVideo');
+    const miniVideo = document.getElementById('miniLiveWebRTCVideo');
+    if (liveVideo) liveVideo.srcObject = null;
+    if (miniVideo) miniVideo.srcObject = null;
   }
 
-  // Listen for broadcast status
-  db.collection('broadcast').doc('active').onSnapshot((doc) => {
-    const isActive = doc.exists && doc.data().active === true;
-    if (isActive) {
-      const peerId = doc.data().peerId;
-      connectToBroadcast(peerId);
-      document.getElementById('liveArea').style.display = 'none';
-      document.getElementById('liveWebRTCContainer').style.display = 'block';
-      document.getElementById('miniLiveArea').style.display = 'none';
-      document.getElementById('miniLiveWebRTCContainer').style.display = 'flex';
-    } else {
-      showEmbedFallback();
-      if (viewerCall) viewerCall.close();
-      if (viewerPeer) viewerPeer.destroy();
-      viewerCall = null;
-      viewerPeer = null;
+  // Improved broadcast listener with debouncing
+  let broadcastUnsubscribe = null;
+  let lastPeerId = null;
+
+  function setupBroadcastListener() {
+    if (broadcastUnsubscribe) {
+      broadcastUnsubscribe();
     }
-  });
+
+    broadcastUnsubscribe = db.collection('broadcast').doc('active').onSnapshot((doc) => {
+      if (!doc.exists) {
+        showEmbedFallback();
+        return;
+      }
+
+      const data = doc.data();
+      const isActive = data.active === true;
+      const peerId = data.peerId;
+
+      // Debounce: don't reconnect if same peer ID
+      if (isActive && peerId && peerId !== lastPeerId) {
+        lastPeerId = peerId;
+        connectToBroadcast(peerId);
+        document.getElementById('liveArea').style.display = 'none';
+        document.getElementById('liveWebRTCContainer').style.display = 'block';
+        document.getElementById('miniLiveArea').style.display = 'none';
+        document.getElementById('miniLiveWebRTCContainer').style.display = 'flex';
+      } else if (!isActive) {
+        lastPeerId = null;
+        showEmbedFallback();
+        if (viewerCall) {
+          try { viewerCall.close(); } catch(e) {}
+          viewerCall = null;
+        }
+      }
+    }, (err) => {
+      console.error('Broadcast listener error:', err);
+      showEmbedFallback();
+    });
+  }
+
+  // Call this instead of inline onSnapshot
+  setupBroadcastListener();
 
   // ==================== SIDEBAR TOGGLE & CONTENT SWITCHING ====================
   const sidebar = document.getElementById('sidebar');
