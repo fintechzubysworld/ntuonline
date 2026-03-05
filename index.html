@@ -313,6 +313,10 @@
       border-radius: 18px;
       padding: 12px;
       text-align: center;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .live-mini iframe {
       width: 100%;
@@ -323,6 +327,10 @@
     .live-mini .offline {
       padding: 20px;
       color: #9bc5bc;
+    }
+    .live-mini .platform-icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
     }
 
     /* ===== CARDS (for full panels) ===== */
@@ -361,11 +369,11 @@
       letter-spacing: -0.3px;
     }
 
-    input, textarea, button {
+    input, textarea, button, select {
       font-size: 16px;
     }
 
-    input, textarea {
+    input, textarea, select {
       width: 100%;
       padding: 14px 18px;
       margin: 8px 0;
@@ -376,7 +384,7 @@
       transition: 0.2s;
       border: 1px solid transparent;
     }
-    input:focus, textarea:focus {
+    input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: #3bc6b2;
       background: #133b35;
@@ -851,9 +859,7 @@
 <!-- Sidebar -->
 <nav class="sidebar" id="sidebar">
   <ul class="sidebar-menu">
-    <!-- Home link – shows dashboard and reveals header/marquees -->
     <li><a href="#" data-content="home"><i class="fas fa-home"></i> Home</a></li>
-    <!-- Feeds link – shows only full feed view, no header/marquees -->
     <li><a href="#" data-content="feeds"><i class="fas fa-rss"></i> Feeds</a></li>
     <li><a href="#" data-content="livestream"><i class="fas fa-video"></i> Livestream</a></li>
     <li><a href="#" data-content="events"><i class="fas fa-calendar-alt"></i> Events</a></li>
@@ -871,7 +877,7 @@
 
 <!-- Main content -->
 <main id="mainContent">
-  <!-- HOME panel – dashboard with mini cards, header/marquees visible when active and sidebar closed -->
+  <!-- HOME panel – dashboard with mini cards -->
   <div id="home" class="content active">
     <div class="dashboard-grid">
       <!-- Mini Live Stream -->
@@ -912,7 +918,7 @@
     </div>
   </div>
 
-  <!-- FEEDS full panel – only feed, no header/marquees -->
+  <!-- FEEDS full panel -->
   <div id="feeds" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-newspaper"></i> Community Feed</h3>
@@ -928,7 +934,7 @@
   <div id="livestream" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-circle-play"></i> Live Stream</h3>
-      <div id="liveArea"></div>
+      <div id="liveArea" class="live-area"></div>
       <textarea id="liveCommentInput" placeholder="Comment on live..."></textarea>
       <button onclick="commentLive()"><i class="fa-regular fa-paper-plane"></i> Comment</button>
       <div id="liveComments"></div>
@@ -982,12 +988,25 @@
     </div>
   </div>
 
-  <!-- ADMIN panel -->
+  <!-- ADMIN panel – now with live stream management -->
   <div id="admin" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
-      <p style="margin-bottom: 15px;">Administrative functions.</p>
-      <button onclick="window.location='ntuonline.html'"><i class="fa-regular fa-shield"></i> Go to Admin Page</button>
+      <p style="margin-bottom: 15px;">Manage live stream source.</p>
+      
+      <div style="background: #0f2d27; border-radius: 24px; padding: 20px; margin-bottom: 20px;">
+        <h4 style="color:#64e3cf; margin-bottom:15px;">Set Live Stream</h4>
+        <select id="livePlatformSelect">
+          <option value="youtube">YouTube</option>
+          <option value="tiktok">TikTok</option>
+          <option value="instagram">Instagram</option>
+        </select>
+        <input type="text" id="liveIdentifier" placeholder="Video ID / Username / URL">
+        <button onclick="updateLiveStream()">Update Live Stream</button>
+        <div id="adminMessage" style="margin-top:15px;"></div>
+      </div>
+
+      <button onclick="window.location='ntuonline.html'" style="margin-top:10px;"><i class="fa-regular fa-shield"></i> Advanced Admin</button>
     </div>
   </div>
 
@@ -1430,8 +1449,8 @@
     } catch (err) { console.error('Notification error:', err); }
   }
 
-  // Track current active content and sidebar state – now home controls header/marquees
-  let currentContent = 'home'; // default to home
+  // Track current active content and sidebar state
+  let currentContent = 'home';
 
   function updateHeaderMarqueeVisibility() {
     const show = (currentContent === 'home' && !sidebar.classList.contains('open'));
@@ -1597,7 +1616,7 @@
     }
   };
 
-  // ==================== FULL FEED (feeds panel) ====================
+  // ==================== FULL FEED ====================
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     const feedArea = document.getElementById("feedArea");
     if (feedArea) {
@@ -1690,7 +1709,7 @@
     }, showError);
   }
 
-  // ==================== MINI FEED (home panel) ====================
+  // ==================== MINI FEED ====================
   db.collection("feed").orderBy("created", "desc").limit(3).onSnapshot(s => {
     const miniFeed = document.getElementById("miniFeedArea");
     if (!miniFeed) return;
@@ -1906,28 +1925,81 @@
     });
   }, showError);
 
-  // ==================== FULL LIVE ====================
+  // ==================== FULL LIVE (multi‑platform) ====================
+  function getLiveEmbedHTML(platform, identifier) {
+    if (!identifier) return '<p style="text-align:center;">🔴 Currently Offline</p>';
+    if (platform === 'youtube') {
+      return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${identifier}" allowfullscreen></iframe>`;
+    } else if (platform === 'tiktok') {
+      // TikTok embed: use the video URL or oEmbed
+      return `<iframe width="100%" height="315" src="https://www.tiktok.com/embed/v2/${identifier}" allowfullscreen></iframe>`;
+    } else if (platform === 'instagram') {
+      // Instagram embed: use the post URL
+      return `<iframe width="100%" height="315" src="https://www.instagram.com/p/${identifier}/embed" allowfullscreen></iframe>`;
+    }
+    return '<p style="text-align:center;">Unsupported platform</p>';
+  }
+
   db.collection("live").doc("current").onSnapshot(doc => {
+    let platform = 'youtube';
+    let identifier = '';
+    let title = 'Live Stream';
+    if (doc.exists) {
+      const d = doc.data();
+      platform = d.platform || 'youtube';
+      identifier = d.videoId || d.identifier || '';
+      title = d.title || 'Live Stream';
+    }
+
     const liveArea = document.getElementById("liveArea");
     if (liveArea) {
-      if (doc.exists) {
-        const d = doc.data();
-        liveArea.innerHTML = `<h4>${d.title || 'Live Stream'}</h4><iframe width="100%" height="315" src="https://www.youtube.com/embed/${d.videoId || ''}" allowfullscreen></iframe>`;
+      if (identifier) {
+        liveArea.innerHTML = `<h4>${title}</h4>${getLiveEmbedHTML(platform, identifier)}`;
       } else {
         liveArea.innerHTML = "<p style='text-align:center;'>🔴 Currently Offline</p>";
       }
     }
-    // Also update mini live
+
     const miniLive = document.getElementById("miniLiveArea");
     if (miniLive) {
-      if (doc.exists) {
-        const d = doc.data();
-        miniLive.innerHTML = `<iframe src="https://www.youtube.com/embed/${d.videoId || ''}" allowfullscreen></iframe>`;
+      if (identifier) {
+        // For mini preview, show a placeholder with platform icon
+        const icons = {
+          youtube: '<i class="fab fa-youtube" style="font-size:2rem; color:#ff0000;"></i>',
+          tiktok: '<i class="fab fa-tiktok" style="font-size:2rem;"></i>',
+          instagram: '<i class="fab fa-instagram" style="font-size:2rem; color:#e1306c;"></i>'
+        };
+        miniLive.innerHTML = `
+          <div class="platform-icon">${icons[platform] || '<i class="fa-regular fa-circle-play"></i>'}</div>
+          <div>Live on ${platform}</div>
+        `;
       } else {
         miniLive.innerHTML = '<div class="offline">🔴 Offline</div>';
       }
     }
   }, showError);
+
+  // ==================== ADMIN: UPDATE LIVE STREAM ====================
+  window.updateLiveStream = function() {
+    if (!currentUser) return alert('You must be logged in as admin.');
+    const platform = document.getElementById('livePlatformSelect').value;
+    const identifier = document.getElementById('liveIdentifier').value.trim();
+    if (!identifier) return alert('Please enter a video ID or username.');
+
+    db.collection('live').doc('current').set({
+      platform: platform,
+      videoId: identifier,
+      title: 'Live Stream',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+    .then(() => {
+      document.getElementById('adminMessage').innerHTML = '<span style="color:#8cffe0;">Live stream updated successfully.</span>';
+      setTimeout(() => document.getElementById('adminMessage').innerHTML = '', 3000);
+    })
+    .catch(err => {
+      document.getElementById('adminMessage').innerHTML = '<span style="color:#ff6b4a;">Error: ' + err.message + '</span>';
+    });
+  };
 
   window.commentLive = function () {
     if (!currentUser) return alert("Login required");
@@ -2441,13 +2513,11 @@
       e.preventDefault();
       const targetId = this.getAttribute('data-content');
       showContent(targetId);
-      // If target is home, close sidebar to show header and marquees
       if (targetId === 'home') {
         sidebar.classList.remove('open');
         overlay.classList.remove('active');
-        updateHeaderMarqueeVisibility(); // ensure they appear immediately
+        updateHeaderMarqueeVisibility(); // ensure header appears
       } else {
-        // Otherwise, close only on mobile (original behaviour)
         if (window.innerWidth < 992) {
           sidebar.classList.remove('open');
           overlay.classList.remove('active');
