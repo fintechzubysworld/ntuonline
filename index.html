@@ -2524,12 +2524,13 @@
       .catch(showError);
   };
 
-  // ==================== VIDEO STUDIO (WebRTC broadcast) ====================
+  // ==================== VIDEO STUDIO (WebRTC broadcast) – FIXED ====================
   let adminPeer = null;
   let adminLocalStream = null;
   let viewerPeer = null;
   let viewerCall = null;
-  let currentFacingMode = 'user'; // track current camera
+  let currentFacingMode = 'user';
+  let activeCalls = []; // track active incoming calls to replace tracks
 
   async function isAdminUser() {
     if (!currentUser) return false;
@@ -2567,7 +2568,11 @@
 
       adminPeer.on('call', (call) => {
         call.answer(adminLocalStream);
-        call.on('stream', (remoteStream) => {});
+        activeCalls.push(call);
+        call.on('close', () => {
+          activeCalls = activeCalls.filter(c => c !== call);
+        });
+        call.on('error', (err) => console.error('Call error:', err));
       });
 
       adminPeer.on('error', (err) => {
@@ -2590,6 +2595,7 @@
       adminLocalStream.getTracks().forEach(track => track.stop());
       adminLocalStream = null;
     }
+    activeCalls = [];
     document.getElementById('adminLocalVideo').srcObject = null;
     db.collection('broadcast').doc('active').set({ active: false }, { merge: true });
     document.getElementById('broadcastStatus').innerText = '';
@@ -2600,32 +2606,41 @@
 
   window.switchCamera = async function() {
     if (!adminLocalStream) return;
-    // toggle facing mode
     currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
     try {
       const newStream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: currentFacingMode }, 
         audio: true 
       });
-      // replace video track in the local stream
-      const videoTrack = newStream.getVideoTracks()[0];
-      const audioTrack = newStream.getAudioTracks()[0];
-      const sender = adminPeer?.connections?.forEach(conn => {
-        conn?.peerConnection?.getSenders?.().forEach(s => {
-          if (s.track?.kind === 'video') s.replaceTrack(videoTrack);
-          if (s.track?.kind === 'audio' && audioTrack) s.replaceTrack(audioTrack);
-        });
-      });
-      // update local preview
-      adminLocalStream.getVideoTracks()[0].stop();
-      adminLocalStream.removeTrack(adminLocalStream.getVideoTracks()[0]);
-      adminLocalStream.addTrack(videoTrack);
-      if (audioTrack) {
-        adminLocalStream.getAudioTracks()[0]?.stop();
-        adminLocalStream.removeTrack(adminLocalStream.getAudioTracks()[0]);
-        adminLocalStream.addTrack(audioTrack);
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      const newAudioTrack = newStream.getAudioTracks()[0];
+
+      // Replace tracks in local stream
+      const oldVideoTrack = adminLocalStream.getVideoTracks()[0];
+      adminLocalStream.removeTrack(oldVideoTrack);
+      oldVideoTrack.stop();
+      adminLocalStream.addTrack(newVideoTrack);
+
+      if (newAudioTrack) {
+        const oldAudioTrack = adminLocalStream.getAudioTracks()[0];
+        if (oldAudioTrack) {
+          adminLocalStream.removeTrack(oldAudioTrack);
+          oldAudioTrack.stop();
+        }
+        adminLocalStream.addTrack(newAudioTrack);
       }
+
+      // Update local preview
       document.getElementById('adminLocalVideo').srcObject = adminLocalStream;
+
+      // Replace tracks in all active calls
+      activeCalls.forEach(call => {
+        const senders = call.peerConnection.getSenders();
+        const videoSender = senders.find(s => s.track?.kind === 'video');
+        if (videoSender) videoSender.replaceTrack(newVideoTrack);
+        const audioSender = senders.find(s => s.track?.kind === 'audio');
+        if (audioSender && newAudioTrack) audioSender.replaceTrack(newAudioTrack);
+      });
     } catch (err) {
       console.error('Switch camera error:', err);
       alert('Could not switch camera.');
