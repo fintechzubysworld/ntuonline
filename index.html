@@ -56,7 +56,7 @@
       gap: 1rem;
     }
 
-    /* Kebab icon */
+    /* Kebab icon in header */
     .logo {
       cursor: pointer;
       display: flex;
@@ -116,6 +116,32 @@
       margin-right: 6px;
       font-size: 0.95rem;
       text-shadow: 0 0 5px #64ffda;
+    }
+
+    /* ===== FLOATING SIDEBAR TOGGLE (appears when header is hidden) ===== */
+    .floating-toggle {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(26, 138, 120, 0.9);
+      backdrop-filter: blur(8px);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: none;  /* controlled by JS */
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: white;
+      cursor: pointer;
+      z-index: 1001;
+      box-shadow: 0 6px 16px rgba(0, 140, 120, 0.5);
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: background 0.2s;
+    }
+    .floating-toggle:hover {
+      background: #2ba48f;
+      transform: scale(1.05);
     }
 
     /* ===== SIDEBAR ===== */
@@ -717,6 +743,11 @@
 </head>
 <body>
 
+<!-- Floating sidebar toggle (appears when header is hidden) -->
+<div class="floating-toggle" id="floatingSidebarToggle">
+  <i class="fas fa-bars"></i>
+</div>
+
 <!-- Header with kebab icon and reduced height -->
 <header>
   <div class="header-left">
@@ -1276,12 +1307,14 @@
   // Track current active content and sidebar state for header/marquee visibility
   let currentContent = 'feeds'; // default
 
-  // Function to update visibility of header, top marquee, bottom marquee
+  // Function to update visibility of header, top marquee, bottom marquee, and floating toggle
   function updateHeaderMarqueeVisibility() {
     const show = (currentContent === 'feeds' && !sidebar.classList.contains('open'));
     document.querySelector('header').style.display = show ? 'flex' : 'none';
     document.querySelector('.marquee').style.display = show ? 'block' : 'none';
     document.querySelector('.bottom-marquee').style.display = show ? 'flex' : 'none';
+    // Floating toggle appears only when header is hidden (i.e., when show is false)
+    document.querySelector('.floating-toggle').style.display = show ? 'none' : 'flex';
   }
 
   // ==================== AUTH STATE ====================
@@ -2167,15 +2200,25 @@
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
   const toggleBtn = document.getElementById('sidebarToggle');
+  const floatingToggle = document.getElementById('floatingSidebarToggle');
   const sidebarLinks = document.querySelectorAll('.sidebar-menu a[data-content]');
   const ntuLink = document.getElementById('ntuElectricityLink');
   const contentDivs = document.querySelectorAll('.content');
 
-  toggleBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
+  function toggleSidebar() {
     sidebar.classList.toggle('open');
     overlay.classList.toggle('active');
-    updateHeaderMarqueeVisibility(); // hide/show based on new sidebar state
+    updateHeaderMarqueeVisibility(); // update header/floating visibility after toggle
+  }
+
+  toggleBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+
+  floatingToggle.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleSidebar();
   });
 
   overlay.addEventListener('click', function() {
@@ -2219,7 +2262,7 @@
     } else {
       if (sidebar.classList.contains('open')) overlay.classList.add('active');
     }
-    updateHeaderMarqueeVisibility(); // ensure header visibility after resize
+    updateHeaderMarqueeVisibility(); // ensure header/floating visibility after resize
   });
 
   // ==================== MARQUEE SPEEDS & MESSAGES ====================
