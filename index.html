@@ -3,16 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ntuconnect · Video Studio</title>
+  <title>Ntuconnect</title>
 
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
-
-  <!-- PeerJS (WebRTC signaling) -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -310,7 +307,7 @@
       font-size: 0.65rem;
     }
 
-    /* Live mini preview — supports WebRTC video */
+    /* Live mini preview */
     .live-mini {
       background: #0f2d27;
       border-radius: 18px;
@@ -320,13 +317,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-    }
-    .live-mini video {
-      width: 100%;
-      max-height: 160px;
-      border-radius: 14px;
-      background: black;
     }
     .live-mini iframe {
       width: 100%;
@@ -434,10 +424,6 @@
     }
     button.secondary:hover {
       background: #3c635b;
-    }
-    button:disabled {
-      opacity: 0.5;
-      pointer-events: none;
     }
 
     /* ===== POST / COMMENT STYLES (shared) ===== */
@@ -845,20 +831,6 @@
       border-radius: 32px;
       margin-top: 1rem;
     }
-
-    /* WebRTC video containers */
-    .webrtc-video-container {
-      display: none;
-      width: 100%;
-      background: black;
-      border-radius: 16px;
-      overflow: hidden;
-    }
-    .webrtc-video-container video {
-      width: 100%;
-      max-height: 315px;
-      display: block;
-    }
   </style>
 </head>
 <body>
@@ -910,12 +882,8 @@
     <div class="dashboard-grid">
       <!-- Mini Live Stream -->
       <div class="mini-card">
-        <h4><i class="fa-regular fa-circle-play"></i> Live Studio</h4>
+        <h4><i class="fa-regular fa-circle-play"></i> Live Stream</h4>
         <div id="miniLiveArea" class="live-mini"></div>
-        <!-- WebRTC container for broadcast -->
-        <div id="miniLiveWebRTCContainer" class="webrtc-video-container live-mini" style="display: none;">
-          <video id="miniLiveWebRTCVideo" autoplay playsinline></video>
-        </div>
         <div class="view-all">
           <button onclick="showContent('livestream')">View all</button>
         </div>
@@ -965,11 +933,8 @@
   <!-- LIVESTREAM full panel -->
   <div id="livestream" class="content">
     <div class="card">
-      <h3><i class="fa-regular fa-circle-play"></i> Live Studio</h3>
+      <h3><i class="fa-regular fa-circle-play"></i> Live Stream</h3>
       <div id="liveArea" class="live-area"></div>
-      <div id="liveWebRTCContainer" class="webrtc-video-container" style="display: none;">
-        <video id="liveWebRTCVideo" autoplay playsinline style="width:100%; border-radius:16px;"></video>
-      </div>
       <textarea id="liveCommentInput" placeholder="Comment on live..."></textarea>
       <button onclick="commentLive()"><i class="fa-regular fa-paper-plane"></i> Comment</button>
       <div id="liveComments"></div>
@@ -1023,39 +988,31 @@
     </div>
   </div>
 
-  <!-- ADMIN panel – with camera switch -->
+  <!-- ADMIN panel – now with live stream management (admin only) -->
   <div id="admin" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
-      <p style="margin-bottom: 15px;">Manage live stream source or start a direct camera broadcast.</p>
-
-      <!-- Existing live stream source -->
+      <p style="margin-bottom: 15px;">Manage live stream source.</p>
+      
       <div style="background: #0f2d27; border-radius: 24px; padding: 20px; margin-bottom: 20px;">
-        <h4 style="color:#64e3cf; margin-bottom:15px;">Set External Live Stream</h4>
+        <h4 style="color:#64e3cf; margin-bottom:15px;">Set Live Stream</h4>
         <select id="livePlatformSelect">
-          <option value="youtube">YouTube</option>
-          <option value="tiktok">TikTok</option>
-          <option value="instagram">Instagram</option>
+          <option value="youtube">YouTube (video ID or URL)</option>
+          <option value="tiktok">TikTok (username or video URL)</option>
+          <option value="instagram">Instagram (post URL only – no live embed)</option>
         </select>
-        <input type="text" id="liveIdentifier" placeholder="Video ID / Username / URL">
+        <input type="text" id="liveIdentifier" placeholder="Enter identifier (e.g., video ID, username, URL)">
+        <div style="margin:10px 0; font-size:0.9rem; color:#b0ddd4;">
+          <strong>Instructions:</strong><br>
+          • YouTube: Video ID (e.g., dQw4w9WgXcQ) or full URL<br>
+          • TikTok: For a live stream, enter the username (e.g., @user). For a video, paste the video URL.<br>
+          • Instagram: Only post embeds are supported. Paste the post URL (e.g., https://www.instagram.com/p/ABC123/). Live streams cannot be embedded.
+        </div>
         <button onclick="updateLiveStream()">Update Live Stream</button>
         <div id="adminMessage" style="margin-top:15px;"></div>
       </div>
 
-      <!-- Video Studio with camera switch -->
-      <div style="background: #0f2d27; border-radius: 24px; padding: 20px;">
-        <h4 style="color:#64e3cf; margin-bottom:15px;"><i class="fa-regular fa-camera"></i> Video Studio</h4>
-        <video id="adminLocalVideo" autoplay muted playsinline style="width:100%; max-height:200px; background:#000; border-radius:16px; margin-bottom:10px;"></video>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button id="startBroadcastBtn" onclick="startBroadcast()"><i class="fa-regular fa-video"></i> Start Broadcast</button>
-          <button id="switchCamBtn" onclick="switchCamera()" disabled><i class="fa-regular fa-rotate"></i> Switch Camera</button>
-          <button id="stopBroadcastBtn" onclick="stopBroadcast()" disabled><i class="fa-regular fa-circle-stop"></i> Stop</button>
-        </div>
-        <div id="broadcastStatus" style="margin-top:12px; color:#8cffe0;"></div>
-        <p style="font-size:0.85rem; margin-top:10px;">When active, viewers see your camera feed on the homepage and livestream page.</p>
-      </div>
-
-      <button onclick="window.location='ntuonline.html'" style="margin-top:20px;"><i class="fa-regular fa-shield"></i> Advanced Admin</button>
+      <button onclick="window.location='ntuonline.html'" style="margin-top:10px;"><i class="fa-regular fa-shield"></i> Advanced Admin</button>
     </div>
   </div>
 
@@ -1524,20 +1481,11 @@
         updateProfilePanel(userData);
         setupNotifications();
         updateHeaderMarqueeVisibility();
-        // update broadcast button states based on admin
-        isAdminUser().then(admin => {
-          document.getElementById('startBroadcastBtn').disabled = !admin;
-          document.getElementById('switchCamBtn').disabled = !admin;
-          document.getElementById('stopBroadcastBtn').disabled = !admin;
-        });
       }).catch(showError);
     } else {
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
-      document.getElementById('startBroadcastBtn').disabled = true;
-      document.getElementById('switchCamBtn').disabled = true;
-      document.getElementById('stopBroadcastBtn').disabled = true;
     }
   });
 
@@ -1983,15 +1931,62 @@
     });
   }, showError);
 
+  // ==================== HELPER: Extract video ID from URL ====================
+  function extractVideoId(platform, input) {
+    if (!input) return '';
+    // If it's already a clean ID, return as is
+    if (platform === 'youtube') {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = input.match(regExp);
+      if (match && match[2].length === 11) return match[2];
+      // If input looks like a video ID (11 chars), return it
+      if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+      return input; // fallback
+    } else if (platform === 'tiktok') {
+      // Try to extract username or video ID
+      const userMatch = input.match(/tiktok\.com\/@([^\/?#]+)/);
+      if (userMatch) return userMatch[1]; // username
+      const videoMatch = input.match(/tiktok\.com\/@[^\/]+\/video\/(\d+)/);
+      if (videoMatch) return videoMatch[1]; // video ID
+      // If input starts with @, treat as username
+      if (input.startsWith('@')) return input.substring(1);
+      // Otherwise assume it's a video ID (numeric)
+      return input;
+    } else if (platform === 'instagram') {
+      const postMatch = input.match(/instagram\.com\/p\/([^\/?#]+)/);
+      if (postMatch) return postMatch[1];
+      // If it's a shortcode (alphanumeric), return as is
+      if (/^[a-zA-Z0-9_-]+$/.test(input)) return input;
+      return input;
+    }
+    return input;
+  }
+
   // ==================== FULL LIVE (multi‑platform) ====================
   function getLiveEmbedHTML(platform, identifier) {
     if (!identifier) return '<p style="text-align:center;">🔴 Currently Offline</p>';
+    const cleanId = extractVideoId(platform, identifier);
+    
     if (platform === 'youtube') {
-      return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${identifier}" allowfullscreen></iframe>`;
+      return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${cleanId}" allowfullscreen></iframe>`;
     } else if (platform === 'tiktok') {
-      return `<iframe width="100%" height="315" src="https://www.tiktok.com/embed/v2/${identifier}" allowfullscreen></iframe>`;
+      // If identifier looks like a username (starts with @ or we have a username), try live embed
+      // TikTok live embed: https://www.tiktok.com/embed/live/{username}
+      // For videos: https://www.tiktok.com/embed/v2/{video_id}
+      if (identifier.startsWith('@') || /^[a-zA-Z][a-zA-Z0-9_]*$/.test(cleanId) && isNaN(cleanId)) {
+        // Assume username
+        return `<iframe width="100%" height="315" src="https://www.tiktok.com/embed/live/${cleanId}" allowfullscreen></iframe>`;
+      } else {
+        // Assume video ID
+        return `<iframe width="100%" height="315" src="https://www.tiktok.com/embed/v2/${cleanId}" allowfullscreen></iframe>`;
+      }
     } else if (platform === 'instagram') {
-      return `<iframe width="100%" height="315" src="https://www.instagram.com/p/${identifier}/embed" allowfullscreen></iframe>`;
+      // Instagram does not support live embed, but we can embed a post
+      // Provide a direct link
+      return `<div style="text-align:center; padding:20px;">
+                <p>Instagram live cannot be embedded.</p>
+                <a href="https://www.instagram.com/p/${cleanId}/" target="_blank" style="color:#8cffe0;">Click to watch on Instagram</a>
+              </div>`;
     }
     return '<p style="text-align:center;">Unsupported platform</p>';
   }
@@ -2034,12 +2029,19 @@
     }
   }, showError);
 
-  // ==================== ADMIN: UPDATE LIVE STREAM ====================
-  window.updateLiveStream = function() {
-    if (!currentUser) return alert('You must be logged in as admin.');
+  // ==================== ADMIN: UPDATE LIVE STREAM (admin only) ====================
+  window.updateLiveStream = async function() {
+    if (!currentUser) return alert('You must be logged in.');
+    
+    // Check if user is admin
+    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+    if (!userDoc.exists || !userDoc.data().isAdmin) {
+      return alert('Only administrators can update the live stream.');
+    }
+
     const platform = document.getElementById('livePlatformSelect').value;
     const identifier = document.getElementById('liveIdentifier').value.trim();
-    if (!identifier) return alert('Please enter a video ID or username.');
+    if (!identifier) return alert('Please enter a video URL or ID.');
 
     db.collection('live').doc('current').set({
       platform: platform,
@@ -2524,195 +2526,6 @@
       .catch(showError);
   };
 
-  // ==================== VIDEO STUDIO (WebRTC broadcast) – FIXED ====================
-  let adminPeer = null;
-  let adminLocalStream = null;
-  let viewerPeer = null;
-  let viewerCall = null;
-  let currentFacingMode = 'user';
-  let activeCalls = []; // track active incoming calls to replace tracks
-
-  async function isAdminUser() {
-    if (!currentUser) return false;
-    const doc = await db.collection('users').doc(currentUser.uid).get();
-    return doc.exists && doc.data().isAdmin === true;
-  }
-
-  window.startBroadcast = async function() {
-    if (!currentUser) return alert('You must be logged in.');
-    const admin = await isAdminUser();
-    if (!admin) return alert('Admin privileges required.');
-
-    try {
-      adminLocalStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: currentFacingMode }, 
-        audio: true 
-      });
-      document.getElementById('adminLocalVideo').srcObject = adminLocalStream;
-
-      adminPeer = new Peer('admin-broadcast-' + Date.now());
-
-      adminPeer.on('open', (id) => {
-        console.log('Broadcast peer ID:', id);
-        db.collection('broadcast').doc('active').set({
-          active: true,
-          peerId: id,
-          startedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          adminUid: currentUser.uid
-        });
-        document.getElementById('broadcastStatus').innerText = '🔴 LIVE with ID: ' + id;
-        document.getElementById('startBroadcastBtn').disabled = true;
-        document.getElementById('switchCamBtn').disabled = false;
-        document.getElementById('stopBroadcastBtn').disabled = false;
-      });
-
-      adminPeer.on('call', (call) => {
-        call.answer(adminLocalStream);
-        activeCalls.push(call);
-        call.on('close', () => {
-          activeCalls = activeCalls.filter(c => c !== call);
-        });
-        call.on('error', (err) => console.error('Call error:', err));
-      });
-
-      adminPeer.on('error', (err) => {
-        console.error('Peer error:', err);
-        alert('Broadcast error: ' + err);
-        stopBroadcast();
-      });
-    } catch (err) {
-      console.error('getUserMedia error:', err);
-      alert('Could not access camera/microphone. Please grant permissions.');
-    }
-  };
-
-  window.stopBroadcast = function() {
-    if (adminPeer) {
-      adminPeer.destroy();
-      adminPeer = null;
-    }
-    if (adminLocalStream) {
-      adminLocalStream.getTracks().forEach(track => track.stop());
-      adminLocalStream = null;
-    }
-    activeCalls = [];
-    document.getElementById('adminLocalVideo').srcObject = null;
-    db.collection('broadcast').doc('active').set({ active: false }, { merge: true });
-    document.getElementById('broadcastStatus').innerText = '';
-    document.getElementById('startBroadcastBtn').disabled = false;
-    document.getElementById('switchCamBtn').disabled = true;
-    document.getElementById('stopBroadcastBtn').disabled = true;
-  };
-
-  window.switchCamera = async function() {
-    if (!adminLocalStream) return;
-    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: currentFacingMode }, 
-        audio: true 
-      });
-      const newVideoTrack = newStream.getVideoTracks()[0];
-      const newAudioTrack = newStream.getAudioTracks()[0];
-
-      // Replace tracks in local stream
-      const oldVideoTrack = adminLocalStream.getVideoTracks()[0];
-      adminLocalStream.removeTrack(oldVideoTrack);
-      oldVideoTrack.stop();
-      adminLocalStream.addTrack(newVideoTrack);
-
-      if (newAudioTrack) {
-        const oldAudioTrack = adminLocalStream.getAudioTracks()[0];
-        if (oldAudioTrack) {
-          adminLocalStream.removeTrack(oldAudioTrack);
-          oldAudioTrack.stop();
-        }
-        adminLocalStream.addTrack(newAudioTrack);
-      }
-
-      // Update local preview
-      document.getElementById('adminLocalVideo').srcObject = adminLocalStream;
-
-      // Replace tracks in all active calls
-      activeCalls.forEach(call => {
-        const senders = call.peerConnection.getSenders();
-        const videoSender = senders.find(s => s.track?.kind === 'video');
-        if (videoSender) videoSender.replaceTrack(newVideoTrack);
-        const audioSender = senders.find(s => s.track?.kind === 'audio');
-        if (audioSender && newAudioTrack) audioSender.replaceTrack(newAudioTrack);
-      });
-    } catch (err) {
-      console.error('Switch camera error:', err);
-      alert('Could not switch camera.');
-    }
-  };
-
-  function connectToBroadcast(peerId) {
-    if (!peerId) return;
-    if (viewerCall) viewerCall.close();
-    if (viewerPeer) viewerPeer.destroy();
-
-    viewerPeer = new Peer();
-    viewerPeer.on('open', () => {
-      const call = viewerPeer.call(peerId, null);
-      viewerCall = call;
-
-      call.on('stream', (remoteStream) => {
-        const liveVideo = document.getElementById('liveWebRTCVideo');
-        if (liveVideo) {
-          liveVideo.srcObject = remoteStream;
-          liveVideo.play().catch(e => console.log('autoplay blocked', e));
-        }
-        const miniVideo = document.getElementById('miniLiveWebRTCVideo');
-        if (miniVideo) {
-          miniVideo.srcObject = remoteStream;
-          miniVideo.play().catch(e => console.log('mini autoplay blocked', e));
-        }
-      });
-
-      call.on('close', () => {
-        console.log('Broadcast ended');
-        showEmbedFallback();
-      });
-
-      call.on('error', (err) => {
-        console.error('Call error:', err);
-        showEmbedFallback();
-      });
-    });
-
-    viewerPeer.on('error', (err) => {
-      console.error('Viewer peer error:', err);
-      showEmbedFallback();
-    });
-  }
-
-  function showEmbedFallback() {
-    document.getElementById('liveWebRTCContainer').style.display = 'none';
-    document.getElementById('liveArea').style.display = 'block';
-    document.getElementById('miniLiveWebRTCContainer').style.display = 'none';
-    document.getElementById('miniLiveArea').style.display = 'block';
-  }
-
-  // Listen for broadcast status
-  db.collection('broadcast').doc('active').onSnapshot((doc) => {
-    const isActive = doc.exists && doc.data().active === true;
-    if (isActive) {
-      const peerId = doc.data().peerId;
-      connectToBroadcast(peerId);
-      document.getElementById('liveArea').style.display = 'none';
-      document.getElementById('liveWebRTCContainer').style.display = 'block';
-      document.getElementById('miniLiveArea').style.display = 'none';
-      document.getElementById('miniLiveWebRTCContainer').style.display = 'flex';
-    } else {
-      showEmbedFallback();
-      if (viewerCall) viewerCall.close();
-      if (viewerPeer) viewerPeer.destroy();
-      viewerCall = null;
-      viewerPeer = null;
-    }
-  });
-
   // ==================== SIDEBAR TOGGLE & CONTENT SWITCHING ====================
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('overlay');
@@ -2760,7 +2573,7 @@
       if (targetId === 'home') {
         sidebar.classList.remove('open');
         overlay.classList.remove('active');
-        updateHeaderMarqueeVisibility();
+        updateHeaderMarqueeVisibility(); // ensure header appears
       } else {
         if (window.innerWidth < 992) {
           sidebar.classList.remove('open');
