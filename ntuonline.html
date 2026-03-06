@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aquamarine · Broadcast Admin</title>
+  <title>Aquamarine · Broadcast Admin (unified)</title>
 
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+
+  <!-- PeerJS for WebRTC (needed for starting broadcast) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
   <!-- Google API (Drive Picker) -->
   <script src="https://apis.google.com/js/api.js"></script>
@@ -17,7 +20,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <style>
-    /* === fresh admin aqua === */
+    /* same styles as before – keep your existing CSS, it's fine */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
@@ -278,16 +281,42 @@
       color:#9bc5bc;
       margin-top:5px;
     }
+    /* video studio extras */
+    .video-studio {
+      background: #0f2d27;
+      border-radius: 28px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .video-studio video {
+      width: 100%;
+      max-height: 200px;
+      background: #000;
+      border-radius: 16px;
+      margin-bottom: 10px;
+    }
+    .broadcast-status {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      background: #0f2d27;
+      text-align: center;
+      font-weight: 600;
+    }
+    .broadcast-status.live {
+      color: #ff6b6b;
+      animation: pulse 2s infinite;
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <h2><i class="fa-solid fa-water" style="color:#a2ffee;"></i>Broadcast Admin · Live + Feeds</h2>
+  <h2><i class="fa-solid fa-water" style="color:#a2ffee;"></i>Unified Broadcast Admin</h2>
   <div>
     <span id="userEmail" style="margin-right:15px; color:#d0f7f0;"></span>
     <button onclick="logout()">Logout</button>
-    <button onclick="window.location='index.html';">← Community</button>
+    <button onclick="window.location='index.html'">← Community</button>
   </div>
 </header>
 
@@ -295,46 +324,50 @@
 
 <div id="dashboard" style="display:none;">
 
-  <!-- ========== LIVE BROADCAST HUB (ENHANCED) ========== -->
+  <!-- ========== EXTERNAL LIVE CONTROL ========== -->
   <div class="card">
-    <h3><i class="fa-regular fa-circle-play"></i> Live Stream Hub (YouTube · TikTok · Instagram · WebRTC)</h3>
-    <p style="margin-bottom:15px;">Choose source: external embed (YouTube/TikTok) or monitor active camera broadcast.</p>
-
-    <!-- external stream settings -->
-    <div style="background:#0f2d27; border-radius:28px; padding:20px; margin-bottom:20px;">
-      <h4 style="color:#64e3cf;"><i class="fa-regular fa-link"></i> External Embed Stream</h4>
-      <div class="platform-selector">
-        <label><input type="radio" name="livePlatform" value="youtube" checked> <i class="fab fa-youtube" style="color:#ff0000;"></i> YouTube</label>
-        <label><input type="radio" name="livePlatform" value="tiktok"> <i class="fab fa-tiktok" style="color:#000;"></i> TikTok</label>
-        <label><input type="radio" name="livePlatform" value="instagram"> <i class="fab fa-instagram" style="color:#e1306c;"></i> Instagram</label>
-      </div>
-      <input type="text" id="liveIdentifier" placeholder="YouTube Video ID / TikTok username/ID / Instagram shortcode" value="">
-      <input type="text" id="liveTitle" placeholder="Title (e.g., Sunday Service, Live Concert)">
-      <div class="input-group" style="margin:15px 0;">
-        <button onclick="updateExternalLive()" style="flex:2;">🎯 Activate External Live</button>
-        <button onclick="stopExternalLive()" class="danger" style="flex:1;">⏹️ Stop External</button>
-      </div>
-      <div id="liveExternalMessage" class="message"></div>
+    <h3><i class="fa-regular fa-circle-play"></i> External Live Stream (YouTube · TikTok · Instagram)</h3>
+    <div class="platform-selector">
+      <label><input type="radio" name="livePlatform" value="youtube" checked> <i class="fab fa-youtube" style="color:#ff0000;"></i> YouTube</label>
+      <label><input type="radio" name="livePlatform" value="tiktok"> <i class="fab fa-tiktok"></i> TikTok (video ID)</label>
+      <label><input type="radio" name="livePlatform" value="instagram"> <i class="fab fa-instagram" style="color:#e1306c;"></i> Instagram</label>
     </div>
-
-    <!-- WebRTC camera broadcast status & remote stop (if started from community) -->
-    <div style="background:#0f2d27; border-radius:28px; padding:20px;">
-      <h4 style="color:#64e3cf;"><i class="fa-regular fa-camera"></i> Camera Broadcast (WebRTC) status</h4>
-      <div id="webrtcStatus" class="webrtc-indicator">
-        <span><i class="fa-regular fa-circle-dot"></i> Checking broadcast...</span>
-        <div>
-          <button id="stopWebRTCBtn" class="danger" style="margin:0;" onclick="stopWebRTCBroadcast()" disabled>⏹️ Stop broadcast</button>
-        </div>
-      </div>
-      <div class="small-note">
-        <i class="fa-regular fa-circle-info"></i> To start a camera broadcast, use the "Video Studio" inside the Community admin panel (requires camera access).<br>
-        This panel allows you to monitor and stop it remotely.
-      </div>
+    <input type="text" id="liveIdentifier" placeholder="Video ID / Username / Shortcode" value="">
+    <input type="text" id="liveTitle" placeholder="Title (e.g., Sunday Service)">
+    <div class="input-group" style="margin:15px 0;">
+      <button onclick="updateExternalLive()" style="flex:2;">🎯 Activate External Live</button>
+      <button onclick="stopExternalLive()" class="danger" style="flex:1;">⏹️ Stop External</button>
     </div>
+    <div id="liveExternalMessage" class="message"></div>
 
-    <!-- Current live display info -->
-    <div class="live-status" id="liveStatus">
+    <!-- Current external live status -->
+    <div class="live-status">
       <strong>📡 Currently on air:</strong> <span id="liveStatusText">Loading...</span>
+    </div>
+  </div>
+
+  <!-- ========== VIDEO STUDIO (WebRTC broadcast start/stop) ========== -->
+  <div class="card">
+    <h3><i class="fa-regular fa-camera"></i> Video Studio (Camera Broadcast)</h3>
+    <p>Start a live camera broadcast that viewers can watch on the community page.</p>
+
+    <div class="video-studio">
+      <video id="adminLocalVideo" autoplay muted playsinline style="width:100%; max-height:200px; background:#000; border-radius:16px; margin-bottom:10px;"></video>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button id="startBroadcastBtn" onclick="startBroadcast()"><i class="fa-regular fa-video"></i> Start Broadcast</button>
+        <button id="switchCamBtn" onclick="switchCamera()" disabled><i class="fa-regular fa-rotate"></i> Switch Camera</button>
+        <button id="stopBroadcastBtn" onclick="stopBroadcast()" disabled><i class="fa-regular fa-circle-stop"></i> Stop</button>
+      </div>
+      <div id="broadcastStatus" class="broadcast-status" style="display:none;"></div>
+    </div>
+
+    <!-- Separate monitor for active broadcast (so stop button remains functional) -->
+    <div id="webrtcMonitor" style="margin-top:15px; background:#173e37; border-radius:40px; padding:15px; display:flex; align-items:center; justify-content:space-between;">
+      <span id="webrtcStatusMessage"><i class="fa-regular fa-circle-dot"></i> Checking broadcast...</span>
+      <button id="stopWebRTCBtn" class="danger" onclick="stopWebRTCBroadcast()" disabled>⏹️ Stop broadcast</button>
+    </div>
+    <div class="small-note">
+      <i class="fa-regular fa-circle-info"></i> The camera broadcast uses WebRTC (PeerJS). Make sure your camera is accessible.
     </div>
   </div>
 
@@ -453,6 +486,13 @@
   const SUPER_ADMIN_EMAIL = "fintech.zubysworld@gmail.com";
   let currentUser = null;
 
+  // WebRTC broadcast variables
+  let adminPeer = null;
+  let adminLocalStream = null;
+  let activeCalls = [];
+  let isBroadcasting = false;
+  let currentFacingMode = 'environment'; // rear camera default
+
   const authCheck = document.getElementById('authCheck');
   const dashboard = document.getElementById('dashboard');
   const userEmailSpan = document.getElementById('userEmail');
@@ -465,7 +505,6 @@
     setTimeout(() => div.style.display = 'none', 5000);
   }
 
-  // Escape helper
   function escapeHTML(str) {
     return String(str).replace(/[&<>"]/g, function(m) {
       if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; if (m === '"') return '&quot;';
@@ -495,7 +534,8 @@
             loadUsers();
             loadAllContent();
             loadBottomMessages();
-            monitorBroadcast();   // sets up listeners for live & webrtc
+            monitorExternalLive();   // for live/current
+            monitorWebRTCBroadcast(); // for broadcast/active (separate UI)
           } else {
             authCheck.innerHTML = '<h3>Access Denied</h3><button onclick="window.location=\'ntuonline.html\'">Back</button>';
             authCheck.style.display = 'block';
@@ -509,19 +549,13 @@
 
   window.logout = function() { auth.signOut().then(() => window.location.href='ntuonline.html').catch(showError); };
 
-  // ---------- LIVE BROADCAST INTEGRATION (external + webrtc) ----------
-  function monitorBroadcast() {
-    // Listen to the main broadcast document used by community (WebRTC) and live external
-    const broadcastRef = db.collection('broadcast').doc('active');
-    const liveRef = db.collection('live').doc('current');
-
-    // External live stream status (from live/current)
-    liveRef.onSnapshot(doc => {
+  // ---------- EXTERNAL LIVE (YouTube/TikTok/Instagram) ----------
+  function monitorExternalLive() {
+    db.collection('live').doc('current').onSnapshot(doc => {
       const statusSpan = document.getElementById('liveStatusText');
       if (doc.exists) {
         const d = doc.data();
         statusSpan.innerHTML = `<strong>${escapeHTML(d.title || 'Untitled')}</strong> (${d.platform || 'external'}) · ID: ${escapeHTML(d.videoId || '')}`;
-        // prefill form
         document.getElementById('liveTitle').value = d.title || '';
         document.getElementById('liveIdentifier').value = d.videoId || '';
         const radio = document.querySelector(`input[name="livePlatform"][value="${d.platform || 'youtube'}"]`);
@@ -530,33 +564,8 @@
         statusSpan.textContent = 'No external live stream set';
       }
     });
-
-    // WebRTC broadcast status
-    broadcastRef.onSnapshot(doc => {
-      const statusDiv = document.getElementById('webrtcStatus');
-      const stopBtn = document.getElementById('stopWebRTCBtn');
-      if (doc.exists && doc.data().active === true) {
-        const data = doc.data();
-        statusDiv.innerHTML = `
-          <span><i class="fa-regular fa-circle-dot" style="color:#ff4d4d;"></i> <strong class="badge-live">LIVE</strong> · started by admin · peer ${data.peerId ? data.peerId.substring(0,8)+'…' : ''}</span>
-          <div><button class="danger" onclick="stopWebRTCBroadcast()">⏹️ Stop broadcast</button></div>
-        `;
-        stopBtn.disabled = false;
-      } else {
-        statusDiv.innerHTML = '<span><i class="fa-regular fa-circle-dot"></i> No active camera broadcast</span><div><button class="danger" disabled>⏹️ Stop broadcast</button></div>';
-      }
-    });
   }
 
-  // Stop WebRTC broadcast (set active:false)
-  window.stopWebRTCBroadcast = function() {
-    if (!confirm('Stop the current camera broadcast? Viewers will lose the feed.')) return;
-    db.collection('broadcast').doc('active').set({ active: false }, { merge: true })
-      .then(() => showMessage('liveExternalMessage', 'Broadcast stopped', 'success'))
-      .catch(err => showMessage('liveExternalMessage', err.message, 'error'));
-  };
-
-  // Update external live (YouTube/TikTok/Instagram)
   window.updateExternalLive = function() {
     const platform = document.querySelector('input[name="livePlatform"]:checked')?.value;
     const identifier = document.getElementById('liveIdentifier').value.trim();
@@ -569,9 +578,7 @@
       title,
       updated: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true })
-    .then(() => {
-      showMessage('liveExternalMessage', `External live (${platform}) updated`, 'success');
-    })
+    .then(() => showMessage('liveExternalMessage', `External live (${platform}) updated`, 'success'))
     .catch(err => showMessage('liveExternalMessage', err.message, 'error'));
   };
 
@@ -581,6 +588,163 @@
       .then(() => showMessage('liveExternalMessage', 'External live stopped', 'success'))
       .catch(err => showMessage('liveExternalMessage', err.message, 'error'));
   };
+
+  // ---------- WEBRTC BROADCAST (Start/Stop/Monitor) ----------
+  function monitorWebRTCBroadcast() {
+    db.collection('broadcast').doc('active').onSnapshot(doc => {
+      const msgSpan = document.getElementById('webrtcStatusMessage');
+      const stopBtn = document.getElementById('stopWebRTCBtn');
+      if (doc.exists && doc.data().active === true) {
+        const data = doc.data();
+        msgSpan.innerHTML = `<i class="fa-regular fa-circle-dot" style="color:#ff4d4d;"></i> <strong class="badge-live">LIVE</strong> · started by admin · peer ${data.peerId ? data.peerId.substring(0,8)+'…' : ''}`;
+        stopBtn.disabled = false;
+      } else {
+        msgSpan.innerHTML = '<i class="fa-regular fa-circle-dot"></i> No active camera broadcast';
+        stopBtn.disabled = true;
+      }
+    });
+  }
+
+  window.stopWebRTCBroadcast = function() {
+    if (!confirm('Stop the current camera broadcast? Viewers will lose the feed.')) return;
+    db.collection('broadcast').doc('active').set({ active: false }, { merge: true })
+      .then(() => showMessage('liveExternalMessage', 'Broadcast stopped', 'success'))
+      .catch(err => showMessage('liveExternalMessage', err.message, 'error'));
+  };
+
+  // ==================== VIDEO STUDIO (copied from community admin) ====================
+  async function isAdminUser() {
+    if (!currentUser) return false;
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    return doc.exists && doc.data().isAdmin === true;
+  }
+
+  window.startBroadcast = async function() {
+    if (!currentUser) return alert('You must be logged in.');
+    const admin = await isAdminUser();
+    if (!admin) return alert('Admin privileges required.');
+    if (isBroadcasting) return;
+
+    try {
+      if (adminLocalStream) adminLocalStream.getTracks().forEach(t => t.stop());
+
+      const constraints = {
+        video: { facingMode: { ideal: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
+      };
+      adminLocalStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      const localVideo = document.getElementById('adminLocalVideo');
+      localVideo.srcObject = adminLocalStream;
+      localVideo.muted = true;
+      localVideo.setAttribute('playsinline', 'true');
+      await localVideo.play().catch(e => console.log('autoplay prevented', e));
+
+      const broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
+      adminPeer = new Peer(broadcastPeerId, {
+        secure: true,
+        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+      });
+
+      adminPeer.on('open', (id) => {
+        isBroadcasting = true;
+        db.collection('broadcast').doc('active').set({
+          active: true,
+          peerId: id,
+          startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          adminUid: currentUser.uid,
+          facingMode: currentFacingMode
+        }).catch(console.error);
+        updateBroadcastUI(true, id);
+      });
+
+      adminPeer.on('call', (call) => {
+        call.answer(adminLocalStream);
+        activeCalls.push(call);
+        call.on('close', () => activeCalls = activeCalls.filter(c => c !== call));
+        call.on('error', (err) => console.error('call error', err));
+      });
+
+      adminPeer.on('error', (err) => {
+        console.error('peer error', err);
+        stopBroadcast();
+      });
+    } catch (err) {
+      console.error('startBroadcast error', err);
+      alert('Could not start broadcast: ' + err.message);
+    }
+  };
+
+  window.stopBroadcast = async function() {
+    activeCalls.forEach(c => c.close());
+    activeCalls = [];
+    if (adminPeer) { adminPeer.destroy(); adminPeer = null; }
+    if (adminLocalStream) {
+      adminLocalStream.getTracks().forEach(t => t.stop());
+      adminLocalStream = null;
+    }
+    document.getElementById('adminLocalVideo').srcObject = null;
+    isBroadcasting = false;
+    await db.collection('broadcast').doc('active').set({ active: false }, { merge: true }).catch(console.error);
+    updateBroadcastUI(false);
+  };
+
+  window.switchCamera = async function() {
+    if (!isBroadcasting || !adminLocalStream) return;
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      const newAudioTrack = newStream.getAudioTracks()[0];
+
+      await Promise.all(activeCalls.map(async (call) => {
+        const senders = call.peerConnection.getSenders();
+        const videoSender = senders.find(s => s.track?.kind === 'video');
+        if (videoSender) await videoSender.replaceTrack(newVideoTrack);
+        const audioSender = senders.find(s => s.track?.kind === 'audio');
+        if (audioSender && newAudioTrack) await audioSender.replaceTrack(newAudioTrack);
+      }));
+
+      // replace local tracks
+      const oldVideo = adminLocalStream.getVideoTracks()[0];
+      const oldAudio = adminLocalStream.getAudioTracks()[0];
+      if (oldVideo) { adminLocalStream.removeTrack(oldVideo); oldVideo.stop(); }
+      if (oldAudio) { adminLocalStream.removeTrack(oldAudio); oldAudio.stop(); }
+      adminLocalStream.addTrack(newVideoTrack);
+      if (newAudioTrack) adminLocalStream.addTrack(newAudioTrack);
+
+      document.getElementById('adminLocalVideo').srcObject = adminLocalStream;
+      db.collection('broadcast').doc('active').update({ facingMode: currentFacingMode }).catch(console.error);
+    } catch (err) {
+      console.error('switchCamera error', err);
+      alert('Camera switch failed: ' + err.message);
+      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user'; // revert
+    }
+  };
+
+  function updateBroadcastUI(isLive, peerId = '') {
+    const statusEl = document.getElementById('broadcastStatus');
+    const startBtn = document.getElementById('startBroadcastBtn');
+    const switchBtn = document.getElementById('switchCamBtn');
+    const stopBtn = document.getElementById('stopBroadcastBtn');
+
+    if (isLive) {
+      statusEl.style.display = 'block';
+      statusEl.className = 'broadcast-status live';
+      statusEl.innerHTML = `🔴 LIVE<br><small>Peer ID: ${peerId}</small>`;
+      startBtn.disabled = true;
+      switchBtn.disabled = false;
+      stopBtn.disabled = false;
+    } else {
+      statusEl.style.display = 'none';
+      startBtn.disabled = false;
+      switchBtn.disabled = true;
+      stopBtn.disabled = true;
+    }
+  }
 
   // ---------- CREATE FEED POST ----------
   window.createFeedPost = function() {
@@ -727,7 +891,7 @@
       .catch(err => showMessage('passMessage', err.message, 'error'));
   };
 
-  // ---------- DELETE ITEM (with subcollections) ----------
+  // ---------- DELETE ITEM ----------
   async function deleteDocumentAndSubcollections(docRef) {
     let batch = db.batch(); let count = 0;
     async function collect(ref) {
@@ -807,7 +971,7 @@
 
   function handleAuthResult(authResult) {
     if (authResult && !authResult.error) { oauthToken = authResult.access_token; createPicker(); }
-    else alert('Auth failed');
+    else alert('Auth failed: ' + (authResult?.error || 'unknown'));
   }
 
   function createPicker() {
@@ -838,5 +1002,3 @@
 </script>
 </body>
 </html>
-
-
