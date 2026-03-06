@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin • aquamarine professional</title>
+  <title>Aquamarine · Broadcast Admin</title>
 
-  <!-- Firebase -->
+  <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
-  <!-- Google API (for Drive Picker) -->
+  <!-- Google API (Drive Picker) -->
   <script src="https://apis.google.com/js/api.js"></script>
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <style>
-    /* ===== ADMIN STYLES (unchanged) ===== */
+    /* === fresh admin aqua === */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
@@ -114,7 +114,6 @@
       margin-left: 8px;
       white-space: nowrap;
     }
-
     .table-wrapper {
       overflow-x: auto;
       margin: 20px 0;
@@ -162,8 +161,6 @@
       color: white;
       display: block;
     }
-
-    /* Moderation items */
     .moderation-item {
       background: #0f332d;
       border-radius: 28px;
@@ -183,11 +180,7 @@
       border-radius: 30px;
       font-size: 0.9rem;
     }
-    .delete-btn:hover {
-      background: #c45f54;
-    }
-
-    /* Tabs */
+    .delete-btn:hover { background: #c45f54; }
     .tab-buttons {
       display: flex;
       gap: 10px;
@@ -212,17 +205,12 @@
     }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-
-    /* Inline flex for input+button */
     .input-group {
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .input-group input {
-      flex: 1;
-      margin: 0;
-    }
+    .input-group input { flex:1; margin:0; }
     .preview-area {
       margin: 10px 0;
       padding: 10px;
@@ -230,12 +218,7 @@
       border-radius: 20px;
       display: none;
     }
-    .preview-area img {
-      max-width: 100%;
-      border-radius: 12px;
-    }
-
-    /* Preview for bottom messages */
+    .preview-area img { max-width:100%; border-radius:12px; }
     .message-preview {
       margin-top: 15px;
       background: #0d312b;
@@ -243,17 +226,6 @@
       border-radius: 30px;
       color: #b5ffe8;
     }
-    .message-preview ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    .message-preview li {
-      margin-bottom: 6px;
-      font-size: 0.9rem;
-    }
-
-    /* Live status */
     .live-status {
       margin-top: 15px;
       padding: 12px;
@@ -261,20 +233,57 @@
       background: #0f332d;
       border-left: 4px solid #2dab95;
     }
-
-    @media (max-width: 480px) {
-      body { padding: 12px; }
-      header { flex-direction: column; text-align: center; }
-      .card { padding: 18px; }
-      button { width: 100%; margin-right: 0; }
-      .input-group { flex-wrap: wrap; }
+    .platform-selector {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 15px 0;
+    }
+    .platform-selector label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #1b4a42;
+      padding: 8px 16px;
+      border-radius: 40px;
+      cursor: pointer;
+    }
+    .platform-selector input[type="radio"] {
+      width: auto;
+      margin: 0;
+      accent-color: #2dab95;
+    }
+    .webrtc-indicator {
+      background: #173e37;
+      border-radius: 40px;
+      padding: 15px;
+      margin: 15px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .badge-live {
+      background: #ff4d4d;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-weight: 600;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0% { opacity:1; } 50% { opacity:0.6; } }
+    .small-note {
+      font-size:0.85rem;
+      color:#9bc5bc;
+      margin-top:5px;
     }
   </style>
 </head>
 <body>
 
 <header>
-  <h2><i class="fa-solid fa-water" style="color:#a2ffee;"></i>Dashboard</h2>
+  <h2><i class="fa-solid fa-water" style="color:#a2ffee;"></i>Broadcast Admin · Live + Feeds</h2>
   <div>
     <span id="userEmail" style="margin-right:15px; color:#d0f7f0;"></span>
     <button onclick="logout()">Logout</button>
@@ -282,39 +291,82 @@
   </div>
 </header>
 
-<div id="authCheck" style="display:none; text-align:center; padding:50px;"><h3>Checking authorization...</h3></div>
+<div id="authCheck" style="display:none; text-align:center; padding:50px;"><h3>🔐 Checking authorization...</h3></div>
 
 <div id="dashboard" style="display:none;">
 
-  <!-- CREATE FEED POST (with image) -->
+  <!-- ========== LIVE BROADCAST HUB (ENHANCED) ========== -->
+  <div class="card">
+    <h3><i class="fa-regular fa-circle-play"></i> Live Stream Hub (YouTube · TikTok · Instagram · WebRTC)</h3>
+    <p style="margin-bottom:15px;">Choose source: external embed (YouTube/TikTok) or monitor active camera broadcast.</p>
+
+    <!-- external stream settings -->
+    <div style="background:#0f2d27; border-radius:28px; padding:20px; margin-bottom:20px;">
+      <h4 style="color:#64e3cf;"><i class="fa-regular fa-link"></i> External Embed Stream</h4>
+      <div class="platform-selector">
+        <label><input type="radio" name="livePlatform" value="youtube" checked> <i class="fab fa-youtube" style="color:#ff0000;"></i> YouTube</label>
+        <label><input type="radio" name="livePlatform" value="tiktok"> <i class="fab fa-tiktok" style="color:#000;"></i> TikTok</label>
+        <label><input type="radio" name="livePlatform" value="instagram"> <i class="fab fa-instagram" style="color:#e1306c;"></i> Instagram</label>
+      </div>
+      <input type="text" id="liveIdentifier" placeholder="YouTube Video ID / TikTok username/ID / Instagram shortcode" value="">
+      <input type="text" id="liveTitle" placeholder="Title (e.g., Sunday Service, Live Concert)">
+      <div class="input-group" style="margin:15px 0;">
+        <button onclick="updateExternalLive()" style="flex:2;">🎯 Activate External Live</button>
+        <button onclick="stopExternalLive()" class="danger" style="flex:1;">⏹️ Stop External</button>
+      </div>
+      <div id="liveExternalMessage" class="message"></div>
+    </div>
+
+    <!-- WebRTC camera broadcast status & remote stop (if started from community) -->
+    <div style="background:#0f2d27; border-radius:28px; padding:20px;">
+      <h4 style="color:#64e3cf;"><i class="fa-regular fa-camera"></i> Camera Broadcast (WebRTC) status</h4>
+      <div id="webrtcStatus" class="webrtc-indicator">
+        <span><i class="fa-regular fa-circle-dot"></i> Checking broadcast...</span>
+        <div>
+          <button id="stopWebRTCBtn" class="danger" style="margin:0;" onclick="stopWebRTCBroadcast()" disabled>⏹️ Stop broadcast</button>
+        </div>
+      </div>
+      <div class="small-note">
+        <i class="fa-regular fa-circle-info"></i> To start a camera broadcast, use the "Video Studio" inside the Community admin panel (requires camera access).<br>
+        This panel allows you to monitor and stop it remotely.
+      </div>
+    </div>
+
+    <!-- Current live display info -->
+    <div class="live-status" id="liveStatus">
+      <strong>📡 Currently on air:</strong> <span id="liveStatusText">Loading...</span>
+    </div>
+  </div>
+
+  <!-- ========== CREATE FEED POST (with Drive image) ========== -->
   <div class="card">
     <h3><i class="fa-regular fa-newspaper"></i> Create Feed Post</h3>
     <textarea id="feedText" placeholder="Post text..."></textarea>
     <div class="input-group">
       <input type="url" id="feedImage" placeholder="Image URL (optional)">
-      <button class="drive-btn" onclick="openGooglePicker('feedImage')">📁 Choose Image</button>
+      <button class="drive-btn" onclick="openGooglePicker('feedImage')">📁 Drive</button>
     </div>
     <div id="previewFeedImage" class="preview-area"></div>
     <button onclick="createFeedPost()"><i class="fa-regular fa-paper-plane"></i> Publish Post</button>
     <div id="feedMessage" class="message"></div>
   </div>
 
-  <!-- PUBLISH EVENT -->
+  <!-- ========== PUBLISH EVENT (with Drive video/audio) ========== -->
   <div class="card">
-    <h3><i class="fa-regular fa-calendar-plus"></i> Publish New Event</h3>
-    <input type="text" id="eventTitle" placeholder="Event Title" required>
+    <h3><i class="fa-regular fa-calendar-plus"></i> Publish Event</h3>
+    <input type="text" id="eventTitle" placeholder="Title" required>
     <textarea id="eventDesc" placeholder="Description"></textarea>
-    <input type="text" id="eventDate" placeholder="Date (e.g., March 15, 2025)">
+    <input type="text" id="eventDate" placeholder="Date (e.g., May 5, 2025)">
 
     <div class="input-group">
       <input type="url" id="eventVideo" placeholder="Video URL (optional)">
-      <button class="drive-btn" onclick="openGooglePicker('eventVideo')">📁 Choose Video</button>
+      <button class="drive-btn" onclick="openGooglePicker('eventVideo')">📁 Drive</button>
     </div>
     <div id="previewEventVideo" class="preview-area"></div>
 
     <div class="input-group">
       <input type="url" id="eventAudio" placeholder="Audio URL (optional)">
-      <button class="drive-btn" onclick="openGooglePicker('eventAudio')">📁 Choose Audio</button>
+      <button class="drive-btn" onclick="openGooglePicker('eventAudio')">📁 Drive</button>
     </div>
     <div id="previewEventAudio" class="preview-area"></div>
 
@@ -322,112 +374,58 @@
     <div id="eventMessage" class="message"></div>
   </div>
 
-  <!-- LIVE STREAM CONTROL (NEW) -->
+  <!-- ========== BOTTOM MARQUEE MESSAGES ========== -->
   <div class="card">
-    <h3><i class="fa-regular fa-circle-play"></i> Live Stream Control</h3>
-    <p>Set the YouTube video ID and title for the live stream.</p>
-
-    <input type="text" id="liveTitle" placeholder="Live Title (e.g., Sunday Service)">
-    <input type="text" id="liveVideoId" placeholder="YouTube Video ID (e.g., dQw4w9WgXcQ)">
-
-    <div class="input-group" style="margin: 15px 0;">
-      <button onclick="updateLiveStream()" style="flex:1;">🎥 Start / Update Live</button>
-      <button onclick="stopLiveStream()" class="danger" style="flex:1;">⏹️ Stop Live</button>
-    </div>
-
-    <div id="liveMessage" class="message"></div>
-
-    <!-- Current live status -->
-    <div class="live-status" id="liveStatus">
-      <strong>Current Live Stream:</strong> <span id="liveStatusText">Not live</span>
-    </div>
-  </div>
-
-  <!-- BOTTOM BAR MESSAGES CONTROL (multiple lines) -->
-  <div class="card">
-    <h3><i class="fa-regular fa-message"></i> Bottom Bar Messages</h3>
-    <p>Enter one message per line. They will rotate automatically in the community page.</p>
-    <textarea id="bottomMessagesInput" rows="5" placeholder="Message 1&#10;Message 2&#10;Message 3" style="width:100%; margin:10px 0;"></textarea>
+    <h3><i class="fa-regular fa-message"></i> Bottom Bar Messages (rotating)</h3>
+    <textarea id="bottomMessagesInput" rows="5" placeholder="One message per line"></textarea>
     <button onclick="saveBottomMessages()">Save Messages</button>
-
-    <!-- Preview area -->
-    <div class="message-preview" id="bottomMessagesPreview">
-      <strong>Preview:</strong>
-      <ul></ul>
-    </div>
+    <div class="message-preview" id="bottomMessagesPreview"><strong>Preview:</strong> <ul></ul></div>
   </div>
 
-  <!-- MARQUEE SPEED CONTROLS -->
+  <!-- ========== MARQUEE SPEEDS ========== -->
   <div class="card">
     <h3><i class="fa-regular fa-gauge-high"></i> Marquee Scroll Speeds</h3>
-    <p>Set how fast the marquees scroll (seconds per full cycle). Range: 1–2000 seconds.</p>
-
-    <!-- Top bar slider -->
-    <div style="margin: 20px 0;">
-      <label style="color:#64ffda; font-weight:600;">Top Bar Speed</label>
-      <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-        <input type="range" id="topSpeedSlider" min="1" max="2000" value="22" step="1" style="flex: 2;">
-        <input type="number" id="topSpeedInput" min="1" max="2000" value="22" step="1" style="width: 80px;">
-        <span style="color:#8cffe0;">s</span>
-      </div>
+    <div style="margin:20px 0;">
+      <label style="color:#64ffda;">Top bar speed (s)</label>
+      <input type="range" id="topSpeedSlider" min="1" max="2000" value="22">
+      <input type="number" id="topSpeedInput" min="1" max="2000" value="22">
     </div>
-
-    <!-- Bottom bar slider -->
-    <div style="margin: 20px 0;">
-      <label style="color:#64ffda; font-weight:600;">Bottom Bar Speed</label>
-      <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-        <input type="range" id="bottomSpeedSlider" min="1" max="2000" value="360" step="1" style="flex: 2;">
-        <input type="number" id="bottomSpeedInput" min="1" max="2000" value="360" step="1" style="width: 80px;">
-        <span style="color:#8cffe0;">s</span>
-      </div>
+    <div style="margin:20px 0;">
+      <label style="color:#64ffda;">Bottom bar speed (s)</label>
+      <input type="range" id="bottomSpeedSlider" min="1" max="2000" value="360">
+      <input type="number" id="bottomSpeedInput" min="1" max="2000" value="360">
     </div>
-
-    <!-- Live preview area -->
-    <div style="margin-top: 15px; background: #0d312b; padding: 8px; border-radius: 40px; overflow: hidden;">
-      <h6 style="display: inline-block; margin: 0; color: #b5ffe8; white-space: nowrap; font-weight: 400;" id="topSpeedPreview">Top: 22s</h6>
-    </div>
-    <div style="margin-top: 8px; background: #0d312b; padding: 8px; border-radius: 40px; overflow: hidden;">
-      <h6 style="display: inline-block; margin: 0; color: #b5ffe8; white-space: nowrap; font-weight: 400;" id="bottomSpeedPreview">Bottom: 360s</h6>
-    </div>
-
-    <button onclick="saveMarqueeSpeeds()" style="margin-top: 15px;">Save Both Speeds</button>
-    <small style="color: #9bc5bc;">Changes apply to all users immediately.</small>
+    <button onclick="saveMarqueeSpeeds()">Save Both Speeds</button>
   </div>
 
-  <!-- CHANGE PASSWORD -->
+  <!-- ========== MANAGE ADMINS ========== -->
   <div class="card">
-    <h3><i class="fa-solid fa-key"></i> Change Password</h3>
-    <input type="password" id="currentPass" placeholder="Current Password">
-    <input type="password" id="newPass" placeholder="New Password">
-    <input type="password" id="confirmNewPass" placeholder="Confirm New Password">
-    <button onclick="changePassword()">Update Password</button>
-    <div id="passMessage" class="message"></div>
-  </div>
-
-  <!-- MANAGE ADMINS -->
-  <div class="card">
-    <h3><i class="fa-solid fa-user-tie"></i> Manage Administrators</h3>
-    <div class="table-wrapper">
-      <table>
-        <thead><tr><th>Name</th><th>Email</th><th>Kindred</th><th>Role</th><th>Action</th></tr></thead>
-        <tbody id="userList"></tbody>
-      </table>
-    </div>
+    <h3><i class="fa-solid fa-user-tie"></i> Administrators</h3>
+    <div class="table-wrapper"><table><thead><tr><th>Name</th><th>Email</th><th>Kindred</th><th>Role</th><th>Action</th></tr></thead><tbody id="userList"></tbody></table></div>
     <div id="adminMessage" class="message"></div>
   </div>
 
-  <!-- MODERATION PANEL -->
+  <!-- ========== CHANGE PASSWORD ========== -->
+  <div class="card">
+    <h3><i class="fa-solid fa-key"></i> Change Password</h3>
+    <input type="password" id="currentPass" placeholder="Current">
+    <input type="password" id="newPass" placeholder="New">
+    <input type="password" id="confirmNewPass" placeholder="Confirm">
+    <button onclick="changePassword()">Update</button>
+    <div id="passMessage" class="message"></div>
+  </div>
+
+  <!-- ========== MODERATION TABS ========== -->
   <div class="card">
     <h3><i class="fa-solid fa-gavel"></i> Moderate Content</h3>
     <div class="tab-buttons">
       <button class="tab-btn active" data-tab="feed">Feed</button>
       <button class="tab-btn" data-tab="chat">Chat</button>
       <button class="tab-btn" data-tab="goodwill">Goodwill</button>
-      <button class="tab-btn" data-tab="live">Live Comments</button>
-      <button class="tab-btn" data-tab="replies">All Replies</button>
+      <button class="tab-btn" data-tab="live">Live comments</button>
+      <button class="tab-btn" data-tab="replies">Replies</button>
       <button class="tab-btn" data-tab="events">Events</button>
     </div>
-
     <div id="tab-feed" class="tab-content active"><div id="moderateFeed"></div></div>
     <div id="tab-chat" class="tab-content"><div id="moderateChat"></div></div>
     <div id="tab-goodwill" class="tab-content"><div id="moderateGoodwill"></div></div>
@@ -438,7 +436,7 @@
 </div>
 
 <script>
-  // Firebase config
+  // Firebase config (same as original)
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -453,11 +451,10 @@
   const db = firebase.firestore();
 
   const SUPER_ADMIN_EMAIL = "fintech.zubysworld@gmail.com";
-
   let currentUser = null;
 
-  const authCheckDiv = document.getElementById('authCheck');
-  const dashboardDiv = document.getElementById('dashboard');
+  const authCheck = document.getElementById('authCheck');
+  const dashboard = document.getElementById('dashboard');
   const userEmailSpan = document.getElementById('userEmail');
 
   function showError(err) { alert("Error: " + err.message); console.error(err); }
@@ -465,21 +462,18 @@
     const div = document.getElementById(elId);
     div.textContent = text;
     div.className = `message ${type}`;
-    setTimeout(() => { div.style.display = 'none'; }, 5000);
+    setTimeout(() => div.style.display = 'none', 5000);
   }
 
-  // Simple escape function to prevent XSS
+  // Escape helper
   function escapeHTML(str) {
     return String(str).replace(/[&<>"]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      if (m === '"') return '&quot;';
+      if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; if (m === '"') return '&quot;';
       return m;
     });
   }
 
-  // ---------- AUTH & ADMIN CHECK ----------
+  // ---------- AUTH & ADMIN ----------
   auth.onAuthStateChanged(user => {
     if (user) {
       userEmailSpan.textContent = user.email;
@@ -496,15 +490,15 @@
         .then(doc => {
           if (doc.exists && doc.data().isAdmin === true) {
             currentUser = user;
-            authCheckDiv.style.display = 'none';
-            dashboardDiv.style.display = 'block';
+            authCheck.style.display = 'none';
+            dashboard.style.display = 'block';
             loadUsers();
             loadAllContent();
             loadBottomMessages();
-            loadLiveStatus(); // load live stream status
+            monitorBroadcast();   // sets up listeners for live & webrtc
           } else {
-            authCheckDiv.innerHTML = '<h3>Access Denied. You are not an administrator.</h3><button onclick="window.location=\'ntuonline.html\'">Go Home</button>';
-            authCheckDiv.style.display = 'block';
+            authCheck.innerHTML = '<h3>Access Denied</h3><button onclick="window.location=\'ntuonline.html\'">Back</button>';
+            authCheck.style.display = 'block';
           }
         })
         .catch(showError);
@@ -515,41 +509,90 @@
 
   window.logout = function() { auth.signOut().then(() => window.location.href='ntuonline.html').catch(showError); };
 
-  // ---------- MANAGE ADMINS ----------
-  function loadUsers() {
-    db.collection('users').get().then(snapshot => {
-      const tbody = document.getElementById('userList');
-      tbody.innerHTML = '';
-      snapshot.forEach(doc => {
-        const user = doc.data(); const uid = doc.id; const isAdmin = user.isAdmin || false;
-        tbody.innerHTML += `<tr>
-          <td>${escapeHTML(user.name || '?')}</td><td>${escapeHTML(user.email || '?')}</td><td>${escapeHTML(user.kindred || '?')}</td>
-          <td><span class="${isAdmin ? 'admin-badge' : 'user-badge'}">${isAdmin ? 'ADMIN' : 'USER'}</span></td>
-          <td><button class="secondary" onclick="toggleAdmin('${uid}', ${isAdmin})">${isAdmin ? 'Revoke' : 'Make Admin'}</button></td>
-        </tr>`;
-      });
-    }).catch(showError);
+  // ---------- LIVE BROADCAST INTEGRATION (external + webrtc) ----------
+  function monitorBroadcast() {
+    // Listen to the main broadcast document used by community (WebRTC) and live external
+    const broadcastRef = db.collection('broadcast').doc('active');
+    const liveRef = db.collection('live').doc('current');
+
+    // External live stream status (from live/current)
+    liveRef.onSnapshot(doc => {
+      const statusSpan = document.getElementById('liveStatusText');
+      if (doc.exists) {
+        const d = doc.data();
+        statusSpan.innerHTML = `<strong>${escapeHTML(d.title || 'Untitled')}</strong> (${d.platform || 'external'}) · ID: ${escapeHTML(d.videoId || '')}`;
+        // prefill form
+        document.getElementById('liveTitle').value = d.title || '';
+        document.getElementById('liveIdentifier').value = d.videoId || '';
+        const radio = document.querySelector(`input[name="livePlatform"][value="${d.platform || 'youtube'}"]`);
+        if (radio) radio.checked = true;
+      } else {
+        statusSpan.textContent = 'No external live stream set';
+      }
+    });
+
+    // WebRTC broadcast status
+    broadcastRef.onSnapshot(doc => {
+      const statusDiv = document.getElementById('webrtcStatus');
+      const stopBtn = document.getElementById('stopWebRTCBtn');
+      if (doc.exists && doc.data().active === true) {
+        const data = doc.data();
+        statusDiv.innerHTML = `
+          <span><i class="fa-regular fa-circle-dot" style="color:#ff4d4d;"></i> <strong class="badge-live">LIVE</strong> · started by admin · peer ${data.peerId ? data.peerId.substring(0,8)+'…' : ''}</span>
+          <div><button class="danger" onclick="stopWebRTCBroadcast()">⏹️ Stop broadcast</button></div>
+        `;
+        stopBtn.disabled = false;
+      } else {
+        statusDiv.innerHTML = '<span><i class="fa-regular fa-circle-dot"></i> No active camera broadcast</span><div><button class="danger" disabled>⏹️ Stop broadcast</button></div>';
+      }
+    });
   }
 
-  window.toggleAdmin = function(uid, currentStatus) {
-    if (!confirm(`Are you sure you want to ${currentStatus ? 'revoke admin from' : 'grant admin to'} this user?`)) return;
-    db.collection('users').doc(uid).update({ isAdmin: !currentStatus })
-      .then(() => { showMessage('adminMessage', 'User role updated', 'success'); loadUsers(); })
-      .catch(err => showMessage('adminMessage', err.message, 'error'));
+  // Stop WebRTC broadcast (set active:false)
+  window.stopWebRTCBroadcast = function() {
+    if (!confirm('Stop the current camera broadcast? Viewers will lose the feed.')) return;
+    db.collection('broadcast').doc('active').set({ active: false }, { merge: true })
+      .then(() => showMessage('liveExternalMessage', 'Broadcast stopped', 'success'))
+      .catch(err => showMessage('liveExternalMessage', err.message, 'error'));
+  };
+
+  // Update external live (YouTube/TikTok/Instagram)
+  window.updateExternalLive = function() {
+    const platform = document.querySelector('input[name="livePlatform"]:checked')?.value;
+    const identifier = document.getElementById('liveIdentifier').value.trim();
+    const title = document.getElementById('liveTitle').value.trim() || 'Live Stream';
+    if (!identifier) return showMessage('liveExternalMessage', 'Identifier required', 'error');
+
+    db.collection('live').doc('current').set({
+      platform,
+      videoId: identifier,
+      title,
+      updated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+    .then(() => {
+      showMessage('liveExternalMessage', `External live (${platform}) updated`, 'success');
+    })
+    .catch(err => showMessage('liveExternalMessage', err.message, 'error'));
+  };
+
+  window.stopExternalLive = function() {
+    if (!confirm('Remove external live stream?')) return;
+    db.collection('live').doc('current').delete()
+      .then(() => showMessage('liveExternalMessage', 'External live stopped', 'success'))
+      .catch(err => showMessage('liveExternalMessage', err.message, 'error'));
   };
 
   // ---------- CREATE FEED POST ----------
   window.createFeedPost = function() {
     const text = document.getElementById('feedText').value.trim();
-    if (!text) return showMessage('feedMessage', 'Post text required', 'error');
+    if (!text) return showMessage('feedMessage', 'Text required', 'error');
     const image = document.getElementById('feedImage').value.trim() || null;
 
     db.collection('users').doc(currentUser.uid).get()
       .then(u => {
         const userData = u.data() || {};
         return db.collection('feed').add({
-          text,
-          image,
+          text, image,
           name: userData.name,
           kindred: userData.kindred,
           userId: currentUser.uid,
@@ -557,7 +600,7 @@
         });
       })
       .then(() => {
-        showMessage('feedMessage', 'Post published', 'success');
+        showMessage('feedMessage', 'Posted', 'success');
         document.getElementById('feedText').value = '';
         document.getElementById('feedImage').value = '';
         document.getElementById('previewFeedImage').style.display = 'none';
@@ -586,210 +629,157 @@
       .catch(err => showMessage('eventMessage', err.message, 'error'));
   };
 
-  // ---------- LIVE STREAM CONTROL ----------
-  function loadLiveStatus() {
-    db.collection('live').doc('current').onSnapshot(doc => {
-      const statusSpan = document.getElementById('liveStatusText');
-      if (doc.exists) {
-        const data = doc.data();
-        statusSpan.innerHTML = `<strong>${escapeHTML(data.title || 'Untitled')}</strong> (Video ID: ${escapeHTML(data.videoId || 'none')})`;
-        // Pre-fill the form with current values
-        document.getElementById('liveTitle').value = data.title || '';
-        document.getElementById('liveVideoId').value = data.videoId || '';
-      } else {
-        statusSpan.textContent = 'Not live';
-        document.getElementById('liveTitle').value = '';
-        document.getElementById('liveVideoId').value = '';
-      }
-    }, showError);
+  // ---------- BOTTOM MESSAGES ----------
+  function loadBottomMessages() {
+    const configDoc = db.collection("config").doc("site");
+    const input = document.getElementById('bottomMessagesInput');
+    const previewUl = document.querySelector('#bottomMessagesPreview ul');
+
+    configDoc.get().then(doc => {
+      let messages = [];
+      if (doc.exists && doc.data().bottomMessages) messages = doc.data().bottomMessages;
+      input.value = messages.join('\n');
+      updatePreview(messages);
+    }).catch(console.error);
+
+    input.addEventListener('input', function() {
+      const lines = this.value.split('\n').map(l => l.trim()).filter(l => l !== '');
+      updatePreview(lines);
+    });
+
+    function updatePreview(arr) {
+      previewUl.innerHTML = '';
+      if (arr.length === 0) previewUl.innerHTML = '<li><em>no messages</em></li>';
+      else arr.forEach(msg => { const li = document.createElement('li'); li.textContent = '⚡ ' + msg; previewUl.appendChild(li); });
+    }
   }
 
-  window.updateLiveStream = function() {
-    const title = document.getElementById('liveTitle').value.trim();
-    const videoId = document.getElementById('liveVideoId').value.trim();
-    if (!title || !videoId) {
-      return showMessage('liveMessage', 'Both title and video ID are required', 'error');
-    }
-    db.collection('live').doc('current').set({
-      title,
-      videoId,
-      updated: firebase.firestore.FieldValue.serverTimestamp()
-    })
-    .then(() => {
-      showMessage('liveMessage', 'Live stream updated', 'success');
-    })
-    .catch(err => showMessage('liveMessage', err.message, 'error'));
+  window.saveBottomMessages = function() {
+    const raw = document.getElementById('bottomMessagesInput').value;
+    const messages = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
+    if (!messages.length) return alert('Enter at least one');
+    db.collection("config").doc("site").set({ bottomMessages: messages }, { merge: true })
+      .then(() => alert('✅ Saved'))
+      .catch(err => alert(err.message));
   };
 
-  window.stopLiveStream = function() {
-    if (!confirm('Stop the live stream? It will disappear from the community page.')) return;
-    db.collection('live').doc('current').delete()
-      .then(() => {
-        showMessage('liveMessage', 'Live stream stopped', 'success');
-      })
-      .catch(err => showMessage('liveMessage', err.message, 'error'));
+  // ---------- MARQUEE SPEEDS ----------
+  (function() {
+    const topSlider = document.getElementById('topSpeedSlider');
+    const topInput = document.getElementById('topSpeedInput');
+    const bottomSlider = document.getElementById('bottomSpeedSlider');
+    const bottomInput = document.getElementById('bottomSpeedInput');
+    const configDoc = db.collection("config").doc("site");
+
+    configDoc.get().then(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        if (data.topMarqueeSpeed) { topSlider.value = topInput.value = data.topMarqueeSpeed; }
+        if (data.bottomMarqueeSpeed) { bottomSlider.value = bottomInput.value = data.bottomMarqueeSpeed; }
+      }
+    });
+
+    topSlider.addEventListener('input', () => topInput.value = topSlider.value);
+    topInput.addEventListener('input', () => topSlider.value = topInput.value);
+    bottomSlider.addEventListener('input', () => bottomInput.value = bottomSlider.value);
+    bottomInput.addEventListener('input', () => bottomSlider.value = bottomInput.value);
+
+    window.saveMarqueeSpeeds = function() {
+      configDoc.set({
+        topMarqueeSpeed: Number(topSlider.value),
+        bottomMarqueeSpeed: Number(bottomSlider.value)
+      }, { merge: true }).then(() => alert('Speeds updated')).catch(err => alert(err.message));
+    };
+  })();
+
+  // ---------- ADMIN MANAGEMENT ----------
+  function loadUsers() {
+    db.collection('users').get().then(snapshot => {
+      const tbody = document.getElementById('userList');
+      tbody.innerHTML = '';
+      snapshot.forEach(doc => {
+        const user = doc.data(); const uid = doc.id; const isAdmin = user.isAdmin || false;
+        tbody.innerHTML += `<tr><td>${escapeHTML(user.name || '?')}</td><td>${escapeHTML(user.email || '?')}</td><td>${escapeHTML(user.kindred || '?')}</td><td><span class="${isAdmin ? 'admin-badge' : 'user-badge'}">${isAdmin ? 'ADMIN' : 'USER'}</span></td><td><button class="secondary" onclick="toggleAdmin('${uid}', ${isAdmin})">${isAdmin ? 'Revoke' : 'Make Admin'}</button></td></tr>`;
+      });
+    }).catch(showError);
+  }
+
+  window.toggleAdmin = function(uid, current) {
+    if (!confirm(`Sure?`)) return;
+    db.collection('users').doc(uid).update({ isAdmin: !current })
+      .then(() => { showMessage('adminMessage', 'Updated', 'success'); loadUsers(); })
+      .catch(err => showMessage('adminMessage', err.message, 'error'));
   };
 
-  // ---------- CHANGE PASSWORD ----------
+  // ---------- PASSWORD CHANGE ----------
   window.changePassword = function() {
     const curr = document.getElementById('currentPass').value;
     const newp = document.getElementById('newPass').value;
     const conf = document.getElementById('confirmNewPass').value;
     if (!curr || !newp || !conf) return showMessage('passMessage', 'All fields required', 'error');
-    if (newp !== conf) return showMessage('passMessage', 'Passwords do not match', 'error');
-    if (newp.length < 6) return showMessage('passMessage', 'Password too short', 'error');
+    if (newp !== conf) return showMessage('passMessage', 'Passwords mismatch', 'error');
+    if (newp.length < 6) return showMessage('passMessage', 'Too short', 'error');
     const user = auth.currentUser;
     const cred = firebase.auth.EmailAuthProvider.credential(user.email, curr);
     user.reauthenticateWithCredential(cred)
       .then(() => user.updatePassword(newp))
-      .then(() => {
-        showMessage('passMessage', 'Password updated', 'success');
-        document.getElementById('currentPass').value = document.getElementById('newPass').value = document.getElementById('confirmNewPass').value = '';
-      })
+      .then(() => { showMessage('passMessage', 'Password updated', 'success'); ['currentPass','newPass','confirmNewPass'].forEach(id => document.getElementById(id).value = ''); })
       .catch(err => showMessage('passMessage', err.message, 'error'));
   };
 
-  // ---------- RECURSIVE DELETE ----------
+  // ---------- DELETE ITEM (with subcollections) ----------
   async function deleteDocumentAndSubcollections(docRef) {
-    let batch = db.batch();
-    let operationCount = 0;
-
-    async function collectDeletes(ref) {
-      const repliesSnap = await ref.collection('replies').get();
-      for (const replyDoc of repliesSnap.docs) {
-        await collectDeletes(replyDoc.ref);
-        batch.delete(replyDoc.ref);
-        operationCount++;
-        if (operationCount >= 450) {
-          await batch.commit();
-          batch = db.batch();
-          operationCount = 0;
-        }
-      }
+    let batch = db.batch(); let count = 0;
+    async function collect(ref) {
+      const replies = await ref.collection('replies').get();
+      for (const r of replies.docs) { await collect(r.ref); batch.delete(r.ref); count++; if (count>=400) { await batch.commit(); batch=db.batch(); count=0; } }
     }
-
-    await collectDeletes(docRef);
-    batch.delete(docRef);
-    operationCount++;
-    await batch.commit();
+    await collect(docRef); batch.delete(docRef); await batch.commit();
   }
 
   window.deleteItem = function(path) {
-    if (!confirm('Permanently delete this item and all its replies?')) return;
+    if (!confirm('Permanently delete item + replies?')) return;
     const docRef = db.doc(path);
     deleteDocumentAndSubcollections(docRef)
-      .then(() => {
-        alert('Deleted successfully');
-        loadAllContent();
-      })
-      .catch(err => {
-        console.error('Delete error:', err);
-        showError(err);
-      });
+      .then(() => { alert('Deleted'); loadAllContent(); })
+      .catch(showError);
   };
 
-  // ---------- LOAD ALL CONTENT (moderation) ----------
+  // ---------- LOAD ALL MODERATION ----------
   function loadAllContent() {
-    // Feed
-    db.collection('feed').orderBy('created', 'desc').get().then(snap => {
-      const container = document.getElementById('moderateFeed');
-      container.innerHTML = '';
+    const collections = ['feed','chat','goodwill','events'];
+    collections.forEach(c => {
+      db.collection(c).orderBy('created','desc').get().then(snap => {
+        const container = document.getElementById(`moderate${c.charAt(0).toUpperCase()+c.slice(1)}`);
+        if (!container) return;
+        container.innerHTML = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          container.innerHTML += `<div class="moderation-item"><div class="moderation-meta">📌 ${c} | ${escapeHTML(d.name||'')} | ${new Date(d.created).toLocaleString()}</div><div>${escapeHTML(d.text||d.title||'')}</div>${d.image?`<img src="${escapeHTML(d.image)}" style="max-width:100px">`:''}<br><button class="delete-btn" onclick="deleteItem('${c}/${doc.id}')">Delete</button></div>`;
+        });
+      }).catch(showError);
+    });
+
+    db.collection('live').doc('current').collection('comments').orderBy('created','desc').get().then(snap => {
+      const cont = document.getElementById('moderateLive');
+      cont.innerHTML = '';
       snap.forEach(doc => {
         const d = doc.data();
-        container.innerHTML += `
-          <div class="moderation-item">
-            <div class="moderation-meta">📰 Feed | ${escapeHTML(d.name)} (${escapeHTML(d.kindred)}) | ${new Date(d.created).toLocaleString()}</div>
-            <div>${escapeHTML(d.text || '')}</div>
-            ${d.image ? `<div><img src="${escapeHTML(d.image)}" style="max-width:200px; border-radius:12px;"></div>` : ''}
-            <button class="delete-btn" onclick="deleteItem('feed/${doc.id}')">Delete</button>
-          </div>
-        `;
+        cont.innerHTML += `<div class="moderation-item"><div class="moderation-meta">💬 Live | ${escapeHTML(d.name)} | ${new Date(d.created).toLocaleString()}</div><div>${escapeHTML(d.text)}</div><button class="delete-btn" onclick="deleteItem('live/current/comments/${doc.id}')">Delete</button></div>`;
       });
     }).catch(showError);
 
-    // Chat
-    db.collection('chat').orderBy('created', 'desc').get().then(snap => {
-      const container = document.getElementById('moderateChat');
-      container.innerHTML = '';
-      snap.forEach(doc => {
-        const d = doc.data();
-        container.innerHTML += `
-          <div class="moderation-item">
-            <div class="moderation-meta">💬 Chat | ${escapeHTML(d.name)} (${escapeHTML(d.kindred)}) | ${new Date(d.created).toLocaleString()}</div>
-            <div>${escapeHTML(d.text)}</div>
-            <button class="delete-btn" onclick="deleteItem('chat/${doc.id}')">Delete</button>
-          </div>
-        `;
-      });
-    }).catch(showError);
-
-    // Goodwill
-    db.collection('goodwill').orderBy('created', 'desc').get().then(snap => {
-      const container = document.getElementById('moderateGoodwill');
-      container.innerHTML = '';
-      snap.forEach(doc => {
-        const d = doc.data();
-        container.innerHTML += `
-          <div class="moderation-item">
-            <div class="moderation-meta">🤝 Goodwill | ${escapeHTML(d.name)} (${escapeHTML(d.kindred)}) | ${new Date(d.created).toLocaleString()}</div>
-            <div>${escapeHTML(d.text)}</div>
-            <button class="delete-btn" onclick="deleteItem('goodwill/${doc.id}')">Delete</button>
-          </div>
-        `;
-      });
-    }).catch(showError);
-
-    // Live comments
-    db.collection('live').doc('current').collection('comments').orderBy('created', 'desc').get().then(snap => {
-      const container = document.getElementById('moderateLive');
-      container.innerHTML = '';
-      snap.forEach(doc => {
-        const d = doc.data();
-        container.innerHTML += `
-          <div class="moderation-item">
-            <div class="moderation-meta">📺 Live Comment | ${escapeHTML(d.name)} (${escapeHTML(d.kindred)}) | ${new Date(d.created).toLocaleString()}</div>
-            <div>${escapeHTML(d.text)}</div>
-            <button class="delete-btn" onclick="deleteItem('live/current/comments/${doc.id}')">Delete</button>
-          </div>
-        `;
-      });
-    }).catch(showError);
-
-    // Events
-    db.collection('events').orderBy('created', 'desc').get().then(snap => {
-      const container = document.getElementById('moderateEvents');
-      container.innerHTML = '';
-      snap.forEach(doc => {
-        const d = doc.data();
-        container.innerHTML += `
-          <div class="moderation-item">
-            <div class="moderation-meta">📅 Event | ${escapeHTML(d.title)}</div>
-            <div>${escapeHTML(d.description || '')}</div>
-            <button class="delete-btn" onclick="deleteItem('events/${doc.id}')">Delete</button>
-          </div>
-        `;
-      });
-    }).catch(showError);
-
-    // Replies (all collections)
-    db.collectionGroup('replies').orderBy('created', 'desc').limit(50).get().then(snap => {
-      const container = document.getElementById('moderateReplies');
-      container.innerHTML = '';
+    db.collectionGroup('replies').orderBy('created','desc').limit(50).get().then(snap => {
+      const cont = document.getElementById('moderateReplies');
+      cont.innerHTML = '';
       snap.forEach(doc => {
         const r = doc.data();
-        const path = doc.ref.path;
-        container.innerHTML += `
-          <div class="moderation-item">
-            <div class="moderation-meta">↩️ Reply | ${escapeHTML(r.name)} (${escapeHTML(r.kindred)}) | ${new Date(r.created).toLocaleString()}</div>
-            <div>${escapeHTML(r.text)}</div>
-            <button class="delete-btn" onclick="deleteItem('${path}')">Delete</button>
-          </div>
-        `;
+        cont.innerHTML += `<div class="moderation-item"><div class="moderation-meta">↩️ Reply | ${escapeHTML(r.name)} | ${new Date(r.created).toLocaleString()}</div><div>${escapeHTML(r.text)}</div><button class="delete-btn" onclick="deleteItem('${doc.ref.path}')">Delete</button></div>`;
       });
     }).catch(showError);
   }
 
-  // ---------- TAB SWITCHING ----------
+  // ---------- TABS ----------
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -799,14 +789,12 @@
     });
   });
 
-  // ==================== GOOGLE DRIVE PICKER ====================
-  const API_KEY = 'AIzaSyD91n0Uv-It5GUtfrXyNRXWs8o1eTWiHAo';
+  // ---------- GOOGLE DRIVE PICKER ----------
+  const API_KEY = 'AIzaSyD91nUv-It5GUtfrXyNRXWs8o1eTWiHAo';
   const CLIENT_ID = '672649423935-e3g0m98jkikrp6p4e5iesd3mqs4tfpqi.apps.googleusercontent.com';
   const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
   const FOLDER_ID = '1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2';
-
-  let pickerApiLoaded = false;
-  let oauthToken;
+  let pickerApiLoaded = false, oauthToken;
 
   window.openGooglePicker = function(targetInputId) {
     window.currentPickerTarget = targetInputId;
@@ -814,39 +802,18 @@
     gapi.load('picker', { callback: onPickerApiLoad });
   };
 
-  function onAuthApiLoad() {
-    gapi.auth.authorize(
-      { client_id: CLIENT_ID, scope: SCOPES, immediate: false },
-      handleAuthResult
-    );
-  }
-
-  function onPickerApiLoad() {
-    pickerApiLoaded = true;
-    createPicker();
-  }
+  function onAuthApiLoad() { gapi.auth.authorize({ client_id: CLIENT_ID, scope: SCOPES, immediate: false }, handleAuthResult); }
+  function onPickerApiLoad() { pickerApiLoaded = true; createPicker(); }
 
   function handleAuthResult(authResult) {
-    if (authResult && !authResult.error) {
-      oauthToken = authResult.access_token;
-      createPicker();
-    } else {
-      alert('Authorization failed: ' + (authResult?.error || 'unknown error'));
-    }
+    if (authResult && !authResult.error) { oauthToken = authResult.access_token; createPicker(); }
+    else alert('Auth failed');
   }
 
   function createPicker() {
     if (pickerApiLoaded && oauthToken) {
-      const driveView = new google.picker.DocsView()
-        .setParent(FOLDER_ID)
-        .setIncludeFolders(true);
-      const picker = new google.picker.PickerBuilder()
-        .addView(driveView)
-        .setOAuthToken(oauthToken)
-        .setDeveloperKey(API_KEY)
-        .setCallback(pickerCallback)
-        .build();
-      picker.setVisible(true);
+      const driveView = new google.picker.DocsView().setParent(FOLDER_ID).setIncludeFolders(true);
+      new google.picker.PickerBuilder().addView(driveView).setOAuthToken(oauthToken).setDeveloperKey(API_KEY).setCallback(pickerCallback).build().setVisible(true);
     }
   }
 
@@ -856,148 +823,18 @@
       const fileId = doc.id;
       const isImage = doc.mimeType && doc.mimeType.startsWith('image/');
       const mediaUrl = isImage ? `https://drive.google.com/uc?id=${fileId}` : doc.url;
-
       const targetId = window.currentPickerTarget;
       if (targetId) {
         document.getElementById(targetId).value = mediaUrl;
-
         const previewDivId = 'preview' + targetId.charAt(0).toUpperCase() + targetId.slice(1);
         const previewDiv = document.getElementById(previewDivId);
         if (previewDiv) {
-          if (isImage) {
-            previewDiv.innerHTML = `<img src="${mediaUrl}" alt="Preview">`;
-          } else {
-            previewDiv.innerHTML = `<a href="${mediaUrl}" target="_blank">View selected file</a>`;
-          }
+          previewDiv.innerHTML = isImage ? `<img src="${mediaUrl}" style="max-width:100%">` : `<a href="${mediaUrl}" target="_blank">view file</a>`;
           previewDiv.style.display = 'block';
         }
       }
     }
   }
-  // ==================== END DRIVE PICKER ====================
-
-  // ========== BOTTOM MESSAGES ==========
-  function loadBottomMessages() {
-    const configDoc = db.collection("config").doc("site");
-    const input = document.getElementById('bottomMessagesInput');
-    const previewUl = document.querySelector('#bottomMessagesPreview ul');
-
-    configDoc.get().then(doc => {
-      let messages = [];
-      if (doc.exists) {
-        const data = doc.data();
-        if (data.bottomMessages && Array.isArray(data.bottomMessages)) {
-          messages = data.bottomMessages;
-        } else if (data.bottomMessage && typeof data.bottomMessage === 'string') {
-          messages = [data.bottomMessage];
-        }
-      }
-      input.value = messages.join('\n');
-      updatePreview(messages);
-    }).catch(err => {
-      console.error("Error loading bottom messages:", err);
-    });
-
-    input.addEventListener('input', function() {
-      const lines = this.value.split('\n').map(l => l.trim()).filter(l => l !== '');
-      updatePreview(lines);
-    });
-
-    function updatePreview(arr) {
-      previewUl.innerHTML = '';
-      if (arr.length === 0) {
-        previewUl.innerHTML = '<li><em>(no messages)</em></li>';
-      } else {
-        arr.forEach(msg => {
-          const li = document.createElement('li');
-          li.textContent = '⚡ ' + msg;
-          previewUl.appendChild(li);
-        });
-      }
-    }
-  }
-
-  window.saveBottomMessages = function() {
-    const raw = document.getElementById('bottomMessagesInput').value;
-    const messages = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
-    if (messages.length === 0) {
-      alert('Please enter at least one message.');
-      return;
-    }
-    db.collection("config").doc("site").set({ bottomMessages: messages }, { merge: true })
-      .then(() => {
-        alert('✅ Bottom messages saved!');
-      })
-      .catch(err => {
-        alert('❌ Failed to save: ' + err.message);
-      });
-  };
-
-  // ========== MARQUEE SPEEDS ==========
-  (function() {
-    const topSlider = document.getElementById('topSpeedSlider');
-    const topInput = document.getElementById('topSpeedInput');
-    const topPreview = document.getElementById('topSpeedPreview');
-    const bottomSlider = document.getElementById('bottomSpeedSlider');
-    const bottomInput = document.getElementById('bottomSpeedInput');
-    const bottomPreview = document.getElementById('bottomSpeedPreview');
-
-    const configDoc = db.collection("config").doc("site");
-
-    configDoc.get().then(doc => {
-      if (doc.exists) {
-        const data = doc.data();
-        if (data.topMarqueeSpeed) {
-          let topVal = parseInt(data.topMarqueeSpeed, 10);
-          if (isNaN(topVal) || topVal < 1) topVal = 22;
-          topSlider.value = topVal;
-          topInput.value = topVal;
-          topPreview.textContent = `Top: ${topVal}s`;
-        }
-        if (data.bottomMarqueeSpeed) {
-          let bottomVal = parseInt(data.bottomMarqueeSpeed, 10);
-          if (isNaN(bottomVal) || bottomVal < 1) bottomVal = 360;
-          bottomSlider.value = bottomVal;
-          bottomInput.value = bottomVal;
-          bottomPreview.textContent = `Bottom: ${bottomVal}s`;
-        }
-      }
-    }).catch(err => console.error(err));
-
-    function linkSliderAndInput(slider, input, preview, label) {
-      slider.addEventListener('input', function() {
-        input.value = this.value;
-        preview.textContent = `${label}: ${this.value}s`;
-      });
-      input.addEventListener('input', function() {
-        slider.value = this.value;
-        preview.textContent = `${label}: ${this.value}s`;
-      });
-    }
-    linkSliderAndInput(topSlider, topInput, topPreview, 'Top');
-    linkSliderAndInput(bottomSlider, bottomInput, bottomPreview, 'Bottom');
-
-    window.saveMarqueeSpeeds = function() {
-      const topSpeed = Number(topSlider.value);
-      const bottomSpeed = Number(bottomSlider.value);
-
-      if (topSpeed < 1 || topSpeed > 2000 || bottomSpeed < 1 || bottomSpeed > 2000) {
-        alert('Speeds must be between 1 and 2000 seconds.');
-        return;
-      }
-
-      configDoc.set({
-        topMarqueeSpeed: topSpeed,
-        bottomMarqueeSpeed: bottomSpeed
-      }, { merge: true })
-        .then(() => {
-          alert('Marquee speeds updated!');
-        })
-        .catch(err => {
-          alert('Error: ' + err.message);
-        });
-    };
-  })();
 </script>
 </body>
 </html>
