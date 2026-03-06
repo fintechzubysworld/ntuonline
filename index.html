@@ -1193,7 +1193,7 @@
   let currentUser = null;
 
   // Drive API for avatars
-  const DRIVE_API_KEY = 'AIzaSyD91n0Uv-It5GUtfrXyNRXWs8o1eTWiHAo';
+  const DRIVE_API_KEY = 'AIzaSyD91nUv-It5GUtfrXyNRXWs8o1eTWiHAo';
   const AVATAR_FOLDER_ID = '1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2';
   let cachedAvatars = null;
 
@@ -2001,13 +2001,14 @@
     });
   }, showError);
 
-  // ==================== FULL LIVE (multi‑platform) ====================
+  // ==================== FULL LIVE (multi‑platform) – with TikTok Live fix ====================
   function getLiveEmbedHTML(platform, identifier) {
     if (!identifier) return '<p style="text-align:center;">🔴 Currently Offline</p>';
     if (platform === 'youtube') {
       return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${identifier}" allowfullscreen></iframe>`;
     } else if (platform === 'tiktok') {
-      return `<iframe width="100%" height="315" src="https://www.tiktok.com/embed/v2/${identifier}" allowfullscreen></iframe>`;
+      // TikTok Live embed using the official iframe
+      return `<iframe width="100%" height="500" src="https://www.tiktok.com/embed/live?username=${identifier}" frameborder="0" scrolling="no" allowfullscreen></iframe>`;
     } else if (platform === 'instagram') {
       return `<iframe width="100%" height="315" src="https://www.instagram.com/p/${identifier}/embed" allowfullscreen></iframe>`;
     }
@@ -3200,4 +3201,3 @@
 </script>
 </body>
 </html>
-
