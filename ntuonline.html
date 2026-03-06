@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aquamarine · Broadcast Admin (unified)</title>
+  <title>Aquamarine · Broadcast Admin (TikTok Live)</title>
 
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
@@ -324,15 +324,15 @@
 
 <div id="dashboard" style="display:none;">
 
-  <!-- ========== EXTERNAL LIVE CONTROL ========== -->
+  <!-- ========== EXTERNAL LIVE CONTROL (with TikTok Live) ========== -->
   <div class="card">
-    <h3><i class="fa-regular fa-circle-play"></i> External Live Stream (YouTube · TikTok · Instagram)</h3>
+    <h3><i class="fa-regular fa-circle-play"></i> External Live Stream (YouTube · TikTok Live · Instagram)</h3>
     <div class="platform-selector">
-      <label><input type="radio" name="livePlatform" value="youtube" checked> <i class="fab fa-youtube" style="color:#ff0000;"></i> YouTube</label>
-      <label><input type="radio" name="livePlatform" value="tiktok"> <i class="fab fa-tiktok"></i> TikTok (video ID)</label>
-      <label><input type="radio" name="livePlatform" value="instagram"> <i class="fab fa-instagram" style="color:#e1306c;"></i> Instagram</label>
+      <label><input type="radio" name="livePlatform" value="youtube" checked> <i class="fab fa-youtube" style="color:#ff0000;"></i> YouTube (Video ID)</label>
+      <label><input type="radio" name="livePlatform" value="tiktok"> <i class="fab fa-tiktok"></i> TikTok Live (username)</label>
+      <label><input type="radio" name="livePlatform" value="instagram"> <i class="fab fa-instagram" style="color:#e1306c;"></i> Instagram (shortcode)</label>
     </div>
-    <input type="text" id="liveIdentifier" placeholder="Video ID / Username / Shortcode" value="">
+    <input type="text" id="liveIdentifier" placeholder="For TikTok: enter the username (e.g., @tiktok)" value="">
     <input type="text" id="liveTitle" placeholder="Title (e.g., Sunday Service)">
     <div class="input-group" style="margin:15px 0;">
       <button onclick="updateExternalLive()" style="flex:2;">🎯 Activate External Live</button>
@@ -344,6 +344,9 @@
     <div class="live-status">
       <strong>📡 Currently on air:</strong> <span id="liveStatusText">Loading...</span>
     </div>
+    <p class="small-note">
+      <i class="fa-regular fa-circle-info"></i> For TikTok Live, use the username (with or without @). The community page uses the official TikTok Live embed.
+    </p>
   </div>
 
   <!-- ========== VIDEO STUDIO (WebRTC broadcast start/stop) ========== -->
@@ -555,7 +558,9 @@
       const statusSpan = document.getElementById('liveStatusText');
       if (doc.exists) {
         const d = doc.data();
-        statusSpan.innerHTML = `<strong>${escapeHTML(d.title || 'Untitled')}</strong> (${d.platform || 'external'}) · ID: ${escapeHTML(d.videoId || '')}`;
+        let platformDisplay = d.platform;
+        if (d.platform === 'tiktok') platformDisplay = 'TikTok Live';
+        statusSpan.innerHTML = `<strong>${escapeHTML(d.title || 'Untitled')}</strong> (${platformDisplay}) · ${escapeHTML(d.videoId || '')}`;
         document.getElementById('liveTitle').value = d.title || '';
         document.getElementById('liveIdentifier').value = d.videoId || '';
         const radio = document.querySelector(`input[name="livePlatform"][value="${d.platform || 'youtube'}"]`);
@@ -568,9 +573,14 @@
 
   window.updateExternalLive = function() {
     const platform = document.querySelector('input[name="livePlatform"]:checked')?.value;
-    const identifier = document.getElementById('liveIdentifier').value.trim();
+    let identifier = document.getElementById('liveIdentifier').value.trim();
     const title = document.getElementById('liveTitle').value.trim() || 'Live Stream';
     if (!identifier) return showMessage('liveExternalMessage', 'Identifier required', 'error');
+
+    // For TikTok, clean up username (remove @ if present)
+    if (platform === 'tiktok') {
+      identifier = identifier.replace(/^@/, '');
+    }
 
     db.collection('live').doc('current').set({
       platform,
