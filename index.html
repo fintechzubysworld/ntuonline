@@ -198,6 +198,11 @@
       font-size: 1.2rem;
     }
 
+    /* Admin link will be hidden via JavaScript if not admin */
+    .sidebar-menu li.admin-link {
+      display: list-item;
+    }
+
     /* Overlay for mobile */
     .overlay {
       display: none;
@@ -877,6 +882,14 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.7; }
     }
+
+    /* Admin panel visibility – hidden by default for non‑admins */
+    #admin {
+      display: none;
+    }
+    #admin.visible {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -913,7 +926,8 @@
     <li><a href="#" data-content="community"><i class="fas fa-users"></i> Community Chats</a></li>
     <li><a href="#" data-content="private"><i class="fas fa-lock"></i> Private Chats</a></li>
     <li><a href="#" data-content="profile"><i class="fas fa-user"></i> Profile</a></li>
-    <li><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
+    <!-- Admin link – will be shown/hidden via JavaScript -->
+    <li class="admin-link" style="display: none;"><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
     <li><a href="#" id="ntuElectricityLink"><i class="fas fa-bolt"></i> Ntu Electricity</a></li>
   </ul>
 </nav>
@@ -1041,7 +1055,7 @@
     </div>
   </div>
 
-  <!-- ADMIN panel – with camera switch (rear default) -->
+  <!-- ADMIN panel – only visible if user is admin -->
   <div id="admin" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
@@ -1073,7 +1087,7 @@
         <p style="font-size:0.85rem; margin-top:10px;">When active, viewers see your camera feed on the homepage and livestream page.</p>
       </div>
 
-      <button onclick="window.location='ntuonline.html'" style="margin-top:20px;"><i class="fa-regular fa-shield"></i> Advanced Admin</button>
+      <button onclick="window.location='admin.html'" style="margin-top:20px;"><i class="fa-regular fa-shield"></i> Advanced Admin</button>
     </div>
   </div>
 
@@ -1191,6 +1205,7 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   let currentUser = null;
+  let currentUserIsAdmin = false; // track admin status
 
   // Drive API for avatars
   const DRIVE_API_KEY = 'AIzaSyD91nUv-It5GUtfrXyNRXWs8o1eTWiHAo';
@@ -1534,6 +1549,7 @@
       db.collection("users").doc(user.uid).update({ online: true }).catch(showError);
       db.collection("users").doc(user.uid).get().then(doc => {
         const userData = doc.data() || {};
+        currentUserIsAdmin = userData.isAdmin === true;
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
           <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
@@ -1542,20 +1558,51 @@
         updateProfilePanel(userData);
         setupNotifications();
         updateHeaderMarqueeVisibility();
+
+        // Show/hide admin link in sidebar
+        const adminLinkLi = document.querySelector('.sidebar-menu li.admin-link');
+        if (adminLinkLi) {
+          adminLinkLi.style.display = currentUserIsAdmin ? 'list-item' : 'none';
+        }
+
+        // Show/hide admin panel content
+        const adminPanel = document.getElementById('admin');
+        if (adminPanel) {
+          if (currentUserIsAdmin) {
+            adminPanel.classList.add('visible'); // make it visible (CSS display block)
+          } else {
+            adminPanel.classList.remove('visible');
+          }
+        }
+
         // update broadcast button states based on admin
-        isAdminUser().then(admin => {
-          document.getElementById('startBroadcastBtn').disabled = !admin;
-          document.getElementById('switchCamBtn').disabled = !admin;
-          document.getElementById('stopBroadcastBtn').disabled = !admin;
-        });
+        const startBtn = document.getElementById('startBroadcastBtn');
+        const switchBtn = document.getElementById('switchCamBtn');
+        const stopBtn = document.getElementById('stopBroadcastBtn');
+        if (startBtn && switchBtn && stopBtn) {
+          startBtn.disabled = !currentUserIsAdmin;
+          switchBtn.disabled = !currentUserIsAdmin;
+          stopBtn.disabled = !currentUserIsAdmin;
+        }
       }).catch(showError);
     } else {
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
-      document.getElementById('startBroadcastBtn').disabled = true;
-      document.getElementById('switchCamBtn').disabled = true;
-      document.getElementById('stopBroadcastBtn').disabled = true;
+      // Hide admin elements
+      const adminLinkLi = document.querySelector('.sidebar-menu li.admin-link');
+      if (adminLinkLi) adminLinkLi.style.display = 'none';
+      const adminPanel = document.getElementById('admin');
+      if (adminPanel) adminPanel.classList.remove('visible');
+      // Disable broadcast buttons
+      const startBtn = document.getElementById('startBroadcastBtn');
+      const switchBtn = document.getElementById('switchCamBtn');
+      const stopBtn = document.getElementById('stopBroadcastBtn');
+      if (startBtn && switchBtn && stopBtn) {
+        startBtn.disabled = true;
+        switchBtn.disabled = true;
+        stopBtn.disabled = true;
+      }
     }
   });
 
