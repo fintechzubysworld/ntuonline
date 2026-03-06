@@ -198,8 +198,11 @@
       font-size: 1.2rem;
     }
 
-    /* Admin link will be hidden via JavaScript if not admin */
+    /* Admin link – completely hidden by default, shown only via JS for admins */
     .sidebar-menu li.admin-link {
+      display: none;
+    }
+    .sidebar-menu li.admin-link.visible {
       display: list-item;
     }
 
@@ -883,12 +886,31 @@
       50% { opacity: 0.7; }
     }
 
-    /* Admin panel visibility – hidden by default for non‑admins */
+    /* ADMIN PANEL - Strictly restricted */
+    /* Admin panel is completely hidden by default */
     #admin {
-      display: none;
+      display: none !important; /* Force hide with !important */
     }
-    #admin.visible {
-      display: block;
+    
+    /* Only show admin panel when explicitly enabled for admins */
+    #admin.admin-enabled {
+      display: none; /* Still hidden until navigated to */
+    }
+    
+    /* Show admin panel only when it has both admin-enabled AND active classes */
+    #admin.admin-enabled.active {
+      display: block !important;
+    }
+
+    /* Access denied message styling */
+    .access-denied {
+      text-align: center;
+      padding: 40px;
+      color: #ff6b4a;
+    }
+    .access-denied i {
+      font-size: 3rem;
+      margin-bottom: 15px;
     }
   </style>
 </head>
@@ -926,8 +948,8 @@
     <li><a href="#" data-content="community"><i class="fas fa-users"></i> Community Chats</a></li>
     <li><a href="#" data-content="private"><i class="fas fa-lock"></i> Private Chats</a></li>
     <li><a href="#" data-content="profile"><i class="fas fa-user"></i> Profile</a></li>
-    <!-- Admin link – will be shown/hidden via JavaScript -->
-    <li class="admin-link" style="display: none;"><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
+    <!-- Admin link – completely hidden by default, shown only for admins via JavaScript -->
+    <li class="admin-link" id="adminSidebarLink"><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
     <li><a href="#" id="ntuElectricityLink"><i class="fas fa-bolt"></i> Ntu Electricity</a></li>
   </ul>
 </nav>
@@ -937,14 +959,14 @@
 
 <!-- Main content -->
 <main id="mainContent">
-  <!-- HOME panel – dashboard with mini cards -->
+  <!-- HOME panel – dashboard with mini cards (NO ADMIN CONTENT HERE) -->
   <div id="home" class="content active">
     <div class="dashboard-grid">
-      <!-- Mini Live Stream -->
+      <!-- Mini Live Stream (Viewer only - no admin controls) -->
       <div class="mini-card">
         <h4><i class="fa-regular fa-circle-play"></i> Live Studio</h4>
         <div id="miniLiveArea" class="live-mini"></div>
-        <!-- WebRTC container for broadcast -->
+        <!-- WebRTC container for broadcast viewing only -->
         <div id="miniLiveWebRTCContainer" class="webrtc-video-container live-mini" style="display: none;">
           <video id="miniLiveWebRTCVideo" autoplay playsinline style="width:100%; max-height:160px; border-radius:14px; background:black;"></video>
         </div>
@@ -994,7 +1016,7 @@
     </div>
   </div>
 
-  <!-- LIVESTREAM full panel -->
+  <!-- LIVESTREAM full panel (Viewer only) -->
   <div id="livestream" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-circle-play"></i> Live Studio</h3>
@@ -1055,8 +1077,8 @@
     </div>
   </div>
 
-  <!-- ADMIN panel – only visible if user is admin -->
-  <div id="admin" class="content">
+  <!-- ADMIN panel – STRICTLY RESTRICTED, only accessible via sidebar for admins -->
+  <div id="admin" class="content admin-enabled">
     <div class="card">
       <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
       <p style="margin-bottom: 15px;">Manage live stream source or start a direct camera broadcast.</p>
@@ -1088,6 +1110,16 @@
       </div>
 
       <button onclick="window.location='ntuonline.html'" style="margin-top:20px;"><i class="fa-regular fa-shield"></i> Advanced Admin</button>
+    </div>
+  </div>
+
+  <!-- Access Denied panel (shown when non-admin tries to access admin) -->
+  <div id="accessDenied" class="content">
+    <div class="card access-denied">
+      <i class="fas fa-lock"></i>
+      <h3>Access Denied</h3>
+      <p>You do not have permission to access the admin panel.</p>
+      <button onclick="showContent('home')" style="margin-top:20px;">Return Home</button>
     </div>
   </div>
 
@@ -1559,49 +1591,46 @@
         setupNotifications();
         updateHeaderMarqueeVisibility();
 
-        // Show/hide admin link in sidebar
-        const adminLinkLi = document.querySelector('.sidebar-menu li.admin-link');
+        // Show/hide admin link in sidebar - STRICT CONTROL
+        const adminLinkLi = document.getElementById('adminSidebarLink');
         if (adminLinkLi) {
-          adminLinkLi.style.display = currentUserIsAdmin ? 'list-item' : 'none';
-        }
-
-        // Show/hide admin panel content
-        const adminPanel = document.getElementById('admin');
-        if (adminPanel) {
           if (currentUserIsAdmin) {
-            adminPanel.classList.add('visible'); // make it visible (CSS display block)
+            adminLinkLi.classList.add('visible');
           } else {
-            adminPanel.classList.remove('visible');
+            adminLinkLi.classList.remove('visible');
           }
         }
 
-        // update broadcast button states based on admin
-        const startBtn = document.getElementById('startBroadcastBtn');
-        const switchBtn = document.getElementById('switchCamBtn');
-        const stopBtn = document.getElementById('stopBroadcastBtn');
-        if (startBtn && switchBtn && stopBtn) {
-          startBtn.disabled = !currentUserIsAdmin;
-          switchBtn.disabled = !currentUserIsAdmin;
-          stopBtn.disabled = !currentUserIsAdmin;
+        // Enable/disable admin panel access
+        const adminPanel = document.getElementById('admin');
+        if (adminPanel) {
+          if (currentUserIsAdmin) {
+            adminPanel.classList.add('admin-enabled');
+          } else {
+            adminPanel.classList.remove('admin-enabled');
+            // If currently on admin page, redirect to home
+            if (currentContent === 'admin') {
+              showContent('home');
+            }
+          }
         }
+
       }).catch(showError);
     } else {
       navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
+      
       // Hide admin elements
-      const adminLinkLi = document.querySelector('.sidebar-menu li.admin-link');
-      if (adminLinkLi) adminLinkLi.style.display = 'none';
+      const adminLinkLi = document.getElementById('adminSidebarLink');
+      if (adminLinkLi) adminLinkLi.classList.remove('visible');
+      
       const adminPanel = document.getElementById('admin');
-      if (adminPanel) adminPanel.classList.remove('visible');
-      // Disable broadcast buttons
-      const startBtn = document.getElementById('startBroadcastBtn');
-      const switchBtn = document.getElementById('switchCamBtn');
-      const stopBtn = document.getElementById('stopBroadcastBtn');
-      if (startBtn && switchBtn && stopBtn) {
-        startBtn.disabled = true;
-        switchBtn.disabled = true;
-        stopBtn.disabled = true;
+      if (adminPanel) adminPanel.classList.remove('admin-enabled');
+      
+      // Redirect from admin if logged out
+      if (currentContent === 'admin') {
+        showContent('home');
       }
     }
   });
@@ -3111,11 +3140,38 @@
     updateHeaderMarqueeVisibility();
   });
 
+  // ENHANCED: Content switching with admin access control
   window.showContent = function(targetId) {
+    // Special handling for admin panel - STRICT ACCESS CONTROL
+    if (targetId === 'admin') {
+      if (!currentUserIsAdmin) {
+        console.warn('Non-admin attempted to access admin panel');
+        // Show access denied instead
+        contentDivs.forEach(div => div.classList.remove('active'));
+        document.getElementById('accessDenied').classList.add('active');
+        currentContent = 'accessDenied';
+        updateHeaderMarqueeVisibility();
+        return;
+      }
+      // Check if admin panel is enabled
+      const adminPanel = document.getElementById('admin');
+      if (!adminPanel.classList.contains('admin-enabled')) {
+        console.warn('Admin panel not enabled');
+        contentDivs.forEach(div => div.classList.remove('active'));
+        document.getElementById('accessDenied').classList.add('active');
+        currentContent = 'accessDenied';
+        updateHeaderMarqueeVisibility();
+        return;
+      }
+    }
+
+    // Normal content switching
     contentDivs.forEach(div => div.classList.remove('active'));
     const targetDiv = document.getElementById(targetId);
-    if (targetDiv) targetDiv.classList.add('active');
-    currentContent = targetId;
+    if (targetDiv) {
+      targetDiv.classList.add('active');
+      currentContent = targetId;
+    }
     updateHeaderMarqueeVisibility();
   };
 
@@ -3248,4 +3304,3 @@
 </script>
 </body>
 </html>
-
