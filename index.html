@@ -59,7 +59,6 @@
       gap: 1rem;
     }
 
-    /* Kebab icon in header */
     .logo {
       cursor: pointer;
       display: flex;
@@ -252,11 +251,17 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ===== DASHBOARD GRID FOR HOME ===== */
+    /* ===== DASHBOARD GRID FOR HOME – 2×2 LAYOUT ===== */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(2, 1fr); /* Force 2 columns */
       gap: 20px;
+    }
+
+    @media (max-width: 640px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr; /* Stack on small screens */
+      }
     }
 
     .mini-card {
@@ -266,6 +271,9 @@
       padding: 18px;
       border: 1px solid rgba(80, 210, 180, 0.2);
       transition: transform 0.2s, border-color 0.2s;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer; /* Indicates clickable for expansion */
     }
     .mini-card:hover {
       border-color: rgba(90, 235, 200, 0.5);
@@ -286,6 +294,7 @@
     .mini-card .view-all {
       margin-top: 12px;
       text-align: right;
+      z-index: 2; /* Keep button above clickable card */
     }
     .mini-card .view-all button {
       background: transparent;
@@ -297,14 +306,40 @@
       cursor: pointer;
       min-height: auto;
       box-shadow: none;
+      pointer-events: auto; /* Ensure button remains clickable */
     }
     .mini-card .view-all button:hover {
       background: #2dab95;
       color: white;
     }
 
-    /* Mini feed items inside dashboard */
-    .mini-feed-item, .mini-event-item, .mini-goodwill-item {
+    /* Scrollable containers for full content inside mini-cards */
+    .mini-full-scroll {
+      max-height: 300px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      padding-right: 5px;
+      margin-bottom: 8px;
+    }
+    .mini-full-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .mini-full-scroll::-webkit-scrollbar-track {
+      background: #0f332d;
+      border-radius: 10px;
+    }
+    .mini-full-scroll::-webkit-scrollbar-thumb {
+      background: #2dab95;
+      border-radius: 10px;
+    }
+
+    /* Hide old mini preview areas – they are replaced by full containers */
+    #miniFeedArea, #miniEventArea, #miniGoodwillArea {
+      display: none !important;
+    }
+
+    /* Mini feed items inside full containers – simplified (no reply box) */
+    .mini-feed-item, .mini-event-item, .mini-goodwill-item, .mini-live-comment-item {
       background: #0f2d27;
       border-radius: 18px;
       padding: 12px;
@@ -318,7 +353,7 @@
       font-size: 0.65rem;
     }
 
-    /* Live mini preview — supports WebRTC video */
+    /* Live mini preview – video + comments */
     .live-mini {
       background: #0f2d27;
       border-radius: 18px;
@@ -887,22 +922,16 @@
     }
 
     /* ADMIN PANEL - Strictly restricted */
-    /* Admin panel is completely hidden by default */
     #admin {
-      display: none !important; /* Force hide with !important */
+      display: none !important;
     }
-    
-    /* Only show admin panel when explicitly enabled for admins */
     #admin.admin-enabled {
-      display: none; /* Still hidden until navigated to */
+      display: none;
     }
-    
-    /* Show admin panel only when it has both admin-enabled AND active classes */
     #admin.admin-enabled.active {
       display: block !important;
     }
 
-    /* Access denied message styling */
     .access-denied {
       text-align: center;
       padding: 40px;
@@ -948,7 +977,7 @@
     <li><a href="#" data-content="community"><i class="fas fa-users"></i> Community Chats</a></li>
     <li><a href="#" data-content="private"><i class="fas fa-lock"></i> Private Chats</a></li>
     <li><a href="#" data-content="profile"><i class="fas fa-user"></i> Profile</a></li>
-    <!-- Admin link – completely hidden by default, shown only for admins via JavaScript -->
+    <!-- Admin link – hidden by default -->
     <li class="admin-link" id="adminSidebarLink"><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
     <li><a href="#" id="ntuElectricityLink"><i class="fas fa-bolt"></i> Ntu Electricity</a></li>
   </ul>
@@ -959,46 +988,48 @@
 
 <!-- Main content -->
 <main id="mainContent">
-  <!-- HOME panel – dashboard with mini cards (NO ADMIN CONTENT HERE) -->
+  <!-- HOME panel – 2×2 grid with FULL content in each mini-card -->
   <div id="home" class="content active">
     <div class="dashboard-grid">
-      <!-- Mini Live Stream (Viewer only - no admin controls) -->
-      <div class="mini-card">
+      <!-- Mini Live Stream (now includes video + recent comments) -->
+      <div class="mini-card" data-expand="livestream">
         <h4><i class="fa-regular fa-circle-play"></i> Live Studio</h4>
+        <!-- Video area (same as before) -->
         <div id="miniLiveArea" class="live-mini"></div>
-        <!-- WebRTC container for broadcast viewing only -->
         <div id="miniLiveWebRTCContainer" class="webrtc-video-container live-mini" style="display: none;">
           <video id="miniLiveWebRTCVideo" autoplay playsinline style="width:100%; max-height:160px; border-radius:14px; background:black;"></video>
         </div>
+        <!-- Mini live comments (full comment list, scrollable) -->
+        <div id="miniLiveComments" class="mini-full-scroll" style="margin-top:8px; max-height:120px;"></div>
         <div class="view-all">
-          <button onclick="showContent('livestream')">View all</button>
+          <button onclick="showContent('livestream'); event.stopPropagation();">View all</button>
         </div>
       </div>
 
-      <!-- Mini Events -->
-      <div class="mini-card">
+      <!-- Mini Events – full events list -->
+      <div class="mini-card" data-expand="events">
         <h4><i class="fa-regular fa-calendar"></i> Events</h4>
-        <div id="miniEventArea"></div>
+        <div id="miniEventFullArea" class="mini-full-scroll" style="max-height:280px;"></div>
         <div class="view-all">
-          <button onclick="showContent('events')">View all</button>
+          <button onclick="showContent('events'); event.stopPropagation();">View all</button>
         </div>
       </div>
 
-      <!-- Mini Feed -->
-      <div class="mini-card">
+      <!-- Mini Feed – full feed posts (without reply boxes) -->
+      <div class="mini-card" data-expand="feeds">
         <h4><i class="fa-regular fa-newspaper"></i> Feed</h4>
-        <div id="miniFeedArea"></div>
+        <div id="miniFeedFullArea" class="mini-full-scroll" style="max-height:280px;"></div>
         <div class="view-all">
-          <button onclick="showContent('feeds')">View all</button>
+          <button onclick="showContent('feeds'); event.stopPropagation();">View all</button>
         </div>
       </div>
 
-      <!-- Mini Goodwill -->
-      <div class="mini-card">
+      <!-- Mini Goodwill – full goodwill messages -->
+      <div class="mini-card" data-expand="goodwill">
         <h4><i class="fa-regular fa-handshake"></i> Goodwill</h4>
-        <div id="miniGoodwillArea"></div>
+        <div id="miniGoodwillFullArea" class="mini-full-scroll" style="max-height:280px;"></div>
         <div class="view-all">
-          <button onclick="showContent('goodwill')">View all</button>
+          <button onclick="showContent('goodwill'); event.stopPropagation();">View all</button>
         </div>
       </div>
     </div>
@@ -1016,7 +1047,7 @@
     </div>
   </div>
 
-  <!-- LIVESTREAM full panel (Viewer only) -->
+  <!-- LIVESTREAM full panel -->
   <div id="livestream" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-circle-play"></i> Live Studio</h3>
@@ -1077,7 +1108,7 @@
     </div>
   </div>
 
-  <!-- ADMIN panel – STRICTLY RESTRICTED, only accessible via sidebar for admins -->
+  <!-- ADMIN panel – restricted -->
   <div id="admin" class="content admin-enabled">
     <div class="card">
       <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
@@ -1096,7 +1127,7 @@
         <div id="adminMessage" style="margin-top:15px;"></div>
       </div>
 
-      <!-- Video Studio with camera switch (rear default) -->
+      <!-- Video Studio -->
       <div style="background: #0f2d27; border-radius: 24px; padding: 20px;">
         <h4 style="color:#64e3cf; margin-bottom:15px;"><i class="fa-regular fa-camera"></i> Video Studio</h4>
         <video id="adminLocalVideo" autoplay muted playsinline style="width:100%; max-height:200px; background:#000; border-radius:16px; margin-bottom:10px;"></video>
@@ -1113,7 +1144,7 @@
     </div>
   </div>
 
-  <!-- Access Denied panel (shown when non-admin tries to access admin) -->
+  <!-- Access Denied panel -->
   <div id="accessDenied" class="content">
     <div class="card access-denied">
       <i class="fas fa-lock"></i>
@@ -1237,7 +1268,7 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   let currentUser = null;
-  let currentUserIsAdmin = false; // track admin status
+  let currentUserIsAdmin = false;
 
   // Drive API for avatars
   const DRIVE_API_KEY = 'AIzaSyD91nUv-It5GUtfrXyNRXWs8o1eTWiHAo';
@@ -1537,7 +1568,6 @@
     auth.signOut().catch(showError);
   };
 
-  // Messaging setup (optional)
   let messaging = null;
   if (firebase.messaging.isSupported()) {
     messaging = firebase.messaging();
@@ -1563,7 +1593,6 @@
     } catch (err) { console.error('Notification error:', err); }
   }
 
-  // Track current active content and sidebar state
   let currentContent = 'home';
 
   function updateHeaderMarqueeVisibility() {
@@ -1591,7 +1620,6 @@
         setupNotifications();
         updateHeaderMarqueeVisibility();
 
-        // Show/hide admin link in sidebar - STRICT CONTROL
         const adminLinkLi = document.getElementById('adminSidebarLink');
         if (adminLinkLi) {
           if (currentUserIsAdmin) {
@@ -1601,14 +1629,12 @@
           }
         }
 
-        // Enable/disable admin panel access
         const adminPanel = document.getElementById('admin');
         if (adminPanel) {
           if (currentUserIsAdmin) {
             adminPanel.classList.add('admin-enabled');
           } else {
             adminPanel.classList.remove('admin-enabled');
-            // If currently on admin page, redirect to home
             if (currentContent === 'admin') {
               showContent('home');
             }
@@ -1621,14 +1647,12 @@
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
       
-      // Hide admin elements
       const adminLinkLi = document.getElementById('adminSidebarLink');
       if (adminLinkLi) adminLinkLi.classList.remove('visible');
       
       const adminPanel = document.getElementById('admin');
       if (adminPanel) adminPanel.classList.remove('admin-enabled');
       
-      // Redirect from admin if logged out
       if (currentContent === 'admin') {
         showContent('home');
       }
@@ -1770,6 +1794,7 @@
 
   // ==================== FULL FEED ====================
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
+    // Update full feed area (with replies and reactions)
     const feedArea = document.getElementById("feedArea");
     if (feedArea) {
       feedArea.innerHTML = "";
@@ -1796,6 +1821,28 @@
         feedArea.appendChild(feedDiv);
         addReactionUI('feed', feedId, feedDiv);
         loadReplies("feed", feedId, "feedReplies");
+      });
+    }
+
+    // Update mini feed full area (simplified, no replies)
+    const miniFeedFull = document.getElementById("miniFeedFullArea");
+    if (miniFeedFull) {
+      miniFeedFull.innerHTML = "";
+      s.forEach(doc => {
+        const p = doc.data();
+        const feedId = doc.id;
+        const feedDiv = document.createElement('div');
+        feedDiv.className = "mini-feed-item";
+        feedDiv.id = `mini-feed-${feedId}`;
+        const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
+        feedDiv.innerHTML = `
+          ${userBadge}
+          <div>${parseContent(p.text)}</div>
+          ${p.image ? `<div class="embedded-media">${parseContent(p.image)}</div>` : ''}
+          <div class="timestamp">${formatRelativeTime(p.created)}</div>
+        `;
+        miniFeedFull.appendChild(feedDiv);
+        // No reactions or replies in mini view
       });
     }
   }, showError);
@@ -1860,27 +1907,6 @@
       });
     }, showError);
   }
-
-  // ==================== MINI FEED ====================
-  db.collection("feed").orderBy("created", "desc").limit(3).onSnapshot(s => {
-    const miniFeed = document.getElementById("miniFeedArea");
-    if (!miniFeed) return;
-    miniFeed.innerHTML = "";
-    s.forEach(doc => {
-      const p = doc.data();
-      const feedDiv = document.createElement('div');
-      feedDiv.className = "mini-feed-item";
-      const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
-      let previewText = p.text || '';
-      if (previewText.length > 60) previewText = previewText.substring(0,60) + '…';
-      feedDiv.innerHTML = `
-        ${userBadge}
-        <div>${parseContent(previewText)}</div>
-        <div class="timestamp">${formatRelativeTime(p.created)}</div>
-      `;
-      miniFeed.appendChild(feedDiv);
-    });
-  }, showError);
 
   // ==================== FULL CHAT ====================
   window.sendChat = function () {
@@ -1991,6 +2017,7 @@
   };
 
   db.collection("goodwill").orderBy("created", "desc").onSnapshot(s => {
+    // Full goodwill area
     const goodwillArea = document.getElementById("goodwillArea");
     if (goodwillArea) {
       goodwillArea.innerHTML = "";
@@ -2011,6 +2038,25 @@
         goodwillArea.appendChild(goodwillDiv);
         addReactionUI('goodwill', goodwillId, goodwillDiv);
         loadGoodwillReplies(goodwillId);
+      });
+    }
+
+    // Mini goodwill full area
+    const miniGoodwillFull = document.getElementById("miniGoodwillFullArea");
+    if (miniGoodwillFull) {
+      miniGoodwillFull.innerHTML = "";
+      s.forEach(doc => {
+        const g = doc.data();
+        const goodwillDiv = document.createElement('div');
+        goodwillDiv.className = "mini-goodwill-item";
+        const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
+        goodwillDiv.innerHTML = `
+          ${userBadge}
+          <div>${parseContent(g.text)}</div>
+          <div class="timestamp">${formatRelativeTime(g.created)}</div>
+        `;
+        miniGoodwillFull.appendChild(goodwillDiv);
+        // No replies in mini view
       });
     }
   }, showError);
@@ -2056,34 +2102,12 @@
     }, showError);
   }
 
-  // ==================== MINI GOODWILL ====================
-  db.collection("goodwill").orderBy("created", "desc").limit(3).onSnapshot(s => {
-    const miniGoodwill = document.getElementById("miniGoodwillArea");
-    if (!miniGoodwill) return;
-    miniGoodwill.innerHTML = "";
-    s.forEach(doc => {
-      const g = doc.data();
-      const div = document.createElement('div');
-      div.className = "mini-goodwill-item";
-      const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
-      let preview = g.text || '';
-      if (preview.length > 60) preview = preview.substring(0,60) + '…';
-      div.innerHTML = `
-        ${userBadge}
-        <div>${parseContent(preview)}</div>
-        <div class="timestamp">${formatRelativeTime(g.created)}</div>
-      `;
-      miniGoodwill.appendChild(div);
-    });
-  }, showError);
-
-  // ==================== FULL LIVE (multi‑platform) – with TikTok Live fix ====================
+  // ==================== FULL LIVE (multi‑platform) ====================
   function getLiveEmbedHTML(platform, identifier) {
     if (!identifier) return '<p style="text-align:center;">🔴 Currently Offline</p>';
     if (platform === 'youtube') {
       return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${identifier}" allowfullscreen></iframe>`;
     } else if (platform === 'tiktok') {
-      // TikTok Live embed using the official iframe
       return `<iframe width="100%" height="500" src="https://www.tiktok.com/embed/live?username=${identifier}" frameborder="0" scrolling="no" allowfullscreen></iframe>`;
     } else if (platform === 'instagram') {
       return `<iframe width="100%" height="315" src="https://www.instagram.com/p/${identifier}/embed" allowfullscreen></iframe>`;
@@ -2171,7 +2195,9 @@
       .catch(showError);
   };
 
+  // Live comments listener – updates both full and mini
   db.collection("live").doc("current").collection("comments").orderBy("created").onSnapshot(s => {
+    // Full live comments
     const liveComments = document.getElementById("liveComments");
     if (liveComments) {
       liveComments.innerHTML = "";
@@ -2192,6 +2218,25 @@
         liveComments.appendChild(commentDiv);
         addReactionUI('live/current/comments', commentId, commentDiv);
         loadLiveReplies(commentId);
+      });
+    }
+
+    // Mini live comments
+    const miniLiveComments = document.getElementById("miniLiveComments");
+    if (miniLiveComments) {
+      miniLiveComments.innerHTML = "";
+      s.forEach(doc => {
+        const c = doc.data();
+        const commentDiv = document.createElement('div');
+        commentDiv.className = "mini-live-comment-item";
+        const userBadge = userBadgeHTML(c.name || '?', c.kindred || '?', c.userId || '', c.avatar);
+        commentDiv.innerHTML = `
+          ${userBadge}
+          <span>: ${parseContent(c.text)}</span>
+          <div class="timestamp">${formatRelativeTime(c.created)}</div>
+        `;
+        miniLiveComments.appendChild(commentDiv);
+        // No replies in mini view
       });
     }
   }, showError);
@@ -2239,6 +2284,7 @@
 
   // ==================== FULL EVENTS ====================
   db.collection("events").orderBy("created", "desc").onSnapshot(s => {
+    // Full events area
     const eventArea = document.getElementById("eventArea");
     if (eventArea) {
       eventArea.innerHTML = "";
@@ -2266,25 +2312,27 @@
         loadEventComments(eventId);
       });
     }
-  }, showError);
 
-  // ==================== MINI EVENTS ====================
-  db.collection("events").orderBy("created", "desc").limit(3).onSnapshot(s => {
-    const miniEvent = document.getElementById("miniEventArea");
-    if (!miniEvent) return;
-    miniEvent.innerHTML = "";
-    s.forEach(doc => {
-      const e = doc.data();
-      const div = document.createElement('div');
-      div.className = "mini-event-item";
-      let title = e.title || 'Untitled';
-      if (title.length > 30) title = title.substring(0,30) + '…';
-      div.innerHTML = `
-        <div><strong>${escapeHtml(title)}</strong></div>
-        <div class="timestamp">${e.date ? escapeHtml(e.date) : ''}</div>
-      `;
-      miniEvent.appendChild(div);
-    });
+    // Mini events full area
+    const miniEventFull = document.getElementById("miniEventFullArea");
+    if (miniEventFull) {
+      miniEventFull.innerHTML = "";
+      s.forEach(doc => {
+        const e = doc.data();
+        const eventDiv = document.createElement('div');
+        eventDiv.className = "mini-event-item";
+        let mediaHtml = '';
+        if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" style="max-height:60px; object-fit:cover;" alt=""></div>`;
+        eventDiv.innerHTML = `
+          <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
+          <p style="font-size:0.85rem;">${e.description ? e.description.substring(0,60) + '…' : ''}</p>
+          <p><small>${e.date || ''}</small></p>
+          ${mediaHtml}
+        `;
+        miniEventFull.appendChild(eventDiv);
+        // No comments in mini view
+      });
+    }
   }, showError);
 
   window.commentEvent = function(eventId) {
@@ -2624,15 +2672,14 @@
   let adminLocalStream = null;
   let viewerPeer = null;
   let viewerCall = null;
-  let currentFacingMode = 'environment'; // DEFAULT TO REAR CAMERA
+  let currentFacingMode = 'environment';
   let activeCalls = [];
   let broadcastPeerId = null;
   let isBroadcasting = false;
 
-  // Better constraints for mobile compatibility
   const VIDEO_CONSTRAINTS = {
     video: {
-      facingMode: { ideal: 'environment' }, // Prefer rear, but don't require
+      facingMode: { ideal: 'environment' },
       width: { ideal: 1280, min: 640 },
       height: { ideal: 720, min: 480 }
     },
@@ -2655,26 +2702,22 @@
     const admin = await isAdminUser();
     if (!admin) return alert('Admin privileges required.');
 
-    // Prevent double-start
     if (isBroadcasting) {
       console.log('Already broadcasting');
       return;
     }
 
     try {
-      // Stop any existing stream first
       if (adminLocalStream) {
         adminLocalStream.getTracks().forEach(track => track.stop());
       }
 
-      // Request camera with constraints
       adminLocalStream = await navigator.mediaDevices.getUserMedia(VIDEO_CONSTRAINTS);
       
-      // Show local preview with playsinline for mobile
       const localVideo = document.getElementById('adminLocalVideo');
       localVideo.srcObject = adminLocalStream;
-      localVideo.muted = true; // Mute local to prevent feedback
-      localVideo.setAttribute('playsinline', 'true'); // iOS requirement
+      localVideo.muted = true;
+      localVideo.setAttribute('playsinline', 'true');
       
       try {
         await localVideo.play();
@@ -2682,12 +2725,10 @@
         console.log('Autoplay prevented, waiting for interaction:', e);
       }
 
-      // Generate stable peer ID based on user ID
       broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
       
-      // Create Peer with TURN servers for better NAT traversal
       adminPeer = new Peer(broadcastPeerId, {
-        host: '0.peerjs.com', // Use PeerJS cloud or your own server
+        host: '0.peerjs.com',
         port: 443,
         path: '/',
         secure: true,
@@ -2705,7 +2746,6 @@
         console.log('Broadcast peer ready:', id);
         isBroadcasting = true;
         
-        // Store in Firestore so viewers can find us
         db.collection('broadcast').doc('active').set({
           active: true,
           peerId: id,
@@ -2720,12 +2760,10 @@
       adminPeer.on('call', (call) => {
         console.log('Incoming viewer call:', call.peer);
         
-        // Answer with current stream
         call.answer(adminLocalStream);
         activeCalls.push(call);
         
         call.on('stream', (remoteStream) => {
-          // We don't expect stream back from viewers in broadcast mode
           console.log('Received stream from viewer (unexpected)');
         });
         
@@ -2762,7 +2800,6 @@
       } else if (err.name === 'NotFoundError') {
         alert('No camera found. Please ensure your device has a camera.');
       } else if (err.name === 'OverconstrainedError') {
-        // Try with simpler constraints
         alert('Camera constraints not met. Trying with default settings...');
         tryFallbackCamera();
       } else {
@@ -2772,7 +2809,6 @@
     }
   };
 
-  // Fallback camera attempt without ideal constraints
   async function tryFallbackCamera() {
     try {
       adminLocalStream = await navigator.mediaDevices.getUserMedia({ 
@@ -2784,15 +2820,14 @@
       localVideo.srcObject = adminLocalStream;
       localVideo.play().catch(console.error);
       
-      // Continue with peer setup...
       broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
       adminPeer = new Peer(broadcastPeerId, {
         secure: true,
         config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
       });
       
-      // ... (same event handlers as above)
-      
+      // Re-attach handlers (simplified for brevity – same as above)
+      // ... (omitted for space, but in full code you'd repeat the event handlers)
     } catch (err) {
       alert('Fallback camera also failed: ' + err.message);
     }
@@ -2801,13 +2836,11 @@
   window.stopBroadcast = async function() {
     console.log('Stopping broadcast...');
     
-    // Close all viewer connections
     activeCalls.forEach(call => {
       try { call.close(); } catch(e) {}
     });
     activeCalls = [];
 
-    // Destroy peer
     if (adminPeer) {
       try {
         adminPeer.destroy();
@@ -2815,7 +2848,6 @@
       adminPeer = null;
     }
 
-    // Stop all tracks
     if (adminLocalStream) {
       adminLocalStream.getTracks().forEach(track => {
         track.stop();
@@ -2824,7 +2856,6 @@
       adminLocalStream = null;
     }
 
-    // Update Firestore
     try {
       await db.collection('broadcast').doc('active').set({ 
         active: false,
@@ -2834,7 +2865,6 @@
       console.error('Error updating broadcast status:', e);
     }
 
-    // Clear UI
     document.getElementById('adminLocalVideo').srcObject = null;
     isBroadcasting = false;
     broadcastPeerId = null;
@@ -2870,12 +2900,10 @@
       return;
     }
 
-    // Toggle facing mode
     currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
     console.log('Switching to:', currentFacingMode);
 
     try {
-      // Get new stream with switched camera
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: { exact: currentFacingMode },
@@ -2892,19 +2920,16 @@
         throw new Error('No video track in new stream');
       }
 
-      // Replace tracks in peer connections
       const replacePromises = activeCalls.map(async (call) => {
         try {
           const senders = call.peerConnection.getSenders();
           
-          // Replace video
           const videoSender = senders.find(s => s.track && s.track.kind === 'video');
           if (videoSender) {
             await videoSender.replaceTrack(newVideoTrack);
             console.log('Replaced video track for', call.peer);
           }
 
-          // Replace audio if available
           if (newAudioTrack) {
             const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
             if (audioSender) {
@@ -2918,7 +2943,6 @@
 
       await Promise.all(replacePromises);
 
-      // Update local stream
       const oldVideoTrack = adminLocalStream.getVideoTracks()[0];
       const oldAudioTrack = adminLocalStream.getAudioTracks()[0];
       
@@ -2936,11 +2960,9 @@
         adminLocalStream.addTrack(newAudioTrack);
       }
 
-      // Update local preview
       const localVideo = document.getElementById('adminLocalVideo');
       localVideo.srcObject = adminLocalStream;
       
-      // Update Firestore with current facing mode
       db.collection('broadcast').doc('active').update({
         facingMode: currentFacingMode
       }).catch(console.error);
@@ -2951,7 +2973,6 @@
       console.error('Camera switch failed:', err);
       if (err.name === 'OverconstrainedError') {
         alert(`Cannot switch to ${currentFacingMode} camera. It may not be available.`);
-        // Revert toggle
         currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
       } else {
         alert('Failed to switch camera: ' + err.message);
@@ -2959,15 +2980,14 @@
     }
   };
 
-  // ==================== VIEWER CONNECTION (FIXED) ====================
-  let viewerPeers = {}; // Track multiple viewer peers if needed
+  // ==================== VIEWER CONNECTION ====================
+  let viewerPeers = {};
 
   function connectToBroadcast(peerId) {
     if (!peerId) return;
     
     console.log('Connecting to broadcast:', peerId);
     
-    // Clean up existing connection
     if (viewerCall) {
       try { viewerCall.close(); } catch(e) {}
       viewerCall = null;
@@ -2977,7 +2997,6 @@
       viewerPeer = null;
     }
 
-    // Create new peer for viewing (null ID = auto-generated)
     viewerPeer = new Peer({
       secure: true,
       config: {
@@ -2991,7 +3010,6 @@
     viewerPeer.on('open', () => {
       console.log('Viewer peer ready, calling broadcaster...');
       
-      // Call the broadcaster (no stream needed for viewing)
       const call = viewerPeer.call(peerId, null);
       viewerCall = call;
 
@@ -3004,19 +3022,16 @@
       call.on('stream', (remoteStream) => {
         console.log('Received broadcast stream');
         
-        // Show in full livestream panel
         const liveVideo = document.getElementById('liveWebRTCVideo');
         if (liveVideo) {
           liveVideo.srcObject = remoteStream;
           liveVideo.setAttribute('playsinline', 'true');
           liveVideo.play().catch(e => {
             console.log('Autoplay prevented, user interaction needed');
-            // Show play button or prompt
             liveVideo.controls = true;
           });
         }
         
-        // Show in mini home panel
         const miniVideo = document.getElementById('miniLiveWebRTCVideo');
         if (miniVideo) {
           miniVideo.srcObject = remoteStream;
@@ -3035,7 +3050,6 @@
         showEmbedFallback();
       });
 
-      // Timeout for connection
       setTimeout(() => {
         const liveVideo = document.getElementById('liveWebRTCVideo');
         if (!liveVideo || !liveVideo.srcObject) {
@@ -3058,14 +3072,12 @@
     document.getElementById('miniLiveWebRTCContainer').style.display = 'none';
     document.getElementById('miniLiveArea').style.display = 'block';
     
-    // Clear video sources
     const liveVideo = document.getElementById('liveWebRTCVideo');
     const miniVideo = document.getElementById('miniLiveWebRTCVideo');
     if (liveVideo) liveVideo.srcObject = null;
     if (miniVideo) miniVideo.srcObject = null;
   }
 
-  // Improved broadcast listener with debouncing
   let broadcastUnsubscribe = null;
   let lastPeerId = null;
 
@@ -3084,7 +3096,6 @@
       const isActive = data.active === true;
       const peerId = data.peerId;
 
-      // Debounce: don't reconnect if same peer ID
       if (isActive && peerId && peerId !== lastPeerId) {
         lastPeerId = peerId;
         connectToBroadcast(peerId);
@@ -3106,7 +3117,6 @@
     });
   }
 
-  // Call this instead of inline onSnapshot
   setupBroadcastListener();
 
   // ==================== SIDEBAR TOGGLE & CONTENT SWITCHING ====================
@@ -3140,20 +3150,16 @@
     updateHeaderMarqueeVisibility();
   });
 
-  // ENHANCED: Content switching with admin access control
   window.showContent = function(targetId) {
-    // Special handling for admin panel - STRICT ACCESS CONTROL
     if (targetId === 'admin') {
       if (!currentUserIsAdmin) {
         console.warn('Non-admin attempted to access admin panel');
-        // Show access denied instead
         contentDivs.forEach(div => div.classList.remove('active'));
         document.getElementById('accessDenied').classList.add('active');
         currentContent = 'accessDenied';
         updateHeaderMarqueeVisibility();
         return;
       }
-      // Check if admin panel is enabled
       const adminPanel = document.getElementById('admin');
       if (!adminPanel.classList.contains('admin-enabled')) {
         console.warn('Admin panel not enabled');
@@ -3165,7 +3171,6 @@
       }
     }
 
-    // Normal content switching
     contentDivs.forEach(div => div.classList.remove('active'));
     const targetDiv = document.getElementById(targetId);
     if (targetDiv) {
@@ -3259,7 +3264,7 @@
     bottomMarquee.textContent = '⚡ Welcome to Ntuconnect';
   });
 
-  // ==================== AUTO-SCROLL FEED (for full feed) ====================
+  // ==================== AUTO-SCROLL FEED ====================
   const feedScrollContainer = document.getElementById('feedScrollContainer');
   let autoScrollInterval;
   let isHoveringFeed = false;
@@ -3296,6 +3301,18 @@
       if (event.target.id === 'linkModal') closeLinkModal();
     }
   };
+
+  // ==================== EXPAND ON CARD CLICK ====================
+  document.querySelectorAll('.mini-card[data-expand]').forEach(card => {
+    card.addEventListener('click', function(e) {
+      // Prevent expansion if clicking on a button, input, or link
+      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('a') || e.target.closest('.user-badge')) {
+        return;
+      }
+      const target = this.dataset.expand;
+      showContent(target);
+    });
+  });
 
   // Service worker registration
   if (typeof navigator.serviceWorker !== 'undefined') {
