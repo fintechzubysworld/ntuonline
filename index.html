@@ -251,16 +251,22 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ===== DASHBOARD GRID FOR HOME – 2×2 LAYOUT ===== */
+    /* ===== DASHBOARD GRID FOR HOME – 3 COLUMNS ===== */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr); /* Force 2 columns */
+      grid-template-columns: repeat(3, 1fr); /* 3 columns */
       gap: 20px;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 800px) {
       .dashboard-grid {
-        grid-template-columns: 1fr; /* Stack on small screens */
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on medium */
+      }
+    }
+
+    @media (max-width: 500px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr; /* stack on small */
       }
     }
 
@@ -339,7 +345,7 @@
     }
 
     /* Mini feed items inside full containers – simplified (no reply box) */
-    .mini-feed-item, .mini-event-item, .mini-goodwill-item, .mini-live-comment-item {
+    .mini-feed-item, .mini-event-item, .mini-goodwill-item {
       background: #0f2d27;
       border-radius: 18px;
       padding: 12px;
@@ -351,39 +357,6 @@
     }
     .mini-feed-item .timestamp {
       font-size: 0.65rem;
-    }
-
-    /* Live mini preview – video + comments */
-    .live-mini {
-      background: #0f2d27;
-      border-radius: 18px;
-      padding: 12px;
-      text-align: center;
-      min-height: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-    }
-    .live-mini video {
-      width: 100%;
-      max-height: 160px;
-      border-radius: 14px;
-      background: black;
-    }
-    .live-mini iframe {
-      width: 100%;
-      height: 160px;
-      border-radius: 14px;
-      border: none;
-    }
-    .live-mini .offline {
-      padding: 20px;
-      color: #9bc5bc;
-    }
-    .live-mini .platform-icon {
-      font-size: 2rem;
-      margin-bottom: 8px;
     }
 
     /* ===== CARDS (for full panels) ===== */
@@ -484,7 +457,7 @@
     }
 
     /* ===== POST / COMMENT STYLES (shared) ===== */
-    .feed-item, .chat-item, .goodwill-item, .live-comment-item, .event-item {
+    .feed-item, .chat-item, .goodwill-item, .event-item {
       background: #0f2d27;
       border-radius: 24px;
       padding: 18px;
@@ -889,20 +862,6 @@
       margin-top: 1rem;
     }
 
-    /* WebRTC video containers */
-    .webrtc-video-container {
-      display: none;
-      width: 100%;
-      background: black;
-      border-radius: 16px;
-      overflow: hidden;
-    }
-    .webrtc-video-container video {
-      width: 100%;
-      max-height: 315px;
-      display: block;
-    }
-    
     /* Broadcast status indicator */
     .broadcast-status {
       margin-top: 12px;
@@ -941,6 +900,34 @@
       font-size: 3rem;
       margin-bottom: 15px;
     }
+
+    /* ===== Ntu TV styles ===== */
+    .tv-container {
+      max-width: 800px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .tv-frame {
+      width: 100%;
+      height: 0;
+      padding-bottom: 60%; /* 480/800 = 60% */
+      position: relative;
+      background: #000;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    .tv-frame iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .fullscreen-btn {
+      margin-top: 12px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -970,13 +957,15 @@
 <nav class="sidebar" id="sidebar">
   <ul class="sidebar-menu">
     <li><a href="#" data-content="home"><i class="fas fa-home"></i> Home</a></li>
-    <li><a href="#" data-content="feeds"><i class="fas fa-rss"></i> Feeds</a></li>
-    <li><a href="#" data-content="livestream"><i class="fas fa-video"></i> Livestream</a></li>
+    <!-- Livestream removed -->
     <li><a href="#" data-content="events"><i class="fas fa-calendar-alt"></i> Events</a></li>
+    <li><a href="#" data-content="feeds"><i class="fas fa-rss"></i> Feeds</a></li>
     <li><a href="#" data-content="goodwill"><i class="fas fa-hand-holding-heart"></i> Goodwill Messages</a></li>
     <li><a href="#" data-content="community"><i class="fas fa-users"></i> Community Chats</a></li>
     <li><a href="#" data-content="private"><i class="fas fa-lock"></i> Private Chats</a></li>
     <li><a href="#" data-content="profile"><i class="fas fa-user"></i> Profile</a></li>
+    <!-- Ntu TV link -->
+    <li><a href="#" data-content="ntuTV"><i class="fas fa-tv"></i> Ntu TV</a></li>
     <!-- Admin link – hidden by default -->
     <li class="admin-link" id="adminSidebarLink"><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
     <li><a href="#" id="ntuElectricityLink"><i class="fas fa-bolt"></i> Ntu Electricity</a></li>
@@ -988,24 +977,9 @@
 
 <!-- Main content -->
 <main id="mainContent">
-  <!-- HOME panel – 2×2 grid with FULL content in each mini-card -->
+  <!-- HOME panel – 3‑column grid with Events, Feeds, Goodwill -->
   <div id="home" class="content active">
     <div class="dashboard-grid">
-      <!-- Mini Live Stream (now includes video + recent comments) -->
-      <div class="mini-card" data-expand="livestream">
-        <h4><i class="fa-regular fa-circle-play"></i> Live Studio</h4>
-        <!-- Video area (same as before) -->
-        <div id="miniLiveArea" class="live-mini"></div>
-        <div id="miniLiveWebRTCContainer" class="webrtc-video-container live-mini" style="display: none;">
-          <video id="miniLiveWebRTCVideo" autoplay playsinline style="width:100%; max-height:160px; border-radius:14px; background:black;"></video>
-        </div>
-        <!-- Mini live comments (full comment list, scrollable) -->
-        <div id="miniLiveComments" class="mini-full-scroll" style="margin-top:8px; max-height:120px;"></div>
-        <div class="view-all">
-          <button onclick="showContent('livestream'); event.stopPropagation();">View all</button>
-        </div>
-      </div>
-
       <!-- Mini Events – full events list -->
       <div class="mini-card" data-expand="events">
         <h4><i class="fa-regular fa-calendar"></i> Events</h4>
@@ -1044,20 +1018,6 @@
       <div class="feed-scroll-container" id="feedScrollContainer">
         <div id="feedArea"></div>
       </div>
-    </div>
-  </div>
-
-  <!-- LIVESTREAM full panel -->
-  <div id="livestream" class="content">
-    <div class="card">
-      <h3><i class="fa-regular fa-circle-play"></i> Live Studio</h3>
-      <div id="liveArea" class="live-area"></div>
-      <div id="liveWebRTCContainer" class="webrtc-video-container" style="display: none;">
-        <video id="liveWebRTCVideo" autoplay playsinline style="width:100%; border-radius:16px;"></video>
-      </div>
-      <textarea id="liveCommentInput" placeholder="Comment on live..."></textarea>
-      <button onclick="commentLive()"><i class="fa-regular fa-paper-plane"></i> Comment</button>
-      <div id="liveComments"></div>
     </div>
   </div>
 
@@ -1108,13 +1068,28 @@
     </div>
   </div>
 
+  <!-- Ntu TV panel -->
+  <div id="ntuTV" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-tv"></i> Ntu TV</h3>
+      <div class="tv-container">
+        <div class="tv-frame">
+          <iframe id="ntuIframe" src="https://unrelished-commissively-reginia.ngrok-free.dev/" allowfullscreen></iframe>
+        </div>
+        <div class="fullscreen-btn">
+          <button onclick="toggleTvFullscreen()"><i class="fa-regular fa-expand"></i> Toggle Fullscreen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ADMIN panel – restricted -->
   <div id="admin" class="content admin-enabled">
     <div class="card">
       <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
       <p style="margin-bottom: 15px;">Manage live stream source or start a direct camera broadcast.</p>
 
-      <!-- Existing live stream source -->
+      <!-- Existing live stream source (kept untouched) -->
       <div style="background: #0f2d27; border-radius: 24px; padding: 20px; margin-bottom: 20px;">
         <h4 style="color:#64e3cf; margin-bottom:15px;">Set External Live Stream</h4>
         <select id="livePlatformSelect">
@@ -1137,7 +1112,7 @@
           <button id="stopBroadcastBtn" onclick="stopBroadcast()" disabled><i class="fa-regular fa-circle-stop"></i> Stop</button>
         </div>
         <div id="broadcastStatus" class="broadcast-status" style="display:none;"></div>
-        <p style="font-size:0.85rem; margin-top:10px;">When active, viewers see your camera feed on the homepage and livestream page.</p>
+        <p style="font-size:0.85rem; margin-top:10px;">When active, viewers see your camera feed on the livestream page.</p>
       </div>
 
       <button onclick="window.location='ntuonline.html'" style="margin-top:20px;"><i class="fa-regular fa-shield"></i> Advanced Admin</button>
@@ -1160,6 +1135,9 @@
       <iframe class="electricity-frame" src="https://fintechzubysworld.github.io/Ntu-Elekrit/" title="Ntu Electricity"></iframe>
     </div>
   </div>
+
+  <!-- Livestream panel (kept but unused) -->
+  <div id="livestream" class="content" style="display:none;"></div>
 </main>
 
 <!-- ==================== MODALS ==================== -->
@@ -1611,8 +1589,10 @@
       db.collection("users").doc(user.uid).get().then(doc => {
         const userData = doc.data() || {};
         currentUserIsAdmin = userData.isAdmin === true;
+        // Include Ntu TV button in nav bar
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
+          <button onclick="showNtuTV()"><i class="fa-regular fa-tv"></i> Ntu TV</button>
           <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
           <button onclick="logout()">Logout</button>
         `;
@@ -1643,7 +1623,7 @@
 
       }).catch(showError);
     } else {
-      navArea.innerHTML = `<button onclick="showAuth()">Login / Register</button>`;
+      navArea.innerHTML = `<button onclick="showNtuTV()"><i class="fa-regular fa-tv"></i> Ntu TV</button> <button onclick="showAuth()">Login / Register</button>`;
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
       
@@ -2098,186 +2078,6 @@
         `;
         container.appendChild(replyDiv);
         addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
-      });
-    }, showError);
-  }
-
-  // ==================== FULL LIVE (multi‑platform) ====================
-  function getLiveEmbedHTML(platform, identifier) {
-    if (!identifier) return '<p style="text-align:center;">🔴 Currently Offline</p>';
-    if (platform === 'youtube') {
-      return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${identifier}" allowfullscreen></iframe>`;
-    } else if (platform === 'tiktok') {
-      return `<iframe width="100%" height="500" src="https://www.tiktok.com/embed/live?username=${identifier}" frameborder="0" scrolling="no" allowfullscreen></iframe>`;
-    } else if (platform === 'instagram') {
-      return `<iframe width="100%" height="315" src="https://www.instagram.com/p/${identifier}/embed" allowfullscreen></iframe>`;
-    }
-    return '<p style="text-align:center;">Unsupported platform</p>';
-  }
-
-  db.collection("live").doc("current").onSnapshot(doc => {
-    let platform = 'youtube';
-    let identifier = '';
-    let title = 'Live Stream';
-    if (doc.exists) {
-      const d = doc.data();
-      platform = d.platform || 'youtube';
-      identifier = d.videoId || d.identifier || '';
-      title = d.title || 'Live Stream';
-    }
-
-    const liveArea = document.getElementById("liveArea");
-    if (liveArea) {
-      if (identifier) {
-        liveArea.innerHTML = `<h4>${title}</h4>${getLiveEmbedHTML(platform, identifier)}`;
-      } else {
-        liveArea.innerHTML = "<p style='text-align:center;'>🔴 Currently Offline</p>";
-      }
-    }
-
-    const miniLive = document.getElementById("miniLiveArea");
-    if (miniLive) {
-      if (identifier) {
-        const icons = {
-          youtube: '<i class="fab fa-youtube" style="font-size:2rem; color:#ff0000;"></i>',
-          tiktok: '<i class="fab fa-tiktok" style="font-size:2rem;"></i>',
-          instagram: '<i class="fab fa-instagram" style="font-size:2rem; color:#e1306c;"></i>'
-        };
-        miniLive.innerHTML = `
-          <div class="platform-icon">${icons[platform] || '<i class="fa-regular fa-circle-play"></i>'}</div>
-          <div>Live on ${platform}</div>
-        `;
-      } else {
-        miniLive.innerHTML = '<div class="offline">🔴 Offline</div>';
-      }
-    }
-  }, showError);
-
-  // ==================== ADMIN: UPDATE LIVE STREAM ====================
-  window.updateLiveStream = function() {
-    if (!currentUser) return alert('You must be logged in as admin.');
-    const platform = document.getElementById('livePlatformSelect').value;
-    const identifier = document.getElementById('liveIdentifier').value.trim();
-    if (!identifier) return alert('Please enter a video ID or username.');
-
-    db.collection('live').doc('current').set({
-      platform: platform,
-      videoId: identifier,
-      title: 'Live Stream',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true })
-    .then(() => {
-      document.getElementById('adminMessage').innerHTML = '<span style="color:#8cffe0;">Live stream updated successfully.</span>';
-      setTimeout(() => document.getElementById('adminMessage').innerHTML = '', 3000);
-    })
-    .catch(err => {
-      document.getElementById('adminMessage').innerHTML = '<span style="color:#ff6b4a;">Error: ' + err.message + '</span>';
-    });
-  };
-
-  window.commentLive = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("liveCommentInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("live").doc("current").collection("comments").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          avatar: userData.avatar || null,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
-  };
-
-  // Live comments listener – updates both full and mini
-  db.collection("live").doc("current").collection("comments").orderBy("created").onSnapshot(s => {
-    // Full live comments
-    const liveComments = document.getElementById("liveComments");
-    if (liveComments) {
-      liveComments.innerHTML = "";
-      s.forEach(doc => {
-        const c = doc.data();
-        const commentId = doc.id;
-        const commentDiv = document.createElement('div');
-        commentDiv.className = "live-comment-item";
-        const userBadge = userBadgeHTML(c.name || '?', c.kindred || '?', c.userId || '', c.avatar);
-        commentDiv.innerHTML = `
-          ${userBadge}
-          <span>: ${parseContent(c.text)}</span>
-          <div class="timestamp">${formatTimestamp(c.created)}</div>
-          <div id="liveReplies${commentId}" class="replies"></div>
-          <input id="liveReplyInput${commentId}" placeholder="Reply...">
-          <button onclick="replyLiveComment('${commentId}')">Reply</button>
-        `;
-        liveComments.appendChild(commentDiv);
-        addReactionUI('live/current/comments', commentId, commentDiv);
-        loadLiveReplies(commentId);
-      });
-    }
-
-    // Mini live comments
-    const miniLiveComments = document.getElementById("miniLiveComments");
-    if (miniLiveComments) {
-      miniLiveComments.innerHTML = "";
-      s.forEach(doc => {
-        const c = doc.data();
-        const commentDiv = document.createElement('div');
-        commentDiv.className = "mini-live-comment-item";
-        const userBadge = userBadgeHTML(c.name || '?', c.kindred || '?', c.userId || '', c.avatar);
-        commentDiv.innerHTML = `
-          ${userBadge}
-          <span>: ${parseContent(c.text)}</span>
-          <div class="timestamp">${formatRelativeTime(c.created)}</div>
-        `;
-        miniLiveComments.appendChild(commentDiv);
-        // No replies in mini view
-      });
-    }
-  }, showError);
-
-  window.replyLiveComment = function (commentId) {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("liveReplyInput" + commentId);
-    if (!input || !input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          avatar: userData.avatar || null,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
-  };
-
-  function loadLiveReplies(commentId) {
-    db.collection("live").doc("current").collection("comments").doc(commentId).collection("replies").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("liveReplies" + commentId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
-        replyDiv.innerHTML = `
-          ${userBadge}
-          <span>: ${parseContent(r.text)}</span>
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        container.appendChild(replyDiv);
-        addReactionUI(`live/current/comments/${commentId}/replies`, doc.id, replyDiv);
       });
     }, showError);
   }
@@ -3178,6 +2978,22 @@
       currentContent = targetId;
     }
     updateHeaderMarqueeVisibility();
+  };
+
+  // Ntu TV helper
+  window.showNtuTV = function() {
+    showContent('ntuTV');
+  };
+
+  window.toggleTvFullscreen = function() {
+    const iframe = document.getElementById('ntuIframe');
+    if (iframe.requestFullscreen) {
+      iframe.requestFullscreen();
+    } else if (iframe.webkitRequestFullscreen) {
+      iframe.webkitRequestFullscreen();
+    } else if (iframe.msRequestFullscreen) {
+      iframe.msRequestFullscreen();
+    }
   };
 
   sidebarLinks.forEach(link => {
