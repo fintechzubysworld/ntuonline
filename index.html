@@ -482,18 +482,39 @@
       margin-top: 8px;
     }
 
-    .embedded-media {
+    /* Media preview styles */
+    .media-preview {
       margin: 12px 0;
       border-radius: 20px;
       overflow: hidden;
+      background: #0a2420;
+      display: inline-block;
+      cursor: pointer;
+      position: relative;
     }
-    .embedded-media img,
-    .embedded-media iframe {
+    .media-preview img {
       max-width: 100%;
       border-radius: 20px;
+      display: block;
     }
-    .embedded-media iframe {
-      height: 210px;
+    .media-preview .play-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.6);
+      color: white;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      pointer-events: none;
+    }
+    .media-preview:hover .play-icon {
+      background: #2dab95;
     }
 
     .reaction-bar {
@@ -931,6 +952,43 @@
       margin-top: 12px;
       text-align: center;
     }
+
+    /* ===== Media Player Modal ===== */
+    #mediaPlayerModal .modal-content {
+      max-width: 90vw;
+      width: 800px;
+      padding: 20px;
+      background: #000;
+      border: 2px solid #2dab95;
+    }
+    #mediaPlayerModal .close {
+      color: white;
+      background: #1f8f7c;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      top: 10px;
+      right: 10px;
+    }
+    #mediaPlayerContainer {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+    }
+    #mediaPlayerContainer iframe,
+    #mediaPlayerContainer video,
+    #mediaPlayerContainer audio {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    #mediaPlayerContainer audio {
+      height: 60px;
+      margin-top: 40px;
+    }
   </style>
 </head>
 <body>
@@ -1229,6 +1287,14 @@
   </div>
 </div>
 
+<!-- Media Player Modal (central player for all media except Ntu TV) -->
+<div id="mediaPlayerModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeMediaPlayer()">&times;</span>
+    <div id="mediaPlayerContainer"></div>
+  </div>
+</div>
+
 <!-- Fixed bottom marquee -->
 <div class="bottom-marquee">
   <div class="marquee-content" id="bottomMarqueeText">⚡ Loading messages...</div>
@@ -1330,7 +1396,86 @@
     }
   });
 
-  // ==================== PARSE CONTENT (updated for YouTube API) ====================
+  // ==================== CENTRAL MEDIA PLAYER ====================
+  const mediaPlayerModal = document.getElementById('mediaPlayerModal');
+  const mediaPlayerContainer = document.getElementById('mediaPlayerContainer');
+  let currentYouTubePlayer = null; // for YouTube iframe
+  let currentNativeMedia = null;   // for video/audio element
+
+  // Close media player and stop playback
+  window.closeMediaPlayer = function() {
+    if (currentYouTubePlayer && typeof currentYouTubePlayer.destroy === 'function') {
+      currentYouTubePlayer.destroy();
+      currentYouTubePlayer = null;
+    }
+    if (currentNativeMedia) {
+      currentNativeMedia.pause();
+      currentNativeMedia.src = '';
+      currentNativeMedia.load();
+      currentNativeMedia = null;
+    }
+    mediaPlayerContainer.innerHTML = '';
+    mediaPlayerModal.style.display = 'none';
+  };
+
+  // Open media player with a given URL
+  function openMediaPlayer(url) {
+    // If Ntu TV is active, stop it
+    if (ntuTVActive) stopNtuTV();
+
+    // Close any existing media
+    closeMediaPlayer();
+
+    // Determine type and create appropriate player
+    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) {
+      const videoId = ytMatch[1];
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
+      iframe.allow = 'autoplay; encrypted-media';
+      iframe.allowFullscreen = true;
+      mediaPlayerContainer.appendChild(iframe);
+      mediaPlayerModal.style.display = 'flex';
+      // We can't directly control the iframe, but we'll rely on the modal close to stop it.
+      // For API control, we'd need to create a YT.Player, but that's complex with dynamic iframe.
+      // For simplicity, we'll just embed and let the user close the modal.
+      // To ensure only one plays, we'll just have this modal.
+    } else {
+      // Try to create video or audio element
+      const isAudio = url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i);
+      const element = document.createElement(isAudio ? 'audio' : 'video');
+      element.controls = true;
+      element.autoplay = true;
+      element.style.width = '100%';
+      element.style.height = isAudio ? '60px' : '100%';
+      element.src = url;
+      mediaPlayerContainer.appendChild(element);
+      mediaPlayerModal.style.display = 'flex';
+      currentNativeMedia = element;
+
+      // Ensure only one native media plays (but this is the only one)
+      element.addEventListener('play', function() {
+        // If any other media might be playing, but we've closed previous ones.
+      });
+    }
+
+    // Also ensure any other potential media on page is paused (though they are not in modal)
+    // We'll rely on the fact that only this modal has media.
+  }
+
+  // Attach click handlers to all media previews
+  function attachMediaPreviewClick(container) {
+    if (!container) container = document;
+    container.querySelectorAll('.media-preview').forEach(preview => {
+      preview.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const url = this.dataset.url;
+        if (url) openMediaPlayer(url);
+      });
+    });
+  }
+
+  // ==================== PARSE CONTENT (updated to show media previews) ====================
   function parseContent(text) {
     if (!text) return '';
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -1343,7 +1488,7 @@
       if (index > lastIndex) {
         parts.push({ type: 'text', content: text.substring(lastIndex, index) });
       }
-      parts.push(detectAndEmbed(url));
+      parts.push(detectAndPreview(url));
       lastIndex = index + url.length;
     }
     if (lastIndex < text.length) {
@@ -1353,7 +1498,7 @@
     parts.forEach(part => {
       if (part.type === 'text') {
         html += escapeHtml(part.content);
-      } else if (part.type === 'embed') {
+      } else if (part.type === 'preview') {
         html += part.html;
       } else if (part.type === 'link') {
         html += `<a href="${part.content}" target="_blank" rel="noopener" style="color:#8cffe0;">${part.content}</a>`;
@@ -1362,58 +1507,50 @@
     return html;
   }
 
-  // Global store for YouTube players
-  window.youTubePlayers = [];
-  window.ignoreYouTubeEvents = false; // to prevent reacting to our own pauses
-
-  // Helper to generate a unique ID for YouTube iframes
-  function generateYouTubeId(videoId) {
-    return `youtube-${videoId}-${Math.random().toString(36).substring(2, 8)}`;
-  }
-
-  function detectAndEmbed(url) {
+  function detectAndPreview(url) {
     const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) {
       const videoId = ytMatch[1];
-      const iframeId = generateYouTubeId(videoId);
-      // Enable JS API and add origin to help with API calls
-      const embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${window.location.origin}`;
+      const thumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
       return {
-        type: 'embed',
-        html: `<div class="embedded-media"><iframe id="${iframeId}" src="${embedUrl}" allowfullscreen></iframe></div>`
+        type: 'preview',
+        html: `<div class="media-preview" data-url="${url}"><img src="${thumbnail}" alt="YouTube video"><div class="play-icon"><i class="fas fa-play"></i></div></div>`
       };
     }
     const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
     if (driveMatch) {
       const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
+      // Try to get a thumbnail from Drive (if image)
       if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || url.includes('uc?id=')) {
+        // Image preview
         return {
-          type: 'embed',
-          html: `<div class="embedded-media"><img src="https://drive.google.com/uc?id=${fileId}" alt="Google Drive image" loading="lazy"></div>`
+          type: 'preview',
+          html: `<div class="media-preview" data-url="${url}"><img src="https://drive.google.com/uc?id=${fileId}" alt="Drive image"><div class="play-icon"><i class="fas fa-search-plus"></i></div></div>`
         };
       } else {
+        // Video file – use generic preview
         return {
-          type: 'embed',
-          html: `<div class="embedded-media"><iframe src="https://drive.google.com/file/d/${fileId}/preview" allowfullscreen></iframe></div>`
+          type: 'preview',
+          html: `<div class="media-preview" data-url="${url}"><div style="width:200px;height:120px;background:#0a2420;display:flex;align-items:center;justify-content:center"><i class="fas fa-video" style="font-size:3rem;color:#2dab95;"></i></div><div class="play-icon"><i class="fas fa-play"></i></div></div>`
         };
       }
     }
     if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i)) {
       return {
-        type: 'embed',
-        html: `<div class="embedded-media"><img src="${url}" alt="embedded image" loading="lazy"></div>`
+        type: 'preview',
+        html: `<div class="media-preview" data-url="${url}"><img src="${url}" alt="image"><div class="play-icon"><i class="fas fa-search-plus"></i></div></div>`
       };
     }
     if (url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i)) {
       return {
-        type: 'embed',
-        html: `<div class="embedded-media"><video controls style="max-width:100%;"><source src="${url}">Your browser does not support the video tag.</video></div>`
+        type: 'preview',
+        html: `<div class="media-preview" data-url="${url}"><div style="width:200px;height:120px;background:#0a2420;display:flex;align-items:center;justify-content:center"><i class="fas fa-video" style="font-size:3rem;color:#2dab95;"></i></div><div class="play-icon"><i class="fas fa-play"></i></div></div>`
       };
     }
     if (url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i)) {
       return {
-        type: 'embed',
-        html: `<div class="embedded-media"><audio controls style="width:100%;"><source src="${url}">Your browser does not support the audio tag.</audio></div>`
+        type: 'preview',
+        html: `<div class="media-preview" data-url="${url}"><div style="width:200px;height:60px;background:#0a2420;display:flex;align-items:center;justify-content:center"><i class="fas fa-headphones" style="font-size:2rem;color:#2dab95;"></i></div><div class="play-icon"><i class="fas fa-play"></i></div></div>`
       };
     }
     return { type: 'link', content: url };
@@ -1788,60 +1925,6 @@
     }
   };
 
-  // ==================== YOUTUBE PLAYER INITIALIZATION ====================
-  // Called after YouTube API is ready and whenever new content is added
-  function initYouTubePlayers(container) {
-    if (typeof YT === 'undefined' || !YT.Player) {
-      // API not ready yet – try again later
-      setTimeout(() => initYouTubePlayers(container), 200);
-      return;
-    }
-    const iframes = container.querySelectorAll('iframe[id^="youtube-"]');
-    iframes.forEach(iframe => {
-      const id = iframe.id;
-      // Check if player already exists for this id
-      if (window.youTubePlayers.some(p => p.a && p.a.id === id)) return;
-      try {
-        const player = new YT.Player(id, {
-          events: {
-            'onStateChange': onYouTubeStateChange
-          }
-        });
-        window.youTubePlayers.push(player);
-      } catch (e) {
-        console.error('Error creating YouTube player for', id, e);
-      }
-    });
-  }
-
-  function onYouTubeStateChange(event) {
-    if (window.ignoreYouTubeEvents) return;
-    if (event.data === YT.PlayerState.PLAYING) {
-      // A YouTube video started playing
-      // Pause all other YouTube players
-      window.ignoreYouTubeEvents = true;
-      window.youTubePlayers.forEach(p => {
-        if (p.a && p.a.id !== event.target.a.id && p.getPlayerState() === YT.PlayerState.PLAYING) {
-          p.pauseVideo();
-        }
-      });
-      window.ignoreYouTubeEvents = false;
-
-      // Pause any native media
-      document.querySelectorAll('video, audio').forEach(media => {
-        if (!media.paused) media.pause();
-      });
-
-      // Stop Ntu TV if it's active
-      if (ntuTVActive) stopNtuTV();
-    }
-  }
-
-  // Call this after any DOM update that may contain YouTube embeds
-  function scanForYouTubePlayers() {
-    initYouTubePlayers(document);
-  }
-
   // ==================== FULL FEED ====================
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     // Update full feed area (with replies and reactions)
@@ -1856,7 +1939,7 @@
         feedDiv.id = `feed-${feedId}`;
         let imageHtml = '';
         if (p.image) {
-          imageHtml = `<div class="embedded-media">${parseContent(p.image)}</div>`;
+          imageHtml = `<div>${parseContent(p.image)}</div>`;
         }
         const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
         feedDiv.innerHTML = `
@@ -1872,8 +1955,8 @@
         addReactionUI('feed', feedId, feedDiv);
         loadReplies("feed", feedId, "feedReplies");
       });
-      // Initialize any YouTube players in the new content
-      scanForYouTubePlayers();
+      // Attach click handlers to media previews
+      attachMediaPreviewClick(feedArea);
     }
 
     // Update mini feed full area (simplified, no replies)
@@ -1890,13 +1973,13 @@
         feedDiv.innerHTML = `
           ${userBadge}
           <div>${parseContent(p.text)}</div>
-          ${p.image ? `<div class="embedded-media">${parseContent(p.image)}</div>` : ''}
+          ${p.image ? `<div>${parseContent(p.image)}</div>` : ''}
           <div class="timestamp">${formatRelativeTime(p.created)}</div>
         `;
         miniFeedFull.appendChild(feedDiv);
         // No reactions or replies in mini view
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(miniFeedFull);
     }
   }, showError);
 
@@ -1958,7 +2041,7 @@
         box.appendChild(replyDiv);
         addReactionUI(`${collection}/${id}/replies`, doc.id, replyDiv);
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(box);
     }, showError);
   }
 
@@ -2005,7 +2088,7 @@
         addReactionUI('chat', chatId, chatDiv);
         loadChatReplies(chatId);
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(chatArea);
     }
   }, showError);
 
@@ -2047,7 +2130,7 @@
         container.appendChild(replyDiv);
         addReactionUI(`chat/${chatId}/replies`, doc.id, replyDiv);
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(container);
     }, showError);
   }
 
@@ -2095,7 +2178,7 @@
         addReactionUI('goodwill', goodwillId, goodwillDiv);
         loadGoodwillReplies(goodwillId);
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(goodwillArea);
     }
 
     // Mini goodwill full area
@@ -2115,7 +2198,7 @@
         miniGoodwillFull.appendChild(goodwillDiv);
         // No replies in mini view
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(miniGoodwillFull);
     }
   }, showError);
 
@@ -2157,7 +2240,7 @@
         container.appendChild(replyDiv);
         addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(container);
     }, showError);
   }
 
@@ -2171,9 +2254,9 @@
         const e = doc.data();
         const eventId = doc.id;
         let mediaHtml = '';
-        if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
-        if (e.video) mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
-        if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
+        if (e.image) mediaHtml += `<div>${parseContent(e.image)}</div>`;
+        if (e.video) mediaHtml += `<div>${parseContent(e.video)}</div>`;
+        if (e.audio) mediaHtml += `<div>${parseContent(e.audio)}</div>`;
 
         const eventDiv = document.createElement('div');
         eventDiv.className = "event-item";
@@ -2190,7 +2273,7 @@
         eventArea.appendChild(eventDiv);
         loadEventComments(eventId);
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(eventArea);
     }
 
     // Mini events full area – first event full, others preview
@@ -2203,13 +2286,13 @@
         const eventDiv = document.createElement('div');
         
         if (eventIndex === 0) {
-          // --- First event: FULL display (with all media) ---
+          // --- First event: FULL display (with all media previews) ---
           eventDiv.className = "event-item"; // reuse full event style
           
           let mediaHtml = '';
-          if (e.image)  mediaHtml += `<div class="embedded-media">${parseContent(e.image)}</div>`;
-          if (e.video)  mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
-          if (e.audio)  mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
+          if (e.image)  mediaHtml += `<div>${parseContent(e.image)}</div>`;
+          if (e.video)  mediaHtml += `<div>${parseContent(e.video)}</div>`;
+          if (e.audio)  mediaHtml += `<div>${parseContent(e.audio)}</div>`;
           
           eventDiv.innerHTML = `
             <h4>${e.title || 'Untitled'}</h4>
@@ -2223,7 +2306,7 @@
           
           let mediaHtml = '';
           if (e.image) {
-            mediaHtml += `<div class="embedded-media"><img src="${e.image}" style="max-height:60px; object-fit:cover;" alt=""></div>`;
+            mediaHtml += `<div>${parseContent(e.image)}</div>`;
           }
           
           const descPreview = e.description 
@@ -2241,7 +2324,7 @@
         miniEventFull.appendChild(eventDiv);
         eventIndex++;
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(miniEventFull);
     }
   }, showError);
 
@@ -2288,7 +2371,7 @@
         addReactionUI(`events/${eventId}/comments`, commentId, commentDiv);
         loadEventCommentReplies(eventId, commentId);
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(container);
     }, showError);
   }
 
@@ -2330,7 +2413,7 @@
         container.appendChild(replyDiv);
         addReactionUI(`events/${eventId}/comments/${commentId}/replies`, doc.id, replyDiv);
       });
-      scanForYouTubePlayers();
+      attachMediaPreviewClick(container);
     }, showError);
   }
 
@@ -3062,35 +3145,20 @@
     updateHeaderMarqueeVisibility();
   });
 
-  // ==================== NTU TV AUTO START/STOP & GLOBAL MEDIA COORDINATION ====================
+  // ==================== NTU TV AUTO START/STOP & COORDINATION WITH MEDIA PLAYER ====================
   let ntuTVOriginalSrc = 'https://unrelished-commissively-reginia.ngrok-free.dev/';
   let ntuTVIframe = document.getElementById('ntuIframe');
   let ntuTVActive = false;
-
-  function pauseAllNativeMedia() {
-    document.querySelectorAll('video, audio').forEach(media => {
-      if (!media.paused) media.pause();
-    });
-  }
-
-  function pauseAllYouTubePlayers() {
-    window.ignoreYouTubeEvents = true;
-    window.youTubePlayers.forEach(p => {
-      if (p.getPlayerState && p.getPlayerState() === YT.PlayerState.PLAYING) {
-        p.pauseVideo();
-      }
-    });
-    window.ignoreYouTubeEvents = false;
-  }
 
   function startNtuTV() {
     if (!ntuTVIframe) ntuTVIframe = document.getElementById('ntuIframe');
     if (ntuTVIframe) {
       ntuTVIframe.src = ntuTVOriginalSrc;
       ntuTVActive = true;
-      // Pause any playing native media and YouTube videos
-      pauseAllNativeMedia();
-      pauseAllYouTubePlayers();
+      // Close media player if open
+      if (mediaPlayerModal.style.display === 'flex') {
+        closeMediaPlayer();
+      }
     }
   }
 
@@ -3101,24 +3169,6 @@
       ntuTVActive = false;
     }
   }
-
-  // Global media coordination: only one native media can play at a time.
-  // If any native media starts while Ntu TV is active, stop Ntu TV and pause YouTube.
-  document.addEventListener('play', function(e) {
-    const target = e.target;
-    if (target.tagName === 'VIDEO' || target.tagName === 'AUDIO') {
-      // Pause any other native media except the one that just started
-      document.querySelectorAll('video, audio').forEach(media => {
-        if (media !== target && !media.paused) {
-          media.pause();
-        }
-      });
-      // Pause all YouTube players
-      pauseAllYouTubePlayers();
-      // Stop Ntu TV if it's active
-      if (ntuTVActive) stopNtuTV();
-    }
-  }, true); // capture phase
 
   // ==================== CONTENT SWITCHING (modified to handle Ntu TV) ====================
   window.showContent = function(targetId) {
@@ -3293,21 +3343,19 @@
         activeChatRoomId = null;
       }
       if (event.target.id === 'linkModal') closeLinkModal();
+      if (event.target.id === 'mediaPlayerModal') closeMediaPlayer();
     }
   };
 
   // ==================== EXPAND ON CARD CLICK (UPDATED) ====================
   document.querySelectorAll('.mini-card[data-expand]').forEach(card => {
     card.addEventListener('click', function(e) {
-      // Prevent expansion if clicking on a button, input, link, user badge, video, audio, iframe, or any embedded media container
+      // Prevent expansion if clicking on a button, input, link, user badge, or media preview
       if (e.target.closest('button') ||
           e.target.closest('input') ||
           e.target.closest('a') ||
           e.target.closest('.user-badge') ||
-          e.target.closest('video') ||
-          e.target.closest('audio') ||
-          e.target.closest('iframe') ||
-          e.target.closest('.embedded-media')) {
+          e.target.closest('.media-preview')) {
         return;
       }
       const target = this.dataset.expand;
