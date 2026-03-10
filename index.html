@@ -1589,10 +1589,10 @@
       db.collection("users").doc(user.uid).get().then(doc => {
         const userData = doc.data() || {};
         currentUserIsAdmin = userData.isAdmin === true;
-        // Include Ntu TV button in nav bar
+        // Include Ntu TV button in nav bar – using solid icon to match sidebar
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
-          <button onclick="showNtuTV()"><i class="fa-regular fa-tv"></i> Ntu TV</button>
+          <button onclick="showNtuTV()"><i class="fas fa-tv"></i> Ntu TV</button>
           <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
           <button onclick="logout()">Logout</button>
         `;
@@ -1623,7 +1623,7 @@
 
       }).catch(showError);
     } else {
-      navArea.innerHTML = `<button onclick="showNtuTV()"><i class="fa-regular fa-tv"></i> Ntu TV</button> <button onclick="showAuth()">Login / Register</button>`;
+      navArea.innerHTML = `<button onclick="showNtuTV()"><i class="fas fa-tv"></i> Ntu TV</button> <button onclick="showAuth()">Login / Register</button>`;
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
       
@@ -2979,6 +2979,45 @@
     updateHeaderMarqueeVisibility();
   });
 
+  // ==================== NTU TV AUTO START/STOP & NO MULTIPLE VIDEOS ====================
+  let ntuTVOriginalSrc = 'https://unrelished-commissively-reginia.ngrok-free.dev/';
+  let ntuTVIframe = document.getElementById('ntuIframe');
+  let ntuTVActive = false;
+
+  function startNtuTV() {
+    if (!ntuTVIframe) ntuTVIframe = document.getElementById('ntuIframe');
+    if (ntuTVIframe) {
+      ntuTVIframe.src = ntuTVOriginalSrc;
+      ntuTVActive = true;
+      // Pause any other media playing on the page
+      pauseAllOtherMedia();
+    }
+  }
+
+  function stopNtuTV() {
+    if (!ntuTVIframe) ntuTVIframe = document.getElementById('ntuIframe');
+    if (ntuTVIframe && ntuTVIframe.src !== '') {
+      ntuTVIframe.src = '';
+      ntuTVActive = false;
+    }
+  }
+
+  function pauseAllOtherMedia() {
+    document.querySelectorAll('video, audio').forEach(media => {
+      if (!media.paused) {
+        media.pause();
+      }
+    });
+  }
+
+  // Global play event listener: if any video/audio starts while Ntu TV is active, stop Ntu TV
+  document.addEventListener('play', function(e) {
+    if (ntuTVActive && (e.target.tagName === 'VIDEO' || e.target.tagName === 'AUDIO')) {
+      stopNtuTV();
+    }
+  }, true); // capture phase
+
+  // ==================== CONTENT SWITCHING (modified to handle Ntu TV) ====================
   window.showContent = function(targetId) {
     if (targetId === 'admin') {
       if (!currentUserIsAdmin) {
@@ -3007,6 +3046,13 @@
       currentContent = targetId;
     }
     updateHeaderMarqueeVisibility();
+
+    // Ntu TV auto start/stop
+    if (targetId === 'ntuTV') {
+      startNtuTV();
+    } else {
+      stopNtuTV();
+    }
   };
 
   // Ntu TV helper
