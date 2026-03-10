@@ -1626,8 +1626,73 @@
     ntvIframeLoaded = false;
   }
 
-  // Modify showContent to handle Ntu TV auto-play/pause
-  const originalShowContent = window.showContent;
+  // ==================== CONTENT SWITCHING (with Ntu TV hooks) ====================
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const toggleBtn = document.getElementById('sidebarToggle');
+  const floatingToggle = document.getElementById('floatingSidebarToggle');
+  const sidebarLinks = document.querySelectorAll('.sidebar-menu a[data-content]');
+  const ntuLink = document.getElementById('ntuElectricityLink');
+  const contentDivs = document.querySelectorAll('.content');
+
+  function toggleSidebar() {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+    updateHeaderMarqueeVisibility();
+  }
+
+  toggleBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+
+  floatingToggle.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+
+  overlay.addEventListener('click', function() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    updateHeaderMarqueeVisibility();
+  });
+
+  window.showNtuTV = function() {
+    showContent('ntuTV');
+  };
+
+  // Original showContent (preserved)
+  const originalShowContent = function(targetId) {
+    if (targetId === 'admin') {
+      if (!currentUserIsAdmin) {
+        console.warn('Non-admin attempted to access admin panel');
+        contentDivs.forEach(div => div.classList.remove('active'));
+        document.getElementById('accessDenied').classList.add('active');
+        currentContent = 'accessDenied';
+        updateHeaderMarqueeVisibility();
+        return;
+      }
+      const adminPanel = document.getElementById('admin');
+      if (!adminPanel.classList.contains('admin-enabled')) {
+        console.warn('Admin panel not enabled');
+        contentDivs.forEach(div => div.classList.remove('active'));
+        document.getElementById('accessDenied').classList.add('active');
+        currentContent = 'accessDenied';
+        updateHeaderMarqueeVisibility();
+        return;
+      }
+    }
+
+    contentDivs.forEach(div => div.classList.remove('active'));
+    const targetDiv = document.getElementById(targetId);
+    if (targetDiv) {
+      targetDiv.classList.add('active');
+      currentContent = targetId;
+    }
+    updateHeaderMarqueeVisibility();
+  };
+
+  // Override with Ntu TV handling
   window.showContent = function(targetId) {
     // If leaving Ntu TV, unload it
     if (currentContent === 'ntuTV' && targetId !== 'ntuTV') {
@@ -1641,6 +1706,42 @@
     }
   };
 
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('data-content');
+      window.showContent(targetId);
+      if (targetId === 'home') {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        updateHeaderMarqueeVisibility();
+      } else {
+        if (window.innerWidth < 992) {
+          sidebar.classList.remove('open');
+          overlay.classList.remove('active');
+        }
+      }
+    });
+  });
+
+  ntuLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    window.showContent('electricity');
+    if (window.innerWidth < 992) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    }
+  });
+
+  window.addEventListener('resize', function() {
+    if (window.innerWidth >= 992) {
+      overlay.classList.remove('active');
+    } else {
+      if (sidebar.classList.contains('open')) overlay.classList.add('active');
+    }
+    updateHeaderMarqueeVisibility();
+  });
+
   window.toggleTvFullscreen = function() {
     const iframe = document.getElementById('ntuIframe');
     if (iframe.requestFullscreen) {
@@ -1650,98 +1751,6 @@
     } else if (iframe.msRequestFullscreen) {
       iframe.msRequestFullscreen();
     }
-  };
-
-  // ==================== EVENTS DISPLAY (first full, others preview) ====================
-  // Replace the original events listener with this version
-  db.collection("events").orderBy("created", "desc").onSnapshot(s => {
-    // Full events area
-    const eventArea = document.getElementById("eventArea");
-    if (eventArea) {
-      eventArea.innerHTML = "";
-      s.forEach((doc, index) => {
-        const e = doc.data();
-        const eventId = doc.id;
-
-        if (index === 0) {
-          // First event: full display
-          let mediaHtml = '';
-          if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
-          if (e.video) mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
-          if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
-
-          const eventDiv = document.createElement('div');
-          eventDiv.className = "event-item";
-          eventDiv.id = `event-${eventId}`;
-          eventDiv.innerHTML = `
-            <h4>${e.title || 'Untitled'}</h4>
-            <p>${e.description ? parseContent(e.description) : ''}</p>
-            <p><small>${e.date || ''}</small></p>
-            ${mediaHtml}
-            <div id="eventComments${eventId}" class="replies"></div>
-            <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
-            <button onclick="commentEvent('${eventId}')">Comment</button>
-          `;
-          eventArea.appendChild(eventDiv);
-          loadEventComments(eventId);
-        } else {
-          // Subsequent events: preview (no media, truncated description)
-          const previewDesc = e.description ? (e.description.length > 100 ? e.description.substring(0,100) + '…' : e.description) : '';
-          const eventDiv = document.createElement('div');
-          eventDiv.className = "event-item";
-          eventDiv.id = `event-${eventId}`;
-          eventDiv.innerHTML = `
-            <h4>${e.title || 'Untitled'}</h4>
-            <p>${previewDesc ? parseContent(previewDesc) : ''}</p>
-            <p><small>${e.date || ''}</small></p>
-            <button onclick="expandEvent('${eventId}')" style="margin-top:8px;">Read More</button>
-          `;
-          eventArea.appendChild(eventDiv);
-          // No comments in preview, but we could add a placeholder
-        }
-      });
-    }
-
-    // Mini events full area (home page) – also first full, others preview
-    const miniEventFull = document.getElementById("miniEventFullArea");
-    if (miniEventFull) {
-      miniEventFull.innerHTML = "";
-      s.forEach((doc, index) => {
-        const e = doc.data();
-        const eventDiv = document.createElement('div');
-        eventDiv.className = "mini-event-item";
-
-        if (index === 0) {
-          // First event: show full description (truncate if too long for mini)
-          let desc = e.description || '';
-          if (desc.length > 150) desc = desc.substring(0,150) + '…';
-          let mediaHtml = '';
-          if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" style="max-height:60px; object-fit:cover;" alt=""></div>`;
-          eventDiv.innerHTML = `
-            <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
-            <p style="font-size:0.85rem;">${desc}</p>
-            <p><small>${e.date || ''}</small></p>
-            ${mediaHtml}
-          `;
-        } else {
-          // Preview: title + date only
-          eventDiv.innerHTML = `
-            <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
-            <p><small>${e.date || ''}</small></p>
-          `;
-        }
-        miniEventFull.appendChild(eventDiv);
-      });
-    }
-  }, showError);
-
-  // Helper to expand a preview event (navigate to full events panel and scroll to it)
-  window.expandEvent = function(eventId) {
-    showContent('events');
-    setTimeout(() => {
-      const el = document.getElementById(`event-${eventId}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
   };
 
   // ==================== AUTH STATE ====================
@@ -2245,7 +2254,98 @@
     }, showError);
   }
 
-  // ==================== EVENT COMMENTS (unchanged, but referenced above) ====================
+  // ==================== FULL EVENTS (first full, others preview) ====================
+  // Helper to expand a preview event (navigate to full events panel and scroll to it)
+  window.expandEvent = function(eventId) {
+    showContent('events');
+    setTimeout(() => {
+      const el = document.getElementById(`event-${eventId}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  };
+
+  db.collection("events").orderBy("created", "desc").onSnapshot(s => {
+    // Full events area
+    const eventArea = document.getElementById("eventArea");
+    if (eventArea) {
+      eventArea.innerHTML = "";
+      s.forEach((doc, index) => {
+        const e = doc.data();
+        const eventId = doc.id;
+
+        if (index === 0) {
+          // First event: full display
+          let mediaHtml = '';
+          if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
+          if (e.video) mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
+          if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
+
+          const eventDiv = document.createElement('div');
+          eventDiv.className = "event-item";
+          eventDiv.id = `event-${eventId}`;
+          eventDiv.innerHTML = `
+            <h4>${e.title || 'Untitled'}</h4>
+            <p>${e.description ? parseContent(e.description) : ''}</p>
+            <p><small>${e.date || ''}</small></p>
+            ${mediaHtml}
+            <div id="eventComments${eventId}" class="replies"></div>
+            <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
+            <button onclick="commentEvent('${eventId}')">Comment</button>
+          `;
+          eventArea.appendChild(eventDiv);
+          loadEventComments(eventId);
+        } else {
+          // Subsequent events: preview (no media, truncated description)
+          const previewDesc = e.description ? (e.description.length > 100 ? e.description.substring(0,100) + '…' : e.description) : '';
+          const eventDiv = document.createElement('div');
+          eventDiv.className = "event-item";
+          eventDiv.id = `event-${eventId}`;
+          eventDiv.innerHTML = `
+            <h4>${e.title || 'Untitled'}</h4>
+            <p>${previewDesc ? parseContent(previewDesc) : ''}</p>
+            <p><small>${e.date || ''}</small></p>
+            <button onclick="expandEvent('${eventId}')" style="margin-top:8px;">Read More</button>
+          `;
+          eventArea.appendChild(eventDiv);
+          // No comments in preview
+        }
+      });
+    }
+
+    // Mini events full area (home page) – also first full, others preview
+    const miniEventFull = document.getElementById("miniEventFullArea");
+    if (miniEventFull) {
+      miniEventFull.innerHTML = "";
+      s.forEach((doc, index) => {
+        const e = doc.data();
+        const eventDiv = document.createElement('div');
+        eventDiv.className = "mini-event-item";
+
+        if (index === 0) {
+          // First event: show full description (truncate if too long for mini)
+          let desc = e.description || '';
+          if (desc.length > 150) desc = desc.substring(0,150) + '…';
+          let mediaHtml = '';
+          if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" style="max-height:60px; object-fit:cover;" alt=""></div>`;
+          eventDiv.innerHTML = `
+            <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
+            <p style="font-size:0.85rem;">${desc}</p>
+            <p><small>${e.date || ''}</small></p>
+            ${mediaHtml}
+          `;
+        } else {
+          // Preview: title + date only
+          eventDiv.innerHTML = `
+            <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
+            <p><small>${e.date || ''}</small></p>
+          `;
+        }
+        miniEventFull.appendChild(eventDiv);
+      });
+    }
+  }, showError);
+
+  // ==================== EVENT COMMENTS (unchanged) ====================
   window.commentEvent = function(eventId) {
     if (!currentUser) return alert("Login required");
     const input = document.getElementById("eventCommentInput" + eventId);
@@ -3029,130 +3129,6 @@
   }
 
   setupBroadcastListener();
-
-  // ==================== SIDEBAR TOGGLE & CONTENT SWITCHING ====================
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('overlay');
-  const toggleBtn = document.getElementById('sidebarToggle');
-  const floatingToggle = document.getElementById('floatingSidebarToggle');
-  const sidebarLinks = document.querySelectorAll('.sidebar-menu a[data-content]');
-  const ntuLink = document.getElementById('ntuElectricityLink');
-  const contentDivs = document.querySelectorAll('.content');
-
-  function toggleSidebar() {
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('active');
-    updateHeaderMarqueeVisibility();
-  }
-
-  toggleBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleSidebar();
-  });
-
-  floatingToggle.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleSidebar();
-  });
-
-  overlay.addEventListener('click', function() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('active');
-    updateHeaderMarqueeVisibility();
-  });
-
-  window.showNtuTV = function() {
-    showContent('ntuTV');
-  };
-
-  // Original showContent is overridden above; we need to keep its core
-  // We already redefined showContent earlier, but we need to ensure it still does all original checks
-  // The earlier redefinition wraps the original; we must define originalShowContent first
-  // Let's redefine properly:
-
-  // Store original before overriding
-  const originalShowContent = window.showContent || function(targetId) {
-    if (targetId === 'admin') {
-      if (!currentUserIsAdmin) {
-        console.warn('Non-admin attempted to access admin panel');
-        contentDivs.forEach(div => div.classList.remove('active'));
-        document.getElementById('accessDenied').classList.add('active');
-        currentContent = 'accessDenied';
-        updateHeaderMarqueeVisibility();
-        return;
-      }
-      const adminPanel = document.getElementById('admin');
-      if (!adminPanel.classList.contains('admin-enabled')) {
-        console.warn('Admin panel not enabled');
-        contentDivs.forEach(div => div.classList.remove('active'));
-        document.getElementById('accessDenied').classList.add('active');
-        currentContent = 'accessDenied';
-        updateHeaderMarqueeVisibility();
-        return;
-      }
-    }
-
-    contentDivs.forEach(div => div.classList.remove('active'));
-    const targetDiv = document.getElementById(targetId);
-    if (targetDiv) {
-      targetDiv.classList.add('active');
-      currentContent = targetId;
-    }
-    updateHeaderMarqueeVisibility();
-  };
-
-  // Override with Ntu TV handling
-  window.showContent = function(targetId) {
-    // If leaving Ntu TV, unload it
-    if (currentContent === 'ntuTV' && targetId !== 'ntuTV') {
-      unloadNtuTVContent();
-    }
-    // Call original
-    originalShowContent(targetId);
-    // If entering Ntu TV, load it
-    if (targetId === 'ntuTV') {
-      loadNtuTVContent();
-    }
-  };
-
-  // Set original for the first call
-  window.showContent = window.showContent || originalShowContent;
-
-  sidebarLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      const targetId = this.getAttribute('data-content');
-      window.showContent(targetId);
-      if (targetId === 'home') {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('active');
-        updateHeaderMarqueeVisibility();
-      } else {
-        if (window.innerWidth < 992) {
-          sidebar.classList.remove('open');
-          overlay.classList.remove('active');
-        }
-      }
-    });
-  });
-
-  ntuLink.addEventListener('click', function(e) {
-    e.preventDefault();
-    window.showContent('electricity');
-    if (window.innerWidth < 992) {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('active');
-    }
-  });
-
-  window.addEventListener('resize', function() {
-    if (window.innerWidth >= 992) {
-      overlay.classList.remove('active');
-    } else {
-      if (sidebar.classList.contains('open')) overlay.classList.add('active');
-    }
-    updateHeaderMarqueeVisibility();
-  });
 
   // ==================== MARQUEE SPEEDS & MESSAGES ====================
   const configDoc = db.collection("config").doc("site");
