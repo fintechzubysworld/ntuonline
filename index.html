@@ -953,6 +953,61 @@
       text-align: center;
     }
 
+    /* Ntu TV comments & reactions */
+    .ntutv-reaction-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 20px 0 10px;
+    }
+    .ntutv-reaction-btn {
+      background: none;
+      border: none;
+      color: #b2d9d2;
+      cursor: pointer;
+      padding: 8px 18px;
+      border-radius: 40px;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+    .ntutv-reaction-btn:hover {
+      background: #1d4d44;
+    }
+    .ntutv-reaction-btn.liked {
+      color: #64ffda;
+      font-weight: 600;
+    }
+    .ntutv-comments-section {
+      max-height: 300px;
+      overflow-y: auto;
+      padding-right: 8px;
+      margin-bottom: 15px;
+    }
+    .ntutv-comment {
+      background: #0f2d27;
+      border-radius: 18px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-left: 3px solid #2dab95;
+    }
+    .ntutv-comment .user-badge {
+      margin-bottom: 4px;
+    }
+    .ntutv-comment .comment-text {
+      margin-left: 32px;
+    }
+    .ntutv-comment .timestamp {
+      font-size: 0.65rem;
+      margin-left: 32px;
+    }
+    .ntutv-comment-input-area {
+      display: flex;
+      gap: 10px;
+    }
+
     /* ===== Media Player Modal with Comments ===== */
     #mediaPlayerModal .modal-content {
       max-width: 90vw;
@@ -1181,7 +1236,7 @@
     </div>
   </div>
 
-  <!-- Ntu TV panel (with allow="autoplay") -->
+  <!-- Ntu TV panel (with allow="autoplay") + comments/reactions -->
   <div id="ntuTV" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-tv"></i> Ntu TV</h3>
@@ -1192,6 +1247,17 @@
         <div class="fullscreen-btn">
           <button onclick="toggleTvFullscreen()"><i class="fa-regular fa-expand"></i> Toggle Fullscreen</button>
         </div>
+      </div>
+      <!-- Reactions & Comments for Ntu TV -->
+      <div class="ntutv-reaction-bar">
+        <button class="ntutv-reaction-btn" id="ntuTvLikeBtn" onclick="toggleNtuTvLike()">
+          <i class="fa-regular fa-thumbs-up"></i> <span id="ntuTvLikeCount">0</span>
+        </button>
+      </div>
+      <div class="ntutv-comments-section" id="ntuTvCommentsSection"></div>
+      <div class="ntutv-comment-input-area">
+        <input type="text" id="ntuTvCommentInput" placeholder="Add a comment...">
+        <button onclick="postNtuTvComment()">Post</button>
       </div>
     </div>
   </div>
@@ -1457,6 +1523,92 @@
       openLinkInModal(href);
     }
   });
+
+  // ==================== NTU TV COMMENTS & LIKES ====================
+  const ntuTvId = 'ntuTV'; // fixed document ID
+  let unsubscribeNtuTvComments = null;
+  let unsubscribeNtuTvLikes = null;
+
+  function loadNtuTvComments() {
+    const commentsRef = db.collection('mediaComments').doc(ntuTvId).collection('comments').orderBy('created', 'asc');
+    unsubscribeNtuTvComments = commentsRef.onSnapshot(snapshot => {
+      const container = document.getElementById('ntuTvCommentsSection');
+      let html = '';
+      snapshot.forEach(doc => {
+        const c = doc.data();
+        const avatarHtml = c.avatar 
+          ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
+          : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+        html += `
+          <div class="ntutv-comment">
+            <span class="user-badge" onclick="showProfile('${c.userId}')">${avatarHtml}<span>${escapeHtml(c.name)} (${escapeHtml(c.kindred || '')})</span></span>
+            <div class="comment-text">${escapeHtml(c.text)}</div>
+            <div class="timestamp">${formatTimestamp(c.created)}</div>
+          </div>
+        `;
+      });
+      container.innerHTML = html || '<p style="text-align:center;">No comments yet.</p>';
+    }, showError);
+  }
+
+  function loadNtuTvLikes() {
+    const likesRef = db.collection('mediaComments').doc(ntuTvId).collection('reactions');
+    unsubscribeNtuTvLikes = likesRef.onSnapshot(snapshot => {
+      let count = 0;
+      let userLiked = false;
+      snapshot.forEach(doc => {
+        if (doc.data().type === 'like') {
+          count++;
+          if (currentUser && doc.id === currentUser.uid) userLiked = true;
+        }
+      });
+      document.getElementById('ntuTvLikeCount').textContent = count;
+      const likeBtn = document.getElementById('ntuTvLikeBtn');
+      if (userLiked) {
+        likeBtn.classList.add('liked');
+        likeBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> <span id="ntuTvLikeCount">' + count + '</span>';
+      } else {
+        likeBtn.classList.remove('liked');
+        likeBtn.innerHTML = '<i class="fa-regular fa-thumbs-up"></i> <span id="ntuTvLikeCount">' + count + '</span>';
+      }
+    }, showError);
+  }
+
+  window.toggleNtuTvLike = async function() {
+    if (!currentUser) return alert('Please log in to like.');
+    const likeRef = db.collection('mediaComments').doc(ntuTvId).collection('reactions').doc(currentUser.uid);
+    const doc = await likeRef.get();
+    if (doc.exists) {
+      await likeRef.delete();
+    } else {
+      await likeRef.set({
+        type: 'like',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  };
+
+  window.postNtuTvComment = function() {
+    const input = document.getElementById('ntuTvCommentInput');
+    const text = input.value.trim();
+    if (!text || !currentUser) return alert('Please log in to comment.');
+    db.collection('users').doc(currentUser.uid).get()
+      .then(userDoc => {
+        const userData = userDoc.data() || {};
+        return db.collection('mediaComments').doc(ntuTvId).collection('comments').add({
+          text: text,
+          name: userData.name || 'Unknown',
+          kindred: userData.kindred || '',
+          userId: currentUser.uid,
+          avatar: userData.avatar || null,
+          created: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      })
+      .then(() => {
+        input.value = '';
+      })
+      .catch(showError);
+  };
 
   // ==================== CENTRAL MEDIA PLAYER WITH COMMENTS ====================
   const mediaPlayerModal = document.getElementById('mediaPlayerModal');
@@ -3350,6 +3502,9 @@
       if (mediaPlayerModal.style.display === 'flex') {
         closeMediaPlayer();
       }
+      // Load Ntu TV comments & likes
+      loadNtuTvComments();
+      loadNtuTvLikes();
     }
   }
 
@@ -3359,6 +3514,9 @@
       ntuTVIframe.src = '';
       ntuTVActive = false;
     }
+    // Unsubscribe from Ntu TV comment/like listeners (optional)
+    if (unsubscribeNtuTvComments) unsubscribeNtuTvComments();
+    if (unsubscribeNtuTvLikes) unsubscribeNtuTvLikes();
   }
 
   // ==================== CONTENT SWITCHING (modified to handle Ntu TV) ====================
