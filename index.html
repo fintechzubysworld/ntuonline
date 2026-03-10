@@ -953,30 +953,23 @@
       text-align: center;
     }
 
-    /* ===== Media Player Modal ===== */
+    /* ===== Media Player Modal with Comments ===== */
     #mediaPlayerModal .modal-content {
       max-width: 90vw;
-      width: 800px;
+      width: 900px;
       padding: 20px;
-      background: #000;
+      background: #1b423b;
       border: 2px solid #2dab95;
-    }
-    #mediaPlayerModal .close {
-      color: white;
-      background: #1f8f7c;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      top: 10px;
-      right: 10px;
+      flex-direction: column;
+      max-height: 90vh;
     }
     #mediaPlayerContainer {
       width: 100%;
       aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
     }
     #mediaPlayerContainer iframe,
     #mediaPlayerContainer video,
@@ -987,7 +980,66 @@
     }
     #mediaPlayerContainer audio {
       height: 60px;
-      margin-top: 40px;
+      margin-top: 20px;
+    }
+    .media-comments-section {
+      margin-top: 20px;
+      flex: 1;
+      overflow-y: auto;
+      max-height: 300px;
+      padding-right: 8px;
+    }
+    .media-comment {
+      background: #0f2d27;
+      border-radius: 18px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-left: 3px solid #2dab95;
+    }
+    .media-comment .user-badge {
+      margin-bottom: 4px;
+    }
+    .media-comment .comment-text {
+      margin-left: 32px; /* align with avatar */
+    }
+    .media-comment .timestamp {
+      font-size: 0.65rem;
+      margin-left: 32px;
+    }
+    .media-reaction-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .media-reaction-btn {
+      background: none;
+      border: none;
+      color: #b2d9d2;
+      cursor: pointer;
+      padding: 8px 18px;
+      border-radius: 40px;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+    .media-reaction-btn:hover {
+      background: #1d4d44;
+    }
+    .media-reaction-btn.liked {
+      color: #64ffda;
+      font-weight: 600;
+    }
+    .media-comment-input-area {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .media-comment-input-area input {
+      flex: 1;
+      margin: 0;
     }
   </style>
 </head>
@@ -1287,11 +1339,21 @@
   </div>
 </div>
 
-<!-- Media Player Modal (central player for all media except Ntu TV) -->
+<!-- Media Player Modal with Comments and Reactions -->
 <div id="mediaPlayerModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeMediaPlayer()">&times;</span>
     <div id="mediaPlayerContainer"></div>
+    <div class="media-reaction-bar">
+      <button class="media-reaction-btn" id="mediaLikeBtn" onclick="toggleMediaLike()">
+        <i class="fa-regular fa-thumbs-up"></i> <span id="mediaLikeCount">0</span>
+      </button>
+    </div>
+    <div class="media-comments-section" id="mediaCommentsSection"></div>
+    <div class="media-comment-input-area">
+      <input type="text" id="mediaCommentInput" placeholder="Add a comment...">
+      <button onclick="postMediaComment()">Post</button>
+    </div>
   </div>
 </div>
 
@@ -1396,14 +1458,36 @@
     }
   });
 
-  // ==================== CENTRAL MEDIA PLAYER ====================
+  // ==================== CENTRAL MEDIA PLAYER WITH COMMENTS ====================
   const mediaPlayerModal = document.getElementById('mediaPlayerModal');
   const mediaPlayerContainer = document.getElementById('mediaPlayerContainer');
-  let currentYouTubePlayer = null; // for YouTube iframe
-  let currentNativeMedia = null;   // for video/audio element
+  const mediaCommentsSection = document.getElementById('mediaCommentsSection');
+  const mediaLikeBtn = document.getElementById('mediaLikeBtn');
+  const mediaLikeCountSpan = document.getElementById('mediaLikeCount');
+  const mediaCommentInput = document.getElementById('mediaCommentInput');
+
+  let currentMediaUrl = null;
+  let currentMediaId = null; // base64 encoded URL for Firestore doc
+  let unsubscribeMediaComments = null;
+  let unsubscribeMediaLikes = null;
+  let currentYouTubePlayer = null;
+  let currentNativeMedia = null;
+
+  // Helper to encode URL as a safe document ID (base64 without special chars)
+  function encodeMediaId(url) {
+    return btoa(url).replace(/[/+=]/g, '_');
+  }
 
   // Close media player and stop playback
   window.closeMediaPlayer = function() {
+    if (unsubscribeMediaComments) {
+      unsubscribeMediaComments();
+      unsubscribeMediaComments = null;
+    }
+    if (unsubscribeMediaLikes) {
+      unsubscribeMediaLikes();
+      unsubscribeMediaLikes = null;
+    }
     if (currentYouTubePlayer && typeof currentYouTubePlayer.destroy === 'function') {
       currentYouTubePlayer.destroy();
       currentYouTubePlayer = null;
@@ -1416,6 +1500,8 @@
     }
     mediaPlayerContainer.innerHTML = '';
     mediaPlayerModal.style.display = 'none';
+    currentMediaUrl = null;
+    currentMediaId = null;
   };
 
   // Open media player with a given URL
@@ -1426,6 +1512,9 @@
     // Close any existing media
     closeMediaPlayer();
 
+    currentMediaUrl = url;
+    currentMediaId = encodeMediaId(url);
+
     // Determine type and create appropriate player
     const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) {
@@ -1435,33 +1524,135 @@
       iframe.allow = 'autoplay; encrypted-media';
       iframe.allowFullscreen = true;
       mediaPlayerContainer.appendChild(iframe);
-      mediaPlayerModal.style.display = 'flex';
-      // We can't directly control the iframe, but we'll rely on the modal close to stop it.
-      // For API control, we'd need to create a YT.Player, but that's complex with dynamic iframe.
-      // For simplicity, we'll just embed and let the user close the modal.
-      // To ensure only one plays, we'll just have this modal.
+      // We can't easily control YouTube iframe, but modal close will handle it.
     } else {
-      // Try to create video or audio element
-      const isAudio = url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i);
-      const element = document.createElement(isAudio ? 'audio' : 'video');
-      element.controls = true;
-      element.autoplay = true;
-      element.style.width = '100%';
-      element.style.height = isAudio ? '60px' : '100%';
-      element.src = url;
-      mediaPlayerContainer.appendChild(element);
-      mediaPlayerModal.style.display = 'flex';
-      currentNativeMedia = element;
-
-      // Ensure only one native media plays (but this is the only one)
-      element.addEventListener('play', function() {
-        // If any other media might be playing, but we've closed previous ones.
-      });
+      // Check for Google Drive links
+      const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
+      if (driveMatch) {
+        const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
+        // Use the preview URL for Drive videos
+        const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        const iframe = document.createElement('iframe');
+        iframe.src = embedUrl;
+        iframe.allow = 'autoplay';
+        iframe.allowFullscreen = true;
+        mediaPlayerContainer.appendChild(iframe);
+      } else {
+        // Try to create video or audio element for direct media files
+        const isAudio = url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i);
+        const isVideo = url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i);
+        if (isAudio || isVideo) {
+          const element = document.createElement(isAudio ? 'audio' : 'video');
+          element.controls = true;
+          element.autoplay = true;
+          element.style.width = '100%';
+          element.style.height = isAudio ? '60px' : '100%';
+          element.src = url;
+          mediaPlayerContainer.appendChild(element);
+          currentNativeMedia = element;
+        } else {
+          // Assume it's an image – display it
+          const img = document.createElement('img');
+          img.src = url;
+          img.style.maxWidth = '100%';
+          img.style.maxHeight = '100%';
+          img.style.objectFit = 'contain';
+          mediaPlayerContainer.appendChild(img);
+        }
+      }
     }
 
-    // Also ensure any other potential media on page is paused (though they are not in modal)
-    // We'll rely on the fact that only this modal has media.
+    mediaPlayerModal.style.display = 'flex';
+
+    // Load comments and likes
+    loadMediaComments();
+    loadMediaLikes();
   }
+
+  // Load comments for current media
+  function loadMediaComments() {
+    if (!currentMediaId) return;
+    const commentsRef = db.collection('mediaComments').doc(currentMediaId).collection('comments').orderBy('created', 'asc');
+    unsubscribeMediaComments = commentsRef.onSnapshot(snapshot => {
+      let html = '';
+      snapshot.forEach(doc => {
+        const c = doc.data();
+        const avatarHtml = c.avatar 
+          ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
+          : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+        html += `
+          <div class="media-comment">
+            <span class="user-badge" onclick="showProfile('${c.userId}')">${avatarHtml}<span>${escapeHtml(c.name)} (${escapeHtml(c.kindred || '')})</span></span>
+            <div class="comment-text">${escapeHtml(c.text)}</div>
+            <div class="timestamp">${formatTimestamp(c.created)}</div>
+          </div>
+        `;
+      });
+      mediaCommentsSection.innerHTML = html || '<p style="text-align:center;">No comments yet.</p>';
+    }, showError);
+  }
+
+  // Load likes for current media
+  function loadMediaLikes() {
+    if (!currentMediaId) return;
+    const likesRef = db.collection('mediaComments').doc(currentMediaId).collection('reactions');
+    unsubscribeMediaLikes = likesRef.onSnapshot(snapshot => {
+      let count = 0;
+      let userLiked = false;
+      snapshot.forEach(doc => {
+        if (doc.data().type === 'like') {
+          count++;
+          if (currentUser && doc.id === currentUser.uid) userLiked = true;
+        }
+      });
+      mediaLikeCountSpan.textContent = count;
+      if (userLiked) {
+        mediaLikeBtn.classList.add('liked');
+        mediaLikeBtn.innerHTML = '<i class="fa-solid fa-thumbs-up"></i> <span id="mediaLikeCount">' + count + '</span>';
+      } else {
+        mediaLikeBtn.classList.remove('liked');
+        mediaLikeBtn.innerHTML = '<i class="fa-regular fa-thumbs-up"></i> <span id="mediaLikeCount">' + count + '</span>';
+      }
+    }, showError);
+  }
+
+  // Toggle like on current media
+  window.toggleMediaLike = async function() {
+    if (!currentUser) return alert('Please log in to like.');
+    if (!currentMediaId) return;
+    const likeRef = db.collection('mediaComments').doc(currentMediaId).collection('reactions').doc(currentUser.uid);
+    const doc = await likeRef.get();
+    if (doc.exists) {
+      await likeRef.delete();
+    } else {
+      await likeRef.set({
+        type: 'like',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  };
+
+  // Post a comment on current media
+  window.postMediaComment = function() {
+    const text = mediaCommentInput.value.trim();
+    if (!text || !currentUser || !currentMediaId) return;
+    db.collection('users').doc(currentUser.uid).get()
+      .then(userDoc => {
+        const userData = userDoc.data() || {};
+        return db.collection('mediaComments').doc(currentMediaId).collection('comments').add({
+          text: text,
+          name: userData.name || 'Unknown',
+          kindred: userData.kindred || '',
+          userId: currentUser.uid,
+          avatar: userData.avatar || null,
+          created: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      })
+      .then(() => {
+        mediaCommentInput.value = '';
+      })
+      .catch(showError);
+  };
 
   // Attach click handlers to all media previews
   function attachMediaPreviewClick(container) {
@@ -1584,7 +1775,7 @@
     } catch (e) { return ''; }
   }
 
-  // Reactions
+  // Reactions for posts (unchanged)
   function addReactionUI(targetType, targetId, container) {
     const reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
