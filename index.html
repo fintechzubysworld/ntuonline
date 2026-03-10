@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+(<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -1074,7 +1074,7 @@
       <h3><i class="fa-regular fa-tv"></i> Ntu TV</h3>
       <div class="tv-container">
         <div class="tv-frame">
-          <iframe id="ntuIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation" allowfullscreen></iframe>
+          <iframe id="ntuIframe" src="https://unrelished-commissively-reginia.ngrok-free.dev/" allowfullscreen></iframe>
         </div>
         <div class="fullscreen-btn">
           <button onclick="toggleTvFullscreen()"><i class="fa-regular fa-expand"></i> Toggle Fullscreen</button>
@@ -1581,178 +1581,6 @@
     document.querySelector('.floating-toggle').style.display = show ? 'none' : 'flex';
   }
 
-  // ==================== NTU TV IFRAME HANDLING (with ngrok header) ====================
-  const NGROK_URL = 'https://unrelished-commissively-reginia.ngrok-free.dev/';
-  const ntuIframe = document.getElementById('ntuIframe');
-  let ntvIframeLoaded = false; // To prevent reloading if already loaded for current view
-
-  async function loadNtuTVContent() {
-    if (!ntuIframe) return;
-    // If we already have content loaded (e.g., from previous show), skip
-    if (ntvIframeLoaded) return;
-
-    try {
-      // Fetch the ngrok URL with the custom header
-      const response = await fetch(NGROK_URL, {
-        headers: {
-          'ngrok-skip-browser-warning': 'true'
-        }
-      });
-      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-      const html = await response.text();
-
-      // Inject a base tag to help resolve relative URLs
-      const modifiedHtml = html.replace(
-        '<head>',
-        `<head><base href="${NGROK_URL}">`
-      );
-
-      // Use srcdoc to load the HTML (this keeps it same-origin with our page)
-      ntuIframe.srcdoc = modifiedHtml;
-      ntvIframeLoaded = true;
-    } catch (err) {
-      console.error('Failed to load ngrok content via fetch, falling back to direct src:', err);
-      // Fallback: load directly (will show the warning, but better than nothing)
-      ntuIframe.src = NGROK_URL;
-      ntvIframeLoaded = true; // Mark as loaded to avoid repeated attempts
-    }
-  }
-
-  function unloadNtuTVContent() {
-    if (!ntuIframe) return;
-    // Clear the iframe to stop any video/audio
-    ntuIframe.srcdoc = '';
-    ntuIframe.src = 'about:blank';
-    ntvIframeLoaded = false;
-  }
-
-  // ==================== CONTENT SWITCHING (with Ntu TV hooks) ====================
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('overlay');
-  const toggleBtn = document.getElementById('sidebarToggle');
-  const floatingToggle = document.getElementById('floatingSidebarToggle');
-  const sidebarLinks = document.querySelectorAll('.sidebar-menu a[data-content]');
-  const ntuLink = document.getElementById('ntuElectricityLink');
-  const contentDivs = document.querySelectorAll('.content');
-
-  function toggleSidebar() {
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('active');
-    updateHeaderMarqueeVisibility();
-  }
-
-  toggleBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleSidebar();
-  });
-
-  floatingToggle.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleSidebar();
-  });
-
-  overlay.addEventListener('click', function() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('active');
-    updateHeaderMarqueeVisibility();
-  });
-
-  window.showNtuTV = function() {
-    showContent('ntuTV');
-  };
-
-  // Original showContent (preserved)
-  const originalShowContent = function(targetId) {
-    if (targetId === 'admin') {
-      if (!currentUserIsAdmin) {
-        console.warn('Non-admin attempted to access admin panel');
-        contentDivs.forEach(div => div.classList.remove('active'));
-        document.getElementById('accessDenied').classList.add('active');
-        currentContent = 'accessDenied';
-        updateHeaderMarqueeVisibility();
-        return;
-      }
-      const adminPanel = document.getElementById('admin');
-      if (!adminPanel.classList.contains('admin-enabled')) {
-        console.warn('Admin panel not enabled');
-        contentDivs.forEach(div => div.classList.remove('active'));
-        document.getElementById('accessDenied').classList.add('active');
-        currentContent = 'accessDenied';
-        updateHeaderMarqueeVisibility();
-        return;
-      }
-    }
-
-    contentDivs.forEach(div => div.classList.remove('active'));
-    const targetDiv = document.getElementById(targetId);
-    if (targetDiv) {
-      targetDiv.classList.add('active');
-      currentContent = targetId;
-    }
-    updateHeaderMarqueeVisibility();
-  };
-
-  // Override with Ntu TV handling
-  window.showContent = function(targetId) {
-    // If leaving Ntu TV, unload it
-    if (currentContent === 'ntuTV' && targetId !== 'ntuTV') {
-      unloadNtuTVContent();
-    }
-    // Call original
-    originalShowContent(targetId);
-    // If entering Ntu TV, load it
-    if (targetId === 'ntuTV') {
-      loadNtuTVContent();
-    }
-  };
-
-  sidebarLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      const targetId = this.getAttribute('data-content');
-      window.showContent(targetId);
-      if (targetId === 'home') {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('active');
-        updateHeaderMarqueeVisibility();
-      } else {
-        if (window.innerWidth < 992) {
-          sidebar.classList.remove('open');
-          overlay.classList.remove('active');
-        }
-      }
-    });
-  });
-
-  ntuLink.addEventListener('click', function(e) {
-    e.preventDefault();
-    window.showContent('electricity');
-    if (window.innerWidth < 992) {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('active');
-    }
-  });
-
-  window.addEventListener('resize', function() {
-    if (window.innerWidth >= 992) {
-      overlay.classList.remove('active');
-    } else {
-      if (sidebar.classList.contains('open')) overlay.classList.add('active');
-    }
-    updateHeaderMarqueeVisibility();
-  });
-
-  window.toggleTvFullscreen = function() {
-    const iframe = document.getElementById('ntuIframe');
-    if (iframe.requestFullscreen) {
-      iframe.requestFullscreen();
-    } else if (iframe.webkitRequestFullscreen) {
-      iframe.webkitRequestFullscreen();
-    } else if (iframe.msRequestFullscreen) {
-      iframe.msRequestFullscreen();
-    }
-  };
-
   // ==================== AUTH STATE ====================
   auth.onAuthStateChanged(user => {
     currentUser = user;
@@ -2254,98 +2082,59 @@
     }, showError);
   }
 
-  // ==================== FULL EVENTS (first full, others preview) ====================
-  // Helper to expand a preview event (navigate to full events panel and scroll to it)
-  window.expandEvent = function(eventId) {
-    showContent('events');
-    setTimeout(() => {
-      const el = document.getElementById(`event-${eventId}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
-  };
-
+  // ==================== FULL EVENTS ====================
   db.collection("events").orderBy("created", "desc").onSnapshot(s => {
     // Full events area
     const eventArea = document.getElementById("eventArea");
     if (eventArea) {
       eventArea.innerHTML = "";
-      s.forEach((doc, index) => {
+      s.forEach(doc => {
         const e = doc.data();
         const eventId = doc.id;
+        let mediaHtml = '';
+        if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
+        if (e.video) mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
+        if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
 
-        if (index === 0) {
-          // First event: full display
-          let mediaHtml = '';
-          if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" alt="event image"></div>`;
-          if (e.video) mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
-          if (e.audio) mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
-
-          const eventDiv = document.createElement('div');
-          eventDiv.className = "event-item";
-          eventDiv.id = `event-${eventId}`;
-          eventDiv.innerHTML = `
-            <h4>${e.title || 'Untitled'}</h4>
-            <p>${e.description ? parseContent(e.description) : ''}</p>
-            <p><small>${e.date || ''}</small></p>
-            ${mediaHtml}
-            <div id="eventComments${eventId}" class="replies"></div>
-            <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
-            <button onclick="commentEvent('${eventId}')">Comment</button>
-          `;
-          eventArea.appendChild(eventDiv);
-          loadEventComments(eventId);
-        } else {
-          // Subsequent events: preview (no media, truncated description)
-          const previewDesc = e.description ? (e.description.length > 100 ? e.description.substring(0,100) + '…' : e.description) : '';
-          const eventDiv = document.createElement('div');
-          eventDiv.className = "event-item";
-          eventDiv.id = `event-${eventId}`;
-          eventDiv.innerHTML = `
-            <h4>${e.title || 'Untitled'}</h4>
-            <p>${previewDesc ? parseContent(previewDesc) : ''}</p>
-            <p><small>${e.date || ''}</small></p>
-            <button onclick="expandEvent('${eventId}')" style="margin-top:8px;">Read More</button>
-          `;
-          eventArea.appendChild(eventDiv);
-          // No comments in preview
-        }
+        const eventDiv = document.createElement('div');
+        eventDiv.className = "event-item";
+        eventDiv.id = `event-${eventId}`;
+        eventDiv.innerHTML = `
+          <h4>${e.title || 'Untitled'}</h4>
+          <p>${e.description ? parseContent(e.description) : ''}</p>
+          <p><small>${e.date || ''}</small></p>
+          ${mediaHtml}
+          <div id="eventComments${eventId}" class="replies"></div>
+          <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
+          <button onclick="commentEvent('${eventId}')">Comment</button>
+        `;
+        eventArea.appendChild(eventDiv);
+        loadEventComments(eventId);
       });
     }
 
-    // Mini events full area (home page) – also first full, others preview
+    // Mini events full area
     const miniEventFull = document.getElementById("miniEventFullArea");
     if (miniEventFull) {
       miniEventFull.innerHTML = "";
-      s.forEach((doc, index) => {
+      s.forEach(doc => {
         const e = doc.data();
         const eventDiv = document.createElement('div');
         eventDiv.className = "mini-event-item";
-
-        if (index === 0) {
-          // First event: show full description (truncate if too long for mini)
-          let desc = e.description || '';
-          if (desc.length > 150) desc = desc.substring(0,150) + '…';
-          let mediaHtml = '';
-          if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" style="max-height:60px; object-fit:cover;" alt=""></div>`;
-          eventDiv.innerHTML = `
-            <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
-            <p style="font-size:0.85rem;">${desc}</p>
-            <p><small>${e.date || ''}</small></p>
-            ${mediaHtml}
-          `;
-        } else {
-          // Preview: title + date only
-          eventDiv.innerHTML = `
-            <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
-            <p><small>${e.date || ''}</small></p>
-          `;
-        }
+        let mediaHtml = '';
+        if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" style="max-height:60px; object-fit:cover;" alt=""></div>`;
+        eventDiv.innerHTML = `
+          <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
+          <p style="font-size:0.85rem;">${e.description ? e.description.substring(0,60) + '…' : ''}</p>
+          <p><small>${e.date || ''}</small></p>
+          ${mediaHtml}
+        `;
         miniEventFull.appendChild(eventDiv);
+        // No comments in mini view
       });
     }
   }, showError);
 
-  // ==================== EVENT COMMENTS (unchanged) ====================
   window.commentEvent = function(eventId) {
     if (!currentUser) return alert("Login required");
     const input = document.getElementById("eventCommentInput" + eventId);
@@ -2837,8 +2626,8 @@
         config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
       });
       
-      // Re-attach handlers (simplified for brevity – in full code you'd repeat the event handlers)
-      // (omitted for space, but in full code you'd repeat the event handlers)
+      // Re-attach handlers (simplified for brevity – same as above)
+      // ... (omitted for space, but in full code you'd repeat the event handlers)
     } catch (err) {
       alert('Fallback camera also failed: ' + err.message);
     }
@@ -3130,6 +2919,119 @@
 
   setupBroadcastListener();
 
+  // ==================== SIDEBAR TOGGLE & CONTENT SWITCHING ====================
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const toggleBtn = document.getElementById('sidebarToggle');
+  const floatingToggle = document.getElementById('floatingSidebarToggle');
+  const sidebarLinks = document.querySelectorAll('.sidebar-menu a[data-content]');
+  const ntuLink = document.getElementById('ntuElectricityLink');
+  const contentDivs = document.querySelectorAll('.content');
+
+  function toggleSidebar() {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+    updateHeaderMarqueeVisibility();
+  }
+
+  toggleBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+
+  floatingToggle.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+
+  overlay.addEventListener('click', function() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    updateHeaderMarqueeVisibility();
+  });
+
+  window.showContent = function(targetId) {
+    if (targetId === 'admin') {
+      if (!currentUserIsAdmin) {
+        console.warn('Non-admin attempted to access admin panel');
+        contentDivs.forEach(div => div.classList.remove('active'));
+        document.getElementById('accessDenied').classList.add('active');
+        currentContent = 'accessDenied';
+        updateHeaderMarqueeVisibility();
+        return;
+      }
+      const adminPanel = document.getElementById('admin');
+      if (!adminPanel.classList.contains('admin-enabled')) {
+        console.warn('Admin panel not enabled');
+        contentDivs.forEach(div => div.classList.remove('active'));
+        document.getElementById('accessDenied').classList.add('active');
+        currentContent = 'accessDenied';
+        updateHeaderMarqueeVisibility();
+        return;
+      }
+    }
+
+    contentDivs.forEach(div => div.classList.remove('active'));
+    const targetDiv = document.getElementById(targetId);
+    if (targetDiv) {
+      targetDiv.classList.add('active');
+      currentContent = targetId;
+    }
+    updateHeaderMarqueeVisibility();
+  };
+
+  // Ntu TV helper
+  window.showNtuTV = function() {
+    showContent('ntuTV');
+  };
+
+  window.toggleTvFullscreen = function() {
+    const iframe = document.getElementById('ntuIframe');
+    if (iframe.requestFullscreen) {
+      iframe.requestFullscreen();
+    } else if (iframe.webkitRequestFullscreen) {
+      iframe.webkitRequestFullscreen();
+    } else if (iframe.msRequestFullscreen) {
+      iframe.msRequestFullscreen();
+    }
+  };
+
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = this.getAttribute('data-content');
+      showContent(targetId);
+      if (targetId === 'home') {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        updateHeaderMarqueeVisibility();
+      } else {
+        if (window.innerWidth < 992) {
+          sidebar.classList.remove('open');
+          overlay.classList.remove('active');
+        }
+      }
+    });
+  });
+
+  ntuLink.addEventListener('click', function(e) {
+    e.preventDefault();
+    showContent('electricity');
+    if (window.innerWidth < 992) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    }
+  });
+
+  window.addEventListener('resize', function() {
+    if (window.innerWidth >= 992) {
+      overlay.classList.remove('active');
+    } else {
+      if (sidebar.classList.contains('open')) overlay.classList.add('active');
+    }
+    updateHeaderMarqueeVisibility();
+  });
+
   // ==================== MARQUEE SPEEDS & MESSAGES ====================
   const configDoc = db.collection("config").doc("site");
   configDoc.onSnapshot(doc => {
@@ -3224,7 +3126,7 @@
         return;
       }
       const target = this.dataset.expand;
-      window.showContent(target);
+      showContent(target);
     });
   });
 
@@ -3234,4 +3136,4 @@
   }
 </script>
 </body>
-</html>
+</html>) code is incomplete. please refer the code pasted.
