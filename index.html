@@ -2113,24 +2113,53 @@
       });
     }
 
-    // Mini events full area
+    // Mini events full area – first event full, others preview
     const miniEventFull = document.getElementById("miniEventFullArea");
     if (miniEventFull) {
       miniEventFull.innerHTML = "";
+      let eventIndex = 0;
       s.forEach(doc => {
         const e = doc.data();
         const eventDiv = document.createElement('div');
-        eventDiv.className = "mini-event-item";
-        let mediaHtml = '';
-        if (e.image) mediaHtml += `<div class="embedded-media"><img src="${e.image}" style="max-height:60px; object-fit:cover;" alt=""></div>`;
-        eventDiv.innerHTML = `
-          <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
-          <p style="font-size:0.85rem;">${e.description ? e.description.substring(0,60) + '…' : ''}</p>
-          <p><small>${e.date || ''}</small></p>
-          ${mediaHtml}
-        `;
+        
+        if (eventIndex === 0) {
+          // --- First event: FULL display (with all media) ---
+          eventDiv.className = "event-item"; // reuse full event style
+          
+          let mediaHtml = '';
+          if (e.image)  mediaHtml += `<div class="embedded-media">${parseContent(e.image)}</div>`;
+          if (e.video)  mediaHtml += `<div class="embedded-media">${parseContent(e.video)}</div>`;
+          if (e.audio)  mediaHtml += `<audio controls src="${e.audio}" style="width:100%; margin:10px 0;"></audio>`;
+          
+          eventDiv.innerHTML = `
+            <h4>${e.title || 'Untitled'}</h4>
+            <p>${e.description ? parseContent(e.description) : ''}</p>
+            <p><small>${e.date || ''}</small></p>
+            ${mediaHtml}
+          `;
+        } else {
+          // --- Other events: preview (truncated, small image) ---
+          eventDiv.className = "mini-event-item";
+          
+          let mediaHtml = '';
+          if (e.image) {
+            mediaHtml += `<div class="embedded-media"><img src="${e.image}" style="max-height:60px; object-fit:cover;" alt=""></div>`;
+          }
+          
+          const descPreview = e.description 
+            ? (e.description.length > 60 ? e.description.substring(0,60) + '…' : e.description)
+            : '';
+          
+          eventDiv.innerHTML = `
+            <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
+            <p style="font-size:0.85rem;">${descPreview}</p>
+            <p><small>${e.date || ''}</small></p>
+            ${mediaHtml}
+          `;
+        }
+        
         miniEventFull.appendChild(eventDiv);
-        // No comments in mini view
+        eventIndex++;
       });
     }
   }, showError);
@@ -3118,11 +3147,18 @@
     }
   };
 
-  // ==================== EXPAND ON CARD CLICK ====================
+  // ==================== EXPAND ON CARD CLICK (UPDATED) ====================
   document.querySelectorAll('.mini-card[data-expand]').forEach(card => {
     card.addEventListener('click', function(e) {
-      // Prevent expansion if clicking on a button, input, or link
-      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('a') || e.target.closest('.user-badge')) {
+      // Prevent expansion if clicking on a button, input, link, user badge, video, audio, iframe, or any embedded media container
+      if (e.target.closest('button') ||
+          e.target.closest('input') ||
+          e.target.closest('a') ||
+          e.target.closest('.user-badge') ||
+          e.target.closest('video') ||
+          e.target.closest('audio') ||
+          e.target.closest('iframe') ||
+          e.target.closest('.embedded-media')) {
         return;
       }
       const target = this.dataset.expand;
@@ -3137,5 +3173,3 @@
 </script>
 </body>
 </html>
-
-
