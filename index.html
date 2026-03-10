@@ -2979,18 +2979,24 @@
     updateHeaderMarqueeVisibility();
   });
 
-  // ==================== NTU TV AUTO START/STOP & NO MULTIPLE VIDEOS ====================
+  // ==================== NTU TV AUTO START/STOP & GLOBAL MEDIA COORDINATION ====================
   let ntuTVOriginalSrc = 'https://unrelished-commissively-reginia.ngrok-free.dev/';
   let ntuTVIframe = document.getElementById('ntuIframe');
   let ntuTVActive = false;
+
+  function pauseAllNativeMedia() {
+    document.querySelectorAll('video, audio').forEach(media => {
+      if (!media.paused) media.pause();
+    });
+  }
 
   function startNtuTV() {
     if (!ntuTVIframe) ntuTVIframe = document.getElementById('ntuIframe');
     if (ntuTVIframe) {
       ntuTVIframe.src = ntuTVOriginalSrc;
       ntuTVActive = true;
-      // Pause any other media playing on the page
-      pauseAllOtherMedia();
+      // Pause any playing native media
+      pauseAllNativeMedia();
     }
   }
 
@@ -3002,18 +3008,21 @@
     }
   }
 
-  function pauseAllOtherMedia() {
-    document.querySelectorAll('video, audio').forEach(media => {
-      if (!media.paused) {
-        media.pause();
-      }
-    });
-  }
-
-  // Global play event listener: if any video/audio starts while Ntu TV is active, stop Ntu TV
+  // Global media coordination: only one native media can play at a time.
+  // If any native media starts while Ntu TV is active, stop Ntu TV.
   document.addEventListener('play', function(e) {
-    if (ntuTVActive && (e.target.tagName === 'VIDEO' || e.target.tagName === 'AUDIO')) {
-      stopNtuTV();
+    const target = e.target;
+    if (target.tagName === 'VIDEO' || target.tagName === 'AUDIO') {
+      // Pause any other native media except the one that just started
+      document.querySelectorAll('video, audio').forEach(media => {
+        if (media !== target && !media.paused) {
+          media.pause();
+        }
+      });
+      // If Ntu TV is active, stop it
+      if (ntuTVActive) {
+        stopNtuTV();
+      }
     }
   }, true); // capture phase
 
