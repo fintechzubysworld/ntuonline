@@ -14,6 +14,9 @@
   <!-- PeerJS (WebRTC signaling) with STUN -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
+  <!-- YouTube IFrame Player API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -1068,13 +1071,13 @@
     </div>
   </div>
 
-  <!-- Ntu TV panel -->
+  <!-- Ntu TV panel (with allow="autoplay") -->
   <div id="ntuTV" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-tv"></i> Ntu TV</h3>
       <div class="tv-container">
         <div class="tv-frame">
-          <iframe id="ntuIframe" src="https://unrelished-commissively-reginia.ngrok-free.dev/" allowfullscreen></iframe>
+          <iframe id="ntuIframe" src="https://unrelished-commissively-reginia.ngrok-free.dev/" allow="autoplay" allowfullscreen></iframe>
         </div>
         <div class="fullscreen-btn">
           <button onclick="toggleTvFullscreen()"><i class="fa-regular fa-expand"></i> Toggle Fullscreen</button>
@@ -1327,7 +1330,7 @@
     }
   });
 
-  // ==================== PARSE CONTENT ====================
+  // ==================== PARSE CONTENT (updated for YouTube API) ====================
   function parseContent(text) {
     if (!text) return '';
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -1359,12 +1362,25 @@
     return html;
   }
 
+  // Global store for YouTube players
+  window.youTubePlayers = [];
+  window.ignoreYouTubeEvents = false; // to prevent reacting to our own pauses
+
+  // Helper to generate a unique ID for YouTube iframes
+  function generateYouTubeId(videoId) {
+    return `youtube-${videoId}-${Math.random().toString(36).substring(2, 8)}`;
+  }
+
   function detectAndEmbed(url) {
     const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) {
+      const videoId = ytMatch[1];
+      const iframeId = generateYouTubeId(videoId);
+      // Enable JS API and add origin to help with API calls
+      const embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${window.location.origin}`;
       return {
         type: 'embed',
-        html: `<div class="embedded-media"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" allowfullscreen></iframe></div>`
+        html: `<div class="embedded-media"><iframe id="${iframeId}" src="${embedUrl}" allowfullscreen></iframe></div>`
       };
     }
     const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
@@ -1772,6 +1788,60 @@
     }
   };
 
+  // ==================== YOUTUBE PLAYER INITIALIZATION ====================
+  // Called after YouTube API is ready and whenever new content is added
+  function initYouTubePlayers(container) {
+    if (typeof YT === 'undefined' || !YT.Player) {
+      // API not ready yet – try again later
+      setTimeout(() => initYouTubePlayers(container), 200);
+      return;
+    }
+    const iframes = container.querySelectorAll('iframe[id^="youtube-"]');
+    iframes.forEach(iframe => {
+      const id = iframe.id;
+      // Check if player already exists for this id
+      if (window.youTubePlayers.some(p => p.a && p.a.id === id)) return;
+      try {
+        const player = new YT.Player(id, {
+          events: {
+            'onStateChange': onYouTubeStateChange
+          }
+        });
+        window.youTubePlayers.push(player);
+      } catch (e) {
+        console.error('Error creating YouTube player for', id, e);
+      }
+    });
+  }
+
+  function onYouTubeStateChange(event) {
+    if (window.ignoreYouTubeEvents) return;
+    if (event.data === YT.PlayerState.PLAYING) {
+      // A YouTube video started playing
+      // Pause all other YouTube players
+      window.ignoreYouTubeEvents = true;
+      window.youTubePlayers.forEach(p => {
+        if (p.a && p.a.id !== event.target.a.id && p.getPlayerState() === YT.PlayerState.PLAYING) {
+          p.pauseVideo();
+        }
+      });
+      window.ignoreYouTubeEvents = false;
+
+      // Pause any native media
+      document.querySelectorAll('video, audio').forEach(media => {
+        if (!media.paused) media.pause();
+      });
+
+      // Stop Ntu TV if it's active
+      if (ntuTVActive) stopNtuTV();
+    }
+  }
+
+  // Call this after any DOM update that may contain YouTube embeds
+  function scanForYouTubePlayers() {
+    initYouTubePlayers(document);
+  }
+
   // ==================== FULL FEED ====================
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
     // Update full feed area (with replies and reactions)
@@ -1802,6 +1872,8 @@
         addReactionUI('feed', feedId, feedDiv);
         loadReplies("feed", feedId, "feedReplies");
       });
+      // Initialize any YouTube players in the new content
+      scanForYouTubePlayers();
     }
 
     // Update mini feed full area (simplified, no replies)
@@ -1824,6 +1896,7 @@
         miniFeedFull.appendChild(feedDiv);
         // No reactions or replies in mini view
       });
+      scanForYouTubePlayers();
     }
   }, showError);
 
@@ -1885,6 +1958,7 @@
         box.appendChild(replyDiv);
         addReactionUI(`${collection}/${id}/replies`, doc.id, replyDiv);
       });
+      scanForYouTubePlayers();
     }, showError);
   }
 
@@ -1931,6 +2005,7 @@
         addReactionUI('chat', chatId, chatDiv);
         loadChatReplies(chatId);
       });
+      scanForYouTubePlayers();
     }
   }, showError);
 
@@ -1972,6 +2047,7 @@
         container.appendChild(replyDiv);
         addReactionUI(`chat/${chatId}/replies`, doc.id, replyDiv);
       });
+      scanForYouTubePlayers();
     }, showError);
   }
 
@@ -2019,6 +2095,7 @@
         addReactionUI('goodwill', goodwillId, goodwillDiv);
         loadGoodwillReplies(goodwillId);
       });
+      scanForYouTubePlayers();
     }
 
     // Mini goodwill full area
@@ -2038,6 +2115,7 @@
         miniGoodwillFull.appendChild(goodwillDiv);
         // No replies in mini view
       });
+      scanForYouTubePlayers();
     }
   }, showError);
 
@@ -2079,6 +2157,7 @@
         container.appendChild(replyDiv);
         addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
       });
+      scanForYouTubePlayers();
     }, showError);
   }
 
@@ -2111,6 +2190,7 @@
         eventArea.appendChild(eventDiv);
         loadEventComments(eventId);
       });
+      scanForYouTubePlayers();
     }
 
     // Mini events full area – first event full, others preview
@@ -2161,6 +2241,7 @@
         miniEventFull.appendChild(eventDiv);
         eventIndex++;
       });
+      scanForYouTubePlayers();
     }
   }, showError);
 
@@ -2207,6 +2288,7 @@
         addReactionUI(`events/${eventId}/comments`, commentId, commentDiv);
         loadEventCommentReplies(eventId, commentId);
       });
+      scanForYouTubePlayers();
     }, showError);
   }
 
@@ -2248,6 +2330,7 @@
         container.appendChild(replyDiv);
         addReactionUI(`events/${eventId}/comments/${commentId}/replies`, doc.id, replyDiv);
       });
+      scanForYouTubePlayers();
     }, showError);
   }
 
@@ -2990,13 +3073,24 @@
     });
   }
 
+  function pauseAllYouTubePlayers() {
+    window.ignoreYouTubeEvents = true;
+    window.youTubePlayers.forEach(p => {
+      if (p.getPlayerState && p.getPlayerState() === YT.PlayerState.PLAYING) {
+        p.pauseVideo();
+      }
+    });
+    window.ignoreYouTubeEvents = false;
+  }
+
   function startNtuTV() {
     if (!ntuTVIframe) ntuTVIframe = document.getElementById('ntuIframe');
     if (ntuTVIframe) {
       ntuTVIframe.src = ntuTVOriginalSrc;
       ntuTVActive = true;
-      // Pause any playing native media
+      // Pause any playing native media and YouTube videos
       pauseAllNativeMedia();
+      pauseAllYouTubePlayers();
     }
   }
 
@@ -3009,7 +3103,7 @@
   }
 
   // Global media coordination: only one native media can play at a time.
-  // If any native media starts while Ntu TV is active, stop Ntu TV.
+  // If any native media starts while Ntu TV is active, stop Ntu TV and pause YouTube.
   document.addEventListener('play', function(e) {
     const target = e.target;
     if (target.tagName === 'VIDEO' || target.tagName === 'AUDIO') {
@@ -3019,10 +3113,10 @@
           media.pause();
         }
       });
-      // If Ntu TV is active, stop it
-      if (ntuTVActive) {
-        stopNtuTV();
-      }
+      // Pause all YouTube players
+      pauseAllYouTubePlayers();
+      // Stop Ntu TV if it's active
+      if (ntuTVActive) stopNtuTV();
     }
   }, true); // capture phase
 
