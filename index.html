@@ -460,7 +460,7 @@
     }
 
     /* ===== POST / COMMENT STYLES (shared) ===== */
-    .feed-item, .chat-item, .goodwill-item, .event-item {
+    .feed-item, .chat-item, .goodwill-item, .event-item, .project-task {
       background: #0f2d27;
       border-radius: 24px;
       padding: 18px;
@@ -1096,6 +1096,139 @@
       flex: 1;
       margin: 0;
     }
+
+    /* ===== Project Board ===== */
+    .project-board-container {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding-bottom: 20px;
+    }
+    .project-column {
+      background: #173e37;
+      border-radius: 28px;
+      padding: 16px;
+      min-width: 280px;
+      flex: 1;
+      border: 1px solid #2dab95;
+    }
+    .project-column h4 {
+      color: #64e3cf;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #2dab95;
+      padding-bottom: 8px;
+    }
+    .task-card {
+      background: #0f2d27;
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-left: 5px solid #2dab95;
+      position: relative;
+    }
+    .task-card .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .task-card .task-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #b5ffe8;
+    }
+    .task-card .task-admin-controls {
+      display: flex;
+      gap: 8px;
+    }
+    .task-card .task-admin-controls button {
+      background: none;
+      border: none;
+      color: #b2d9d2;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 4px;
+      min-height: auto;
+      box-shadow: none;
+    }
+    .task-card .task-admin-controls button:hover {
+      color: #64ffda;
+    }
+    .task-card .task-description {
+      margin-bottom: 12px;
+      word-wrap: break-word;
+    }
+    .task-card .task-footer {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .task-card .task-footer .reaction-btn {
+      padding: 4px 12px;
+      font-size: 0.85rem;
+    }
+    .task-card .comments-section {
+      margin-top: 12px;
+      border-top: 1px solid #1f5a4f;
+      padding-top: 12px;
+    }
+    .task-card .comment {
+      background: #102f2a;
+      border-radius: 16px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+    .task-card .comment .user-badge {
+      margin-bottom: 2px;
+    }
+    .task-card .comment .comment-text {
+      margin-left: 28px;
+      font-size: 0.9rem;
+    }
+    .task-card .comment .timestamp {
+      margin-left: 28px;
+    }
+    .task-card .comment-input-area {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .task-card .comment-input-area input {
+      flex: 1;
+      margin: 0;
+      padding: 8px 12px;
+      border-radius: 30px;
+    }
+    .task-card .comment-input-area button {
+      padding: 8px 16px;
+      min-height: auto;
+    }
+    .add-task-btn {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      background: #2dab95;
+      border: none;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0, 140, 120, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .add-task-btn:hover {
+      background: #3bc6b2;
+      transform: scale(1.05);
+    }
   </style>
 </head>
 <body>
@@ -1134,6 +1267,8 @@
     <li><a href="#" data-content="profile"><i class="fas fa-user"></i> Profile</a></li>
     <!-- Ntu TV link -->
     <li><a href="#" data-content="ntuTV"><i class="fas fa-tv"></i> Ntu TV</a></li>
+    <!-- Project Board link -->
+    <li><a href="#" data-content="projectBoard"><i class="fas fa-project-diagram"></i> Project Board</a></li>
     <!-- Admin link – hidden by default -->
     <li class="admin-link" id="adminSidebarLink"><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
     <li><a href="#" id="ntuElectricityLink"><i class="fas fa-bolt"></i> Ntu Electricity</a></li>
@@ -1259,6 +1394,16 @@
         <input type="text" id="ntuTvCommentInput" placeholder="Add a comment...">
         <button onclick="postNtuTvComment()">Post</button>
       </div>
+    </div>
+  </div>
+
+  <!-- PROJECT BOARD panel -->
+  <div id="projectBoard" class="content">
+    <div class="card">
+      <h3><i class="fa-regular fa-project-diagram"></i> Project Board</h3>
+      <div class="project-board-container" id="projectBoardContainer"></div>
+      <!-- Add Task button (visible only to admin) -->
+      <button class="add-task-btn" id="addTaskBtn" onclick="showAddTaskModal()" style="display:none;">➕</button>
     </div>
   </div>
 
@@ -1420,6 +1565,23 @@
       <input type="text" id="mediaCommentInput" placeholder="Add a comment...">
       <button onclick="postMediaComment()">Post</button>
     </div>
+  </div>
+</div>
+
+<!-- Task Modal (for adding/editing tasks) -->
+<div id="taskModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeTaskModal()">&times;</span>
+    <h3 id="taskModalTitle">Add Task</h3>
+    <input type="text" id="taskTitle" placeholder="Task title">
+    <textarea id="taskDescription" placeholder="Description" rows="3"></textarea>
+    <select id="taskStatus">
+      <option value="todo">To Do</option>
+      <option value="inprogress">In Progress</option>
+      <option value="done">Done</option>
+    </select>
+    <button id="taskModalSaveBtn" onclick="saveTask()">Save Task</button>
+    <div id="taskModalMessage"></div>
   </div>
 </div>
 
@@ -2117,6 +2279,10 @@
           }
         }
 
+        // Show/hide add task button based on admin status
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        if (addTaskBtn) addTaskBtn.style.display = currentUserIsAdmin ? 'flex' : 'none';
+
       }).catch(showError);
     } else {
       navArea.innerHTML = `<button onclick="showNtuTV()"><i class="fas fa-tv"></i> Ntu TV</button> <button onclick="showAuth()">Login / Register</button>`;
@@ -2132,6 +2298,9 @@
       if (currentContent === 'admin') {
         showContent('home');
       }
+
+      const addTaskBtn = document.getElementById('addTaskBtn');
+      if (addTaskBtn) addTaskBtn.style.display = 'none';
     }
   });
 
@@ -3005,6 +3174,226 @@
       .catch(showError);
   };
 
+  // ==================== PROJECT BOARD (TASKS) ====================
+  let unsubscribeTasks = null;
+
+  function loadProjectBoard() {
+    if (unsubscribeTasks) unsubscribeTasks();
+    unsubscribeTasks = db.collection('projectBoard').orderBy('created', 'desc').onSnapshot(snapshot => {
+      const tasks = [];
+      snapshot.forEach(doc => {
+        tasks.push({ id: doc.id, ...doc.data() });
+      });
+      renderBoard(tasks);
+    }, showError);
+  }
+
+  function renderBoard(tasks) {
+    const container = document.getElementById('projectBoardContainer');
+    if (!container) return;
+    const columns = {
+      todo: tasks.filter(t => t.status === 'todo'),
+      inprogress: tasks.filter(t => t.status === 'inprogress'),
+      done: tasks.filter(t => t.status === 'done')
+    };
+    let html = '';
+    for (let [status, taskList] of Object.entries(columns)) {
+      let title = status === 'todo' ? 'To Do' : status === 'inprogress' ? 'In Progress' : 'Done';
+      html += `<div class="project-column"><h4>${title} (${taskList.length})</h4>`;
+      taskList.forEach(task => {
+        html += renderTaskCard(task);
+      });
+      html += '</div>';
+    }
+    container.innerHTML = html;
+
+    // Attach reaction listeners and comment handlers after rendering
+    tasks.forEach(task => {
+      const card = document.getElementById(`task-${task.id}`);
+      if (card) {
+        // Load reactions for this task
+        loadTaskReactions(task.id, card);
+        // Load comments for this task
+        loadTaskComments(task.id, card);
+        // Attach comment post handler
+        const commentInput = card.querySelector('.task-comment-input');
+        const commentBtn = card.querySelector('.task-comment-btn');
+        if (commentBtn) {
+          commentBtn.onclick = () => postTaskComment(task.id, commentInput);
+        }
+      }
+    });
+  }
+
+  function renderTaskCard(task) {
+    const canEdit = currentUserIsAdmin;
+    return `
+      <div class="task-card" id="task-${task.id}">
+        <div class="task-header">
+          <span class="task-title">${escapeHtml(task.title)}</span>
+          ${canEdit ? `
+            <div class="task-admin-controls">
+              <button onclick="editTask('${task.id}')"><i class="fa-regular fa-pen-to-square"></i></button>
+              <button onclick="deleteTask('${task.id}')"><i class="fa-regular fa-trash-can"></i></button>
+            </div>
+          ` : ''}
+        </div>
+        <div class="task-description">${escapeHtml(task.description || '')}</div>
+        <div class="task-footer">
+          <button class="reaction-btn like-btn" data-task-id="${task.id}">
+            <i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count" id="like-count-${task.id}">0</span>
+          </button>
+        </div>
+        <div class="comments-section" id="comments-${task.id}"></div>
+        <div class="comment-input-area">
+          <input type="text" class="task-comment-input" placeholder="Add a comment...">
+          <button class="task-comment-btn">Post</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function loadTaskReactions(taskId, card) {
+    const reactionsRef = db.collection('projectBoard').doc(taskId).collection('reactions');
+    reactionsRef.onSnapshot(snapshot => {
+      let count = 0;
+      let userLiked = false;
+      snapshot.forEach(doc => {
+        if (doc.data().type === 'like') {
+          count++;
+          if (currentUser && doc.id === currentUser.uid) userLiked = true;
+        }
+      });
+      const countSpan = card.querySelector(`#like-count-${taskId}`);
+      if (countSpan) countSpan.textContent = count;
+      const likeBtn = card.querySelector(`.like-btn[data-task-id="${taskId}"]`);
+      if (likeBtn) {
+        if (userLiked) {
+          likeBtn.classList.add('liked');
+          likeBtn.innerHTML = `<i class="fa-solid fa-thumbs-up"></i> <span class="reaction-count" id="like-count-${taskId}">${count}</span>`;
+        } else {
+          likeBtn.classList.remove('liked');
+          likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count" id="like-count-${taskId}">${count}</span>`;
+        }
+        // Attach click event
+        likeBtn.onclick = () => toggleTaskLike(taskId);
+      }
+    }, showError);
+  }
+
+  function loadTaskComments(taskId, card) {
+    const commentsRef = db.collection('projectBoard').doc(taskId).collection('comments').orderBy('created', 'asc');
+    commentsRef.onSnapshot(snapshot => {
+      const commentsDiv = card.querySelector(`#comments-${taskId}`);
+      if (!commentsDiv) return;
+      let html = '';
+      snapshot.forEach(doc => {
+        const c = doc.data();
+        const avatarHtml = c.avatar 
+          ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
+          : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+        html += `
+          <div class="comment">
+            <span class="user-badge" onclick="showProfile('${c.userId}')">${avatarHtml}<span>${escapeHtml(c.name)} (${escapeHtml(c.kindred || '')})</span></span>
+            <div class="comment-text">${escapeHtml(c.text)}</div>
+            <div class="timestamp">${formatTimestamp(c.created)}</div>
+          </div>
+        `;
+      });
+      commentsDiv.innerHTML = html || '<p style="text-align:center;">No comments yet.</p>';
+    }, showError);
+  }
+
+  async function toggleTaskLike(taskId) {
+    if (!currentUser) return alert('Please log in to like.');
+    const likeRef = db.collection('projectBoard').doc(taskId).collection('reactions').doc(currentUser.uid);
+    const doc = await likeRef.get();
+    if (doc.exists) {
+      await likeRef.delete();
+    } else {
+      await likeRef.set({
+        type: 'like',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  }
+
+  function postTaskComment(taskId, inputElement) {
+    const text = inputElement.value.trim();
+    if (!text || !currentUser) return alert('Please log in to comment.');
+    db.collection('users').doc(currentUser.uid).get()
+      .then(userDoc => {
+        const userData = userDoc.data() || {};
+        return db.collection('projectBoard').doc(taskId).collection('comments').add({
+          text: text,
+          name: userData.name || 'Unknown',
+          kindred: userData.kindred || '',
+          userId: currentUser.uid,
+          avatar: userData.avatar || null,
+          created: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      })
+      .then(() => {
+        inputElement.value = '';
+      })
+      .catch(showError);
+  }
+
+  // Task CRUD (admin only)
+  let currentTaskId = null; // for editing
+
+  window.showAddTaskModal = function() {
+    document.getElementById('taskModalTitle').textContent = 'Add Task';
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskDescription').value = '';
+    document.getElementById('taskStatus').value = 'todo';
+    currentTaskId = null;
+    document.getElementById('taskModal').style.display = 'flex';
+  };
+
+  window.editTask = function(taskId) {
+    db.collection('projectBoard').doc(taskId).get().then(doc => {
+      if (!doc.exists) return;
+      const task = doc.data();
+      document.getElementById('taskModalTitle').textContent = 'Edit Task';
+      document.getElementById('taskTitle').value = task.title || '';
+      document.getElementById('taskDescription').value = task.description || '';
+      document.getElementById('taskStatus').value = task.status || 'todo';
+      currentTaskId = taskId;
+      document.getElementById('taskModal').style.display = 'flex';
+    }).catch(showError);
+  };
+
+  window.deleteTask = function(taskId) {
+    if (!confirm('Delete this task?')) return;
+    db.collection('projectBoard').doc(taskId).delete().catch(showError);
+  };
+
+  window.saveTask = function() {
+    const title = document.getElementById('taskTitle').value.trim();
+    const description = document.getElementById('taskDescription').value.trim();
+    const status = document.getElementById('taskStatus').value;
+    if (!title) return alert('Title is required.');
+    const taskData = {
+      title,
+      description,
+      status,
+      created: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: currentUser?.uid
+    };
+    if (currentTaskId) {
+      db.collection('projectBoard').doc(currentTaskId).update(taskData).catch(showError);
+    } else {
+      db.collection('projectBoard').add(taskData).catch(showError);
+    }
+    closeTaskModal();
+  };
+
+  window.closeTaskModal = function() {
+    document.getElementById('taskModal').style.display = 'none';
+    document.getElementById('taskModalMessage').innerHTML = '';
+  };
+
   // ==================== VIDEO STUDIO (WebRTC broadcast) – FIXED ====================
   let adminPeer = null;
   let adminLocalStream = null;
@@ -3519,7 +3908,7 @@
     if (unsubscribeNtuTvLikes) unsubscribeNtuTvLikes();
   }
 
-  // ==================== CONTENT SWITCHING (modified to handle Ntu TV) ====================
+  // ==================== CONTENT SWITCHING (modified to handle Ntu TV and Project Board) ====================
   window.showContent = function(targetId) {
     if (targetId === 'admin') {
       if (!currentUserIsAdmin) {
@@ -3554,6 +3943,11 @@
       startNtuTV();
     } else {
       stopNtuTV();
+    }
+
+    // Load project board data when that panel is shown
+    if (targetId === 'projectBoard') {
+      loadProjectBoard();
     }
   };
 
@@ -3693,6 +4087,7 @@
       }
       if (event.target.id === 'linkModal') closeLinkModal();
       if (event.target.id === 'mediaPlayerModal') closeMediaPlayer();
+      if (event.target.id === 'taskModal') closeTaskModal();
     }
   };
 
