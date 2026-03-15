@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <style>
-    /* ===== GLOBAL – AQUAMARINE PROFESSIONAL ===== */
+    /* (Your existing CSS – unchanged) */
     * {
       margin: 0;
       padding: 0;
@@ -38,7 +38,6 @@
       padding-bottom: 50px;
     }
 
-    /* ===== HEADER (reduced height) ===== */
     header {
       background: rgba(26, 138, 120, 0.85);
       backdrop-filter: blur(12px);
@@ -278,19 +277,19 @@
     /* ===== DASHBOARD GRID FOR HOME – 3 COLUMNS ===== */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr); /* 3 columns */
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px;
     }
 
     @media (max-width: 800px) {
       .dashboard-grid {
-        grid-template-columns: repeat(2, 1fr); /* 2 columns on medium */
+        grid-template-columns: repeat(2, 1fr);
       }
     }
 
     @media (max-width: 500px) {
       .dashboard-grid {
-        grid-template-columns: 1fr; /* stack on small */
+        grid-template-columns: 1fr;
       }
     }
 
@@ -303,7 +302,7 @@
       transition: transform 0.2s, border-color 0.2s;
       display: flex;
       flex-direction: column;
-      cursor: pointer; /* Indicates clickable for expansion */
+      cursor: pointer;
     }
     .mini-card:hover {
       border-color: rgba(90, 235, 200, 0.5);
@@ -324,7 +323,7 @@
     .mini-card .view-all {
       margin-top: 12px;
       text-align: right;
-      z-index: 2; /* Keep button above clickable card */
+      z-index: 2;
     }
     .mini-card .view-all button {
       background: transparent;
@@ -336,7 +335,7 @@
       cursor: pointer;
       min-height: auto;
       box-shadow: none;
-      pointer-events: auto; /* Ensure button remains clickable */
+      pointer-events: auto;
     }
     .mini-card .view-all button:hover {
       background: #2dab95;
@@ -955,7 +954,7 @@
     .tv-frame {
       width: 100%;
       height: 0;
-      padding-bottom: 60%; /* 480/800 = 60% */
+      padding-bottom: 60%;
       position: relative;
       background: #000;
       border-radius: 24px;
@@ -1076,7 +1075,7 @@
       margin-bottom: 4px;
     }
     .media-comment .comment-text {
-      margin-left: 32px; /* align with avatar */
+      margin-left: 32px;
     }
     .media-comment .timestamp {
       font-size: 0.65rem;
@@ -1633,7 +1632,6 @@
   let unreadRoomsListener = null;
   let roomUnreadListeners = {};
   let roomUnreadCounts = {};
-  let totalUnread = 0;
 
   // Drive API for avatars
   const DRIVE_API_KEY = 'AIzaSyD91nUv-It5GUtfrXyNRXWs8o1eTWiHAo';
@@ -1866,13 +1864,11 @@
       iframe.allow = 'autoplay; encrypted-media';
       iframe.allowFullscreen = true;
       mediaPlayerContainer.appendChild(iframe);
-      // We can't easily control YouTube iframe, but modal close will handle it.
     } else {
       // Check for Google Drive links
       const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
       if (driveMatch) {
         const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
-        // Use the preview URL for Drive videos
         const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
         const iframe = document.createElement('iframe');
         iframe.src = embedUrl;
@@ -1880,7 +1876,6 @@
         iframe.allowFullscreen = true;
         mediaPlayerContainer.appendChild(iframe);
       } else {
-        // Try to create video or audio element for direct media files
         const isAudio = url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i);
         const isVideo = url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i);
         if (isAudio || isVideo) {
@@ -1893,7 +1888,6 @@
           mediaPlayerContainer.appendChild(element);
           currentNativeMedia = element;
         } else {
-          // Assume it's an image – display it
           const img = document.createElement('img');
           img.src = url;
           img.style.maxWidth = '100%';
@@ -1911,7 +1905,6 @@
     loadMediaLikes();
   }
 
-  // Load comments for current media
   function loadMediaComments() {
     if (!currentMediaId) return;
     const commentsRef = db.collection('mediaComments').doc(currentMediaId).collection('comments').orderBy('created', 'asc');
@@ -1934,7 +1927,6 @@
     }, showError);
   }
 
-  // Load likes for current media
   function loadMediaLikes() {
     if (!currentMediaId) return;
     const likesRef = db.collection('mediaComments').doc(currentMediaId).collection('reactions');
@@ -1958,7 +1950,6 @@
     }, showError);
   }
 
-  // Toggle like on current media
   window.toggleMediaLike = async function() {
     if (!currentUser) return alert('Please log in to like.');
     if (!currentMediaId) return;
@@ -1974,7 +1965,6 @@
     }
   };
 
-  // Post a comment on current media
   window.postMediaComment = function() {
     const text = mediaCommentInput.value.trim();
     if (!text || !currentUser || !currentMediaId) return;
@@ -2008,7 +1998,7 @@
     });
   }
 
-  // ==================== PARSE CONTENT (updated to show media previews) ====================
+  // ==================== PARSE CONTENT ====================
   function parseContent(text) {
     if (!text) return '';
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -2053,15 +2043,12 @@
     const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
     if (driveMatch) {
       const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
-      // Try to get a thumbnail from Drive (if image)
       if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || url.includes('uc?id=')) {
-        // Image preview
         return {
           type: 'preview',
           html: `<div class="media-preview" data-url="${url}"><img src="https://drive.google.com/uc?id=${fileId}" alt="Drive image"><div class="play-icon"><i class="fas fa-search-plus"></i></div></div>`
         };
       } else {
-        // Video file – use generic preview
         return {
           type: 'preview',
           html: `<div class="media-preview" data-url="${url}"><div style="width:200px;height:120px;background:#0a2420;display:flex;align-items:center;justify-content:center"><i class="fas fa-video" style="font-size:3rem;color:#2dab95;"></i></div><div class="play-icon"><i class="fas fa-play"></i></div></div>`
@@ -2117,7 +2104,7 @@
     } catch (e) { return ''; }
   }
 
-  // Reactions for posts (unchanged)
+  // Reactions for posts
   function addReactionUI(targetType, targetId, container) {
     const reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
@@ -2272,11 +2259,12 @@
     unreadBadge = document.getElementById('inboxUnreadBadge');
   }
 
-  function updateUnreadBadge(count) {
+  function updateUnreadBadge() {
     if (!unreadBadge) return;
-    if (count > 0) {
+    const total = Object.values(roomUnreadCounts).reduce((a, b) => a + b, 0);
+    if (total > 0) {
       unreadBadge.style.display = 'flex';
-      unreadBadge.textContent = count > 99 ? '99+' : count;
+      unreadBadge.textContent = total > 99 ? '99+' : total;
     } else {
       unreadBadge.style.display = 'none';
     }
@@ -2290,8 +2278,7 @@
     Object.values(roomUnreadListeners).forEach(unsub => unsub());
     roomUnreadListeners = {};
     roomUnreadCounts = {};
-    totalUnread = 0;
-    updateUnreadBadge(0);
+    updateUnreadBadge();
   }
 
   function setupUnreadListeners() {
@@ -2315,11 +2302,8 @@
               .where('from', '!=', currentUser.uid)
               .where('read', '==', false)
               .onSnapshot(msgSnapshot => {
-                const count = msgSnapshot.size;
-                const previous = roomUnreadCounts[roomId] || 0;
-                roomUnreadCounts[roomId] = count;
-                totalUnread += (count - previous);
-                updateUnreadBadge(totalUnread);
+                roomUnreadCounts[roomId] = msgSnapshot.size;
+                updateUnreadBadge();
               }, error => console.error('Unread listener error:', error));
             roomUnreadListeners[roomId] = unsubscribe;
             // Initialize count to 0 until listener fires
@@ -2332,10 +2316,8 @@
               roomUnreadListeners[roomId]();
               delete roomUnreadListeners[roomId];
             }
-            const previous = roomUnreadCounts[roomId] || 0;
             delete roomUnreadCounts[roomId];
-            totalUnread -= previous;
-            updateUnreadBadge(totalUnread);
+            updateUnreadBadge();
           }
         });
       }, error => console.error('Rooms listener error:', error));
@@ -2349,7 +2331,6 @@
       db.collection("users").doc(user.uid).get().then(doc => {
         const userData = doc.data() || {};
         currentUserIsAdmin = userData.isAdmin === true;
-        // Include Ntu TV button in nav bar – using solid icon to match sidebar
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
           <button onclick="showNtuTV()"><i class="fas fa-tv"></i> Ntu TV</button>
@@ -2389,7 +2370,6 @@
           }
         }
 
-        // Show/hide add task button based on admin status
         const addTaskBtn = document.getElementById('addTaskBtn');
         if (addTaskBtn) addTaskBtn.style.display = currentUserIsAdmin ? 'flex' : 'none';
 
@@ -2399,7 +2379,7 @@
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
       
-      cleanupUnreadListeners(); // remove any existing listeners and hide badge
+      cleanupUnreadListeners();
 
       const adminLinkLi = document.getElementById('adminSidebarLink');
       if (adminLinkLi) adminLinkLi.classList.remove('visible');
@@ -2551,7 +2531,6 @@
 
   // ==================== FULL FEED ====================
   db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
-    // Update full feed area (with replies and reactions)
     const feedArea = document.getElementById("feedArea");
     if (feedArea) {
       feedArea.innerHTML = "";
@@ -2579,11 +2558,9 @@
         addReactionUI('feed', feedId, feedDiv);
         loadReplies("feed", feedId, "feedReplies");
       });
-      // Attach click handlers to media previews
       attachMediaPreviewClick(feedArea);
     }
 
-    // Update mini feed full area (simplified, no replies)
     const miniFeedFull = document.getElementById("miniFeedFullArea");
     if (miniFeedFull) {
       miniFeedFull.innerHTML = "";
@@ -2601,7 +2578,6 @@
           <div class="timestamp">${formatRelativeTime(p.created)}</div>
         `;
         miniFeedFull.appendChild(feedDiv);
-        // No reactions or replies in mini view
       });
       attachMediaPreviewClick(miniFeedFull);
     }
@@ -2780,7 +2756,6 @@
   };
 
   db.collection("goodwill").orderBy("created", "desc").onSnapshot(s => {
-    // Full goodwill area
     const goodwillArea = document.getElementById("goodwillArea");
     if (goodwillArea) {
       goodwillArea.innerHTML = "";
@@ -2805,7 +2780,6 @@
       attachMediaPreviewClick(goodwillArea);
     }
 
-    // Mini goodwill full area
     const miniGoodwillFull = document.getElementById("miniGoodwillFullArea");
     if (miniGoodwillFull) {
       miniGoodwillFull.innerHTML = "";
@@ -2820,7 +2794,6 @@
           <div class="timestamp">${formatRelativeTime(g.created)}</div>
         `;
         miniGoodwillFull.appendChild(goodwillDiv);
-        // No replies in mini view
       });
       attachMediaPreviewClick(miniGoodwillFull);
     }
@@ -2870,7 +2843,6 @@
 
   // ==================== FULL EVENTS ====================
   db.collection("events").orderBy("created", "desc").onSnapshot(s => {
-    // Full events area
     const eventArea = document.getElementById("eventArea");
     if (eventArea) {
       eventArea.innerHTML = "";
@@ -2900,7 +2872,6 @@
       attachMediaPreviewClick(eventArea);
     }
 
-    // Mini events full area – first event full, others preview
     const miniEventFull = document.getElementById("miniEventFullArea");
     if (miniEventFull) {
       miniEventFull.innerHTML = "";
@@ -2910,8 +2881,7 @@
         const eventDiv = document.createElement('div');
         
         if (eventIndex === 0) {
-          // --- First event: FULL display (with all media previews) ---
-          eventDiv.className = "event-item"; // reuse full event style
+          eventDiv.className = "event-item";
           
           let mediaHtml = '';
           if (e.image)  mediaHtml += `<div>${parseContent(e.image)}</div>`;
@@ -2925,7 +2895,6 @@
             ${mediaHtml}
           `;
         } else {
-          // --- Other events: preview (truncated, small image) ---
           eventDiv.className = "mini-event-item";
           
           let mediaHtml = '';
@@ -3319,15 +3288,11 @@
     }
     container.innerHTML = html;
 
-    // Attach reaction listeners and comment handlers after rendering
     tasks.forEach(task => {
       const card = document.getElementById(`task-${task.id}`);
       if (card) {
-        // Load reactions for this task
         loadTaskReactions(task.id, card);
-        // Load comments for this task
         loadTaskComments(task.id, card);
-        // Attach comment post handler
         const commentInput = card.querySelector('.task-comment-input');
         const commentBtn = card.querySelector('.task-comment-btn');
         if (commentBtn) {
@@ -3387,7 +3352,6 @@
           likeBtn.classList.remove('liked');
           likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count" id="like-count-${taskId}">${count}</span>`;
         }
-        // Attach click event
         likeBtn.onclick = () => toggleTaskLike(taskId);
       }
     }, showError);
@@ -3452,7 +3416,7 @@
   }
 
   // Task CRUD (admin only)
-  let currentTaskId = null; // for editing
+  let currentTaskId = null;
 
   window.showAddTaskModal = function() {
     document.getElementById('taskModalTitle').textContent = 'Add Task';
@@ -3506,7 +3470,7 @@
     document.getElementById('taskModalMessage').innerHTML = '';
   };
 
-  // ==================== VIDEO STUDIO (WebRTC broadcast) – FIXED ====================
+  // ==================== VIDEO STUDIO (WebRTC broadcast) ====================
   let adminPeer = null;
   let adminLocalStream = null;
   let viewerPeer = null;
@@ -3999,11 +3963,9 @@
     if (ntuTVIframe) {
       ntuTVIframe.src = ntuTVOriginalSrc;
       ntuTVActive = true;
-      // Close media player if open
       if (mediaPlayerModal.style.display === 'flex') {
         closeMediaPlayer();
       }
-      // Load Ntu TV comments & likes
       loadNtuTvComments();
       loadNtuTvLikes();
     }
@@ -4015,12 +3977,11 @@
       ntuTVIframe.src = '';
       ntuTVActive = false;
     }
-    // Unsubscribe from Ntu TV comment/like listeners (optional)
     if (unsubscribeNtuTvComments) unsubscribeNtuTvComments();
     if (unsubscribeNtuTvLikes) unsubscribeNtuTvLikes();
   }
 
-  // ==================== CONTENT SWITCHING (modified to handle Ntu TV and Project Board) ====================
+  // ==================== CONTENT SWITCHING ====================
   window.showContent = function(targetId) {
     if (targetId === 'admin') {
       if (!currentUserIsAdmin) {
@@ -4050,20 +4011,17 @@
     }
     updateHeaderMarqueeVisibility();
 
-    // Ntu TV auto start/stop
     if (targetId === 'ntuTV') {
       startNtuTV();
     } else {
       stopNtuTV();
     }
 
-    // Load project board data when that panel is shown
     if (targetId === 'projectBoard') {
       loadProjectBoard();
     }
   };
 
-  // Ntu TV helper
   window.showNtuTV = function() {
     showContent('ntuTV');
   };
@@ -4203,10 +4161,9 @@
     }
   };
 
-  // ==================== EXPAND ON CARD CLICK (UPDATED) ====================
+  // ==================== EXPAND ON CARD CLICK ====================
   document.querySelectorAll('.mini-card[data-expand]').forEach(card => {
     card.addEventListener('click', function(e) {
-      // Prevent expansion if clicking on a button, input, link, user badge, or media preview
       if (e.target.closest('button') ||
           e.target.closest('input') ||
           e.target.closest('a') ||
