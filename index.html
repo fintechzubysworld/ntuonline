@@ -108,6 +108,7 @@
       box-shadow: 0 6px 14px rgba(22, 150, 130, 0.3);
       min-height: 44px;
       border: 1px solid rgba(255,255,255,0.1);
+      position: relative;
     }
     #navArea button:hover {
       background: #2ba48f;
@@ -121,6 +122,26 @@
       margin-right: 6px;
       font-size: 0.95rem;
       text-shadow: 0 0 5px #64ffda;
+    }
+
+    /* Unread badge on envelope */
+    .unread-badge-count {
+      position: absolute;
+      top: -5px;
+      right: -8px;
+      background-color: #ff6b4a;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      border: 1px solid #fff2;
     }
 
     /* ===== FLOATING SIDEBAR TOGGLE (right side) ===== */
@@ -1251,7 +1272,7 @@
 
 <!-- Top marquee -->
 <div class="marquee">
-  <h6 id="topMarqueeText">Welcome to Ntuconnect. Our global online space. ⚡ Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
+  <h6 id="topMarqueeText">⚡ Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
 </div>
 
 <!-- Sidebar -->
@@ -1606,6 +1627,13 @@
   const db = firebase.firestore();
   let currentUser = null;
   let currentUserIsAdmin = false;
+
+  // Unread private message badge
+  let unreadBadge = null;
+  let unreadRoomsListener = null;
+  let roomUnreadListeners = {};
+  let roomUnreadCounts = {};
+  let totalUnread = 0;
 
   // Drive API for avatars
   const DRIVE_API_KEY = 'AIzaSyD91nUv-It5GUtfrXyNRXWs8o1eTWiHAo';
@@ -2239,6 +2267,80 @@
     document.querySelector('.floating-toggle').style.display = show ? 'none' : 'flex';
   }
 
+  // ==================== UNREAD BADGE FUNCTIONS ====================
+  function setupUnreadBadge() {
+    unreadBadge = document.getElementById('inboxUnreadBadge');
+  }
+
+  function updateUnreadBadge(count) {
+    if (!unreadBadge) return;
+    if (count > 0) {
+      unreadBadge.style.display = 'flex';
+      unreadBadge.textContent = count > 99 ? '99+' : count;
+    } else {
+      unreadBadge.style.display = 'none';
+    }
+  }
+
+  function cleanupUnreadListeners() {
+    if (unreadRoomsListener) {
+      unreadRoomsListener();
+      unreadRoomsListener = null;
+    }
+    Object.values(roomUnreadListeners).forEach(unsub => unsub());
+    roomUnreadListeners = {};
+    roomUnreadCounts = {};
+    totalUnread = 0;
+    updateUnreadBadge(0);
+  }
+
+  function setupUnreadListeners() {
+    if (!currentUser) return;
+    cleanupUnreadListeners(); // remove old listeners
+
+    unreadRoomsListener = db.collection('privateChatRooms')
+      .where('participants', 'array-contains', currentUser.uid)
+      .onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+          const roomId = change.doc.id;
+          if (change.type === 'added' || change.type === 'modified') {
+            // If already have listener, remove it first
+            if (roomUnreadListeners[roomId]) {
+              roomUnreadListeners[roomId]();
+              delete roomUnreadListeners[roomId];
+            }
+            // Set up new listener for this room
+            const roomRef = db.collection('privateChatRooms').doc(roomId);
+            const unsubscribe = roomRef.collection('messages')
+              .where('from', '!=', currentUser.uid)
+              .where('read', '==', false)
+              .onSnapshot(msgSnapshot => {
+                const count = msgSnapshot.size;
+                const previous = roomUnreadCounts[roomId] || 0;
+                roomUnreadCounts[roomId] = count;
+                totalUnread += (count - previous);
+                updateUnreadBadge(totalUnread);
+              }, error => console.error('Unread listener error:', error));
+            roomUnreadListeners[roomId] = unsubscribe;
+            // Initialize count to 0 until listener fires
+            if (!(roomId in roomUnreadCounts)) {
+              roomUnreadCounts[roomId] = 0;
+            }
+          } else if (change.type === 'removed') {
+            // Room removed, remove listener and its count
+            if (roomUnreadListeners[roomId]) {
+              roomUnreadListeners[roomId]();
+              delete roomUnreadListeners[roomId];
+            }
+            const previous = roomUnreadCounts[roomId] || 0;
+            delete roomUnreadCounts[roomId];
+            totalUnread -= previous;
+            updateUnreadBadge(totalUnread);
+          }
+        });
+      }, error => console.error('Rooms listener error:', error));
+  }
+
   // ==================== AUTH STATE ====================
   auth.onAuthStateChanged(user => {
     currentUser = user;
@@ -2251,9 +2353,17 @@
         navArea.innerHTML = `
           <span class="onlineDot">● Online</span>
           <button onclick="showNtuTV()"><i class="fas fa-tv"></i> Ntu TV</button>
-          <button onclick="showInbox()"><i class="fa-regular fa-envelope"></i> Inbox</button>
+          <button onclick="showInbox()" id="inboxButton" style="position: relative;">
+            <span style="position: relative; display: inline-block;">
+              <i class="fa-regular fa-envelope"></i>
+              <span id="inboxUnreadBadge" class="unread-badge-count" style="display: none;">0</span>
+            </span>
+            Inbox
+          </button>
           <button onclick="logout()">Logout</button>
         `;
+        setupUnreadBadge();
+        setupUnreadListeners();
         updateProfilePanel(userData);
         setupNotifications();
         updateHeaderMarqueeVisibility();
@@ -2289,6 +2399,8 @@
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
       
+      cleanupUnreadListeners(); // remove any existing listeners and hide badge
+
       const adminLinkLi = document.getElementById('adminSidebarLink');
       if (adminLinkLi) adminLinkLi.classList.remove('visible');
       
@@ -4114,4 +4226,3 @@
 </script>
 </body>
 </html>
-
