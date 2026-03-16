@@ -121,6 +121,27 @@
       margin-right: 6px;
       font-size: 0.95rem;
       text-shadow: 0 0 5px #64ffda;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Unread badge next to online indicator */
+    .online-unread-badge {
+      background-color: #ff6b4a;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      border: 1px solid #fff2;
+      margin-left: 4px;
     }
 
     /* Unread badge on envelope */
@@ -1627,11 +1648,8 @@
   let currentUser = null;
   let currentUserIsAdmin = false;
 
-  // Unread private message badge
-  let unreadBadge = null;
-  let unreadRoomsListener = null;
-  let roomUnreadListeners = {};
-  let roomUnreadCounts = {};
+  // Unread messages listener
+  let unreadMessagesListener = null;
 
   // Drive API for avatars
   const DRIVE_API_KEY = 'AIzaSyD91nUv-It5GUtfrXyNRXWs8o1eTWiHAo';
@@ -1813,12 +1831,10 @@
   let currentYouTubePlayer = null;
   let currentNativeMedia = null;
 
-  // Helper to encode URL as a safe document ID (base64 without special chars)
   function encodeMediaId(url) {
     return btoa(url).replace(/[/+=]/g, '_');
   }
 
-  // Close media player and stop playback
   window.closeMediaPlayer = function() {
     if (unsubscribeMediaComments) {
       unsubscribeMediaComments();
@@ -1844,18 +1860,11 @@
     currentMediaId = null;
   };
 
-  // Open media player with a given URL
   function openMediaPlayer(url) {
-    // If Ntu TV is active, stop it
     if (ntuTVActive) stopNtuTV();
-
-    // Close any existing media
     closeMediaPlayer();
-
     currentMediaUrl = url;
     currentMediaId = encodeMediaId(url);
-
-    // Determine type and create appropriate player
     const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) {
       const videoId = ytMatch[1];
@@ -1865,7 +1874,6 @@
       iframe.allowFullscreen = true;
       mediaPlayerContainer.appendChild(iframe);
     } else {
-      // Check for Google Drive links
       const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
       if (driveMatch) {
         const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
@@ -1897,10 +1905,7 @@
         }
       }
     }
-
     mediaPlayerModal.style.display = 'flex';
-
-    // Load comments and likes
     loadMediaComments();
     loadMediaLikes();
   }
@@ -1986,7 +1991,6 @@
       .catch(showError);
   };
 
-  // Attach click handlers to all media previews
   function attachMediaPreviewClick(container) {
     if (!container) container = document;
     container.querySelectorAll('.media-preview').forEach(preview => {
@@ -2255,76 +2259,90 @@
   }
 
   // ==================== UNREAD BADGE FUNCTIONS ====================
-  function setupUnreadBadge() {
-    unreadBadge = document.getElementById('inboxUnreadBadge');
+  function updateUnreadBadges(count) {
+    // Update the online-area badge
+    const onlineBadge = document.getElementById('onlineUnreadBadge');
+    if (onlineBadge) {
+      if (count > 0) {
+        onlineBadge.style.display = 'inline-flex';
+        onlineBadge.textContent = count > 99 ? '99+' : count;
+      } else {
+        onlineBadge.style.display = 'none';
+      }
+    }
+    // Update the inbox button badge
+    const inboxBadge = document.getElementById('inboxUnreadBadge');
+    if (inboxBadge) {
+      if (count > 0) {
+        inboxBadge.style.display = 'flex';
+        inboxBadge.textContent = count > 99 ? '99+' : count;
+      } else {
+        inboxBadge.style.display = 'none';
+      }
+    }
   }
 
-  function updateUnreadBadge() {
-    if (!unreadBadge) {
-      // In case the element was recreated, try to get it again
-      unreadBadge = document.getElementById('inboxUnreadBadge');
-    }
-    if (!unreadBadge) return;
-    const total = Object.values(roomUnreadCounts).reduce((a, b) => a + b, 0);
-    if (total > 0) {
-      unreadBadge.style.display = 'flex';
-      unreadBadge.textContent = total > 99 ? '99+' : total;
-    } else {
-      unreadBadge.style.display = 'none';
-    }
-  }
-
-  function cleanupUnreadListeners() {
-    if (unreadRoomsListener) {
-      unreadRoomsListener();
-      unreadRoomsListener = null;
-    }
-    Object.values(roomUnreadListeners).forEach(unsub => unsub());
-    roomUnreadListeners = {};
-    roomUnreadCounts = {};
-    updateUnreadBadge();
-  }
-
-  function setupUnreadListeners() {
+  function setupUnreadListener() {
     if (!currentUser) return;
-    cleanupUnreadListeners(); // remove old listeners
+    if (unreadMessagesListener) unreadMessagesListener();
 
-    unreadRoomsListener = db.collection('privateChatRooms')
-      .where('participants', 'array-contains', currentUser.uid)
+    // Collection group query for all messages where recipient == currentUser.uid and read == false
+    // IMPORTANT: You must create a composite index in Firestore:
+    // Collection group: messages, Fields: recipient (ascending), read (ascending)
+    // Go to Firebase Console > Firestore Database > Indexes > Add Index
+    unreadMessagesListener = db.collectionGroup('messages')
+      .where('recipient', '==', currentUser.uid)
+      .where('read', '==', false)
       .onSnapshot(snapshot => {
-        snapshot.docChanges().forEach(change => {
-          const roomId = change.doc.id;
-          if (change.type === 'added' || change.type === 'modified') {
-            // If already have listener, remove it first
-            if (roomUnreadListeners[roomId]) {
-              roomUnreadListeners[roomId]();
-              delete roomUnreadListeners[roomId];
-            }
-            // Set up new listener for this room
-            const roomRef = db.collection('privateChatRooms').doc(roomId);
-            const unsubscribe = roomRef.collection('messages')
-              .where('from', '!=', currentUser.uid)
-              .where('read', '==', false)
-              .onSnapshot(msgSnapshot => {
-                roomUnreadCounts[roomId] = msgSnapshot.size;
-                updateUnreadBadge();
-              }, error => console.error('Unread listener error:', error));
-            roomUnreadListeners[roomId] = unsubscribe;
-            // Initialize count to 0 until listener fires
-            if (!(roomId in roomUnreadCounts)) {
-              roomUnreadCounts[roomId] = 0;
-            }
-          } else if (change.type === 'removed') {
-            // Room removed, remove listener and its count
-            if (roomUnreadListeners[roomId]) {
-              roomUnreadListeners[roomId]();
-              delete roomUnreadListeners[roomId];
-            }
-            delete roomUnreadCounts[roomId];
-            updateUnreadBadge();
-          }
+        const count = snapshot.size;
+        updateUnreadBadges(count);
+      }, error => {
+        console.error('Unread listener error:', error);
+        // If index missing, fallback to per-room counting (less efficient but works)
+        if (error.code === 'failed-precondition') {
+          console.warn('Missing Firestore index. Falling back to per-room counting.');
+          setupFallbackUnreadListener();
+        }
+      });
+  }
+
+  // Fallback method if collection group query fails (no index)
+  function setupFallbackUnreadListener() {
+    if (!currentUser) return;
+    // Listen to all rooms the user is in and count unread messages manually
+    db.collection('privateChatRooms')
+      .where('participants', 'array-contains', currentUser.uid)
+      .onSnapshot(roomsSnapshot => {
+        let totalUnread = 0;
+        let completed = 0;
+        if (roomsSnapshot.empty) {
+          updateUnreadBadges(0);
+          return;
+        }
+        roomsSnapshot.forEach(roomDoc => {
+          db.collection('privateChatRooms').doc(roomDoc.id)
+            .collection('messages')
+            .where('recipient', '==', currentUser.uid)
+            .where('read', '==', false)
+            .get()
+            .then(msgSnapshot => {
+              totalUnread += msgSnapshot.size;
+              completed++;
+              if (completed === roomsSnapshot.size) {
+                updateUnreadBadges(totalUnread);
+              }
+            })
+            .catch(err => {
+              console.error('Error counting messages:', err);
+              completed++;
+              if (completed === roomsSnapshot.size) {
+                updateUnreadBadges(totalUnread);
+              }
+            });
         });
-      }, error => console.error('Rooms listener error:', error));
+      }, error => {
+        console.error('Fallback listener error:', error);
+      });
   }
 
   // ==================== AUTH STATE ====================
@@ -2336,7 +2354,10 @@
         const userData = doc.data() || {};
         currentUserIsAdmin = userData.isAdmin === true;
         navArea.innerHTML = `
-          <span class="onlineDot">● Online</span>
+          <span class="onlineDot">
+            ● Online
+            <span id="onlineUnreadBadge" class="online-unread-badge" style="display: none;">0</span>
+          </span>
           <button onclick="showNtuTV()"><i class="fas fa-tv"></i> Ntu TV</button>
           <button onclick="showInbox()" id="inboxButton" style="position: relative;">
             <span style="position: relative; display: inline-block;">
@@ -2347,8 +2368,7 @@
           </button>
           <button onclick="logout()">Logout</button>
         `;
-        setupUnreadBadge();
-        setupUnreadListeners();
+        setupUnreadListener();
         updateProfilePanel(userData);
         setupNotifications();
         updateHeaderMarqueeVisibility();
@@ -2383,7 +2403,10 @@
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
       
-      cleanupUnreadListeners();
+      if (unreadMessagesListener) {
+        unreadMessagesListener();
+        unreadMessagesListener = null;
+      }
 
       const adminLinkLi = document.getElementById('adminSidebarLink');
       if (adminLinkLi) adminLinkLi.classList.remove('visible');
@@ -3042,6 +3065,7 @@
       });
     }
 
+    // Mark all messages from other user as read
     const unreadQuery = roomRef.collection('messages')
       .where('from', '==', otherUserId)
       .where('read', '==', false);
@@ -3093,8 +3117,12 @@
     db.collection('users').doc(currentUser.uid).get().then(userDoc => {
       const userData = userDoc.data() || {};
       const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
+      // Get the other participant
+      const otherUid = activeChatOtherUserId;
       roomRef.collection('messages').add({
         from: currentUser.uid,
+        to: otherUid,
+        recipient: otherUid,         // 👈 critical for unread queries
         text: text,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         read: false,
@@ -3151,9 +3179,10 @@
           const userDoc = await db.collection('users').doc(otherUid).get();
           const otherUser = userDoc.data() || { name: 'Unknown' };
 
+          // Query unread count using recipient field
           const unreadSnapshot = await db.collection('privateChatRooms').doc(doc.id)
             .collection('messages')
-            .where('from', '==', otherUid)
+            .where('recipient', '==', currentUser.uid)
             .where('read', '==', false)
             .get();
           const unreadCount = unreadSnapshot.size;
