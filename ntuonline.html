@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aquamarine · Broadcast Admin (TikTok Live)</title>
+  <title>Aquamarine · Broadcast Admin</title>
 
   <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
-  <!-- PeerJS for WebRTC (needed for starting broadcast) -->
+  <!-- PeerJS for WebRTC -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
   <!-- Google API (Drive Picker) -->
@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <style>
-    /* same styles as before – keep your existing CSS, it's fine */
+    /* same styles as before – keep your existing CSS */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
@@ -236,37 +236,6 @@
       background: #0f332d;
       border-left: 4px solid #2dab95;
     }
-    .platform-selector {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin: 15px 0;
-    }
-    .platform-selector label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: #1b4a42;
-      padding: 8px 16px;
-      border-radius: 40px;
-      cursor: pointer;
-    }
-    .platform-selector input[type="radio"] {
-      width: auto;
-      margin: 0;
-      accent-color: #2dab95;
-    }
-    .webrtc-indicator {
-      background: #173e37;
-      border-radius: 40px;
-      padding: 15px;
-      margin: 15px 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-    }
     .badge-live {
       background: #ff4d4d;
       color: white;
@@ -312,7 +281,7 @@
 <body>
 
 <header>
-  <h2><i class="fa-solid fa-water" style="color:#a2ffee;"></i>Unified Broadcast Admin</h2>
+  <h2><i class="fa-solid fa-water" style="color:#a2ffee;"></i>Broadcast Admin</h2>
   <div>
     <span id="userEmail" style="margin-right:15px; color:#d0f7f0;"></span>
     <button onclick="logout()">Logout</button>
@@ -339,7 +308,7 @@
       <div id="broadcastStatus" class="broadcast-status" style="display:none;"></div>
     </div>
 
-    <!-- Separate monitor for active broadcast (so stop button remains functional) -->
+    <!-- Monitor for active broadcast -->
     <div id="webrtcMonitor" style="margin-top:15px; background:#173e37; border-radius:40px; padding:15px; display:flex; align-items:center; justify-content:space-between;">
       <span id="webrtcStatusMessage"><i class="fa-regular fa-circle-dot"></i> Checking broadcast...</span>
       <button id="stopWebRTCBtn" class="danger" onclick="stopWebRTCBroadcast()" disabled>⏹️ Stop broadcast</button>
@@ -447,7 +416,7 @@
 </div>
 
 <script>
-  // Firebase config (same as original)
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
     authDomain: "ntudioka-online-c29d8.firebaseapp.com",
@@ -475,9 +444,14 @@
   const dashboard = document.getElementById('dashboard');
   const userEmailSpan = document.getElementById('userEmail');
 
-  function showError(err) { alert("Error: " + err.message); console.error(err); }
+  function showError(err) { 
+    console.error(err);
+    alert("Error: " + err.message); 
+  }
+
   function showMessage(elId, text, type) {
     const div = document.getElementById(elId);
+    if (!div) return; // element might not exist
     div.textContent = text;
     div.className = `message ${type}`;
     setTimeout(() => div.style.display = 'none', 5000);
@@ -512,7 +486,7 @@
             loadUsers();
             loadAllContent();
             loadBottomMessages();
-            monitorWebRTCBroadcast(); // only broadcast monitoring remains
+            monitorWebRTCBroadcast();
           } else {
             authCheck.innerHTML = '<h3>Access Denied</h3><button onclick="window.location=\'ntuonline.html\'">Back</button>';
             authCheck.style.display = 'block';
@@ -545,11 +519,13 @@
   window.stopWebRTCBroadcast = function() {
     if (!confirm('Stop the current camera broadcast? Viewers will lose the feed.')) return;
     db.collection('broadcast').doc('active').set({ active: false }, { merge: true })
-      .then(() => showMessage('liveExternalMessage', 'Broadcast stopped', 'success'))
-      .catch(err => showMessage('liveExternalMessage', err.message, 'error'));
+      .then(() => {
+        document.getElementById('webrtcStatusMessage').innerHTML = '<i class="fa-regular fa-circle-dot"></i> Broadcast stopped';
+      })
+      .catch(err => showError(err));
   };
 
-  // ==================== VIDEO STUDIO (copied from community admin) ====================
+  // ==================== VIDEO STUDIO ====================
   async function isAdminUser() {
     if (!currentUser) return false;
     const doc = await db.collection('users').doc(currentUser.uid).get();
@@ -870,7 +846,7 @@
       });
     }).catch(showError);
 
-    // FIXED: use ascending + limitToLast + reverse to avoid needing a descending index
+    // FIXED: ascending + limitToLast + reverse – uses default ascending index, no popup on error
     db.collectionGroup('replies')
       .orderBy('created', 'asc')
       .limitToLast(50)
@@ -889,7 +865,15 @@
           </div>`;
         });
       })
-      .catch(showError);
+      .catch(err => {
+        console.error('Replies moderation error:', err);
+        // If it's an index error, show a friendly message instead of an alert
+        if (err.code === 'failed-precondition' && err.message.includes('index')) {
+          document.getElementById('moderateReplies').innerHTML = '<p class="error">Replies index not ready yet. Please wait a moment or create the index manually.</p>';
+        } else {
+          showError(err); // only alert for non-index errors
+        }
+      });
   }
 
   // ---------- TABS ----------
