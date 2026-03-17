@@ -1648,8 +1648,10 @@
   let currentUser = null;
   let currentUserIsAdmin = false;
 
-  // Unread messages listener
-  let unreadMessagesListener = null;
+  // Unread messages tracking
+  let unreadRoomsListener = null;
+  let roomUnreadListeners = {};
+  let roomUnreadCounts = {};
 
   // Drive API for avatars
   const DRIVE_API_KEY = 'AIzaSyD91nUv-It5GUtfrXyNRXWs8o1eTWiHAo';
@@ -2259,90 +2261,82 @@
   }
 
   // ==================== UNREAD BADGE FUNCTIONS ====================
-  function updateUnreadBadges(count) {
-    // Update the online-area badge
+  function updateUnreadBadge() {
+    const total = Object.values(roomUnreadCounts).reduce((a, b) => a + b, 0);
     const onlineBadge = document.getElementById('onlineUnreadBadge');
+    const inboxBadge = document.getElementById('inboxUnreadBadge');
     if (onlineBadge) {
-      if (count > 0) {
+      if (total > 0) {
         onlineBadge.style.display = 'inline-flex';
-        onlineBadge.textContent = count > 99 ? '99+' : count;
+        onlineBadge.textContent = total > 99 ? '99+' : total;
       } else {
         onlineBadge.style.display = 'none';
       }
+    } else {
+      console.warn('onlineUnreadBadge element not found');
     }
-    // Update the inbox button badge
-    const inboxBadge = document.getElementById('inboxUnreadBadge');
     if (inboxBadge) {
-      if (count > 0) {
+      if (total > 0) {
         inboxBadge.style.display = 'flex';
-        inboxBadge.textContent = count > 99 ? '99+' : count;
+        inboxBadge.textContent = total > 99 ? '99+' : total;
       } else {
         inboxBadge.style.display = 'none';
       }
     }
   }
 
-  function setupUnreadListener() {
-    if (!currentUser) return;
-    if (unreadMessagesListener) unreadMessagesListener();
-
-    // Collection group query for all messages where recipient == currentUser.uid and read == false
-    // IMPORTANT: You must create a composite index in Firestore:
-    // Collection group: messages, Fields: recipient (ascending), read (ascending)
-    // Go to Firebase Console > Firestore Database > Indexes > Add Index
-    unreadMessagesListener = db.collectionGroup('messages')
-      .where('recipient', '==', currentUser.uid)
-      .where('read', '==', false)
-      .onSnapshot(snapshot => {
-        const count = snapshot.size;
-        updateUnreadBadges(count);
-      }, error => {
-        console.error('Unread listener error:', error);
-        // If index missing, fallback to per-room counting (less efficient but works)
-        if (error.code === 'failed-precondition') {
-          console.warn('Missing Firestore index. Falling back to per-room counting.');
-          setupFallbackUnreadListener();
-        }
-      });
+  function cleanupUnreadListeners() {
+    if (unreadRoomsListener) {
+      unreadRoomsListener();
+      unreadRoomsListener = null;
+    }
+    Object.values(roomUnreadListeners).forEach(unsub => unsub());
+    roomUnreadListeners = {};
+    roomUnreadCounts = {};
+    updateUnreadBadge();
   }
 
-  // Fallback method if collection group query fails (no index)
-  function setupFallbackUnreadListener() {
+  function setupUnreadListeners() {
     if (!currentUser) return;
-    // Listen to all rooms the user is in and count unread messages manually
-    db.collection('privateChatRooms')
+    cleanupUnreadListeners();
+
+    // Listen to all rooms the user is in
+    unreadRoomsListener = db.collection('privateChatRooms')
       .where('participants', 'array-contains', currentUser.uid)
-      .onSnapshot(roomsSnapshot => {
-        let totalUnread = 0;
-        let completed = 0;
-        if (roomsSnapshot.empty) {
-          updateUnreadBadges(0);
-          return;
-        }
-        roomsSnapshot.forEach(roomDoc => {
-          db.collection('privateChatRooms').doc(roomDoc.id)
-            .collection('messages')
-            .where('recipient', '==', currentUser.uid)
-            .where('read', '==', false)
-            .get()
-            .then(msgSnapshot => {
-              totalUnread += msgSnapshot.size;
-              completed++;
-              if (completed === roomsSnapshot.size) {
-                updateUnreadBadges(totalUnread);
-              }
-            })
-            .catch(err => {
-              console.error('Error counting messages:', err);
-              completed++;
-              if (completed === roomsSnapshot.size) {
-                updateUnreadBadges(totalUnread);
-              }
-            });
+      .onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+          const roomId = change.doc.id;
+          if (change.type === 'added' || change.type === 'modified') {
+            // Remove old listener if exists
+            if (roomUnreadListeners[roomId]) {
+              roomUnreadListeners[roomId]();
+              delete roomUnreadListeners[roomId];
+            }
+            // Set up new listener for this room
+            const roomRef = db.collection('privateChatRooms').doc(roomId);
+            const unsubscribe = roomRef.collection('messages')
+              .where('from', '!=', currentUser.uid)
+              .where('read', '==', false)
+              .onSnapshot(msgSnapshot => {
+                roomUnreadCounts[roomId] = msgSnapshot.size;
+                updateUnreadBadge();
+              }, error => console.error('Unread listener error:', error));
+            roomUnreadListeners[roomId] = unsubscribe;
+            // Initialize count to 0 until listener fires
+            if (!(roomId in roomUnreadCounts)) {
+              roomUnreadCounts[roomId] = 0;
+            }
+          } else if (change.type === 'removed') {
+            // Room removed, remove listener and its count
+            if (roomUnreadListeners[roomId]) {
+              roomUnreadListeners[roomId]();
+              delete roomUnreadListeners[roomId];
+            }
+            delete roomUnreadCounts[roomId];
+            updateUnreadBadge();
+          }
         });
-      }, error => {
-        console.error('Fallback listener error:', error);
-      });
+      }, error => console.error('Rooms listener error:', error));
   }
 
   // ==================== AUTH STATE ====================
@@ -2368,7 +2362,7 @@
           </button>
           <button onclick="logout()">Logout</button>
         `;
-        setupUnreadListener();
+        setupUnreadListeners();
         updateProfilePanel(userData);
         setupNotifications();
         updateHeaderMarqueeVisibility();
@@ -2403,10 +2397,7 @@
       document.getElementById('profileDisplay').innerHTML = '<p>Please log in to view your profile.</p>';
       updateHeaderMarqueeVisibility();
       
-      if (unreadMessagesListener) {
-        unreadMessagesListener();
-        unreadMessagesListener = null;
-      }
+      cleanupUnreadListeners();
 
       const adminLinkLi = document.getElementById('adminSidebarLink');
       if (adminLinkLi) adminLinkLi.classList.remove('visible');
@@ -3117,12 +3108,10 @@
     db.collection('users').doc(currentUser.uid).get().then(userDoc => {
       const userData = userDoc.data() || {};
       const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
-      // Get the other participant
       const otherUid = activeChatOtherUserId;
       roomRef.collection('messages').add({
         from: currentUser.uid,
         to: otherUid,
-        recipient: otherUid,         // 👈 critical for unread queries
         text: text,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         read: false,
@@ -3179,10 +3168,9 @@
           const userDoc = await db.collection('users').doc(otherUid).get();
           const otherUser = userDoc.data() || { name: 'Unknown' };
 
-          // Query unread count using recipient field
           const unreadSnapshot = await db.collection('privateChatRooms').doc(doc.id)
             .collection('messages')
-            .where('recipient', '==', currentUser.uid)
+            .where('from', '==', otherUid)
             .where('read', '==', false)
             .get();
           const unreadCount = unreadSnapshot.size;
