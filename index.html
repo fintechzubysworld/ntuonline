@@ -11,9 +11,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
 
-  <!-- PeerJS (WebRTC signaling) with STUN -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-
   <!-- YouTube IFrame Player API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -927,23 +924,7 @@
       margin-top: 1rem;
     }
 
-    /* Broadcast status indicator */
-    .broadcast-status {
-      margin-top: 12px;
-      padding: 10px;
-      border-radius: 12px;
-      background: #0f2d27;
-      text-align: center;
-      font-weight: 600;
-    }
-    .broadcast-status.live {
-      color: #ff6b6b;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
+    /* Broadcast status indicator - removed because feature not used */
 
     /* ADMIN PANEL - Strictly restricted */
     #admin {
@@ -1467,18 +1448,8 @@
         <div id="adminMessage" style="margin-top:15px;"></div>
       </div>
 
-      <!-- Video Studio -->
-      <div style="background: #0f2d27; border-radius: 24px; padding: 20px;">
-        <h4 style="color:#64e3cf; margin-bottom:15px;"><i class="fa-regular fa-camera"></i> Video Studio</h4>
-        <video id="adminLocalVideo" autoplay muted playsinline style="width:100%; max-height:200px; background:#000; border-radius:16px; margin-bottom:10px;"></video>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button id="startBroadcastBtn" onclick="startBroadcast()"><i class="fa-regular fa-video"></i> Start Broadcast</button>
-          <button id="switchCamBtn" onclick="switchCamera()" disabled><i class="fa-regular fa-rotate"></i> Switch Camera</button>
-          <button id="stopBroadcastBtn" onclick="stopBroadcast()" disabled><i class="fa-regular fa-circle-stop"></i> Stop</button>
-        </div>
-        <div id="broadcastStatus" class="broadcast-status" style="display:none;"></div>
-        <p style="font-size:0.85rem; margin-top:10px;">When active, viewers see your camera feed on the livestream page.</p>
-      </div>
+      <!-- Video Studio – removed because feature not used -->
+      <!-- You can add it back later if needed -->
 
       <button onclick="window.location='ntuonline.html'" style="margin-top:20px;"><i class="fa-regular fa-shield"></i> Advanced Admin</button>
     </div>
@@ -3491,457 +3462,33 @@
     document.getElementById('taskModalMessage').innerHTML = '';
   };
 
-  // ==================== VIDEO STUDIO (WebRTC broadcast) ====================
-  let adminPeer = null;
-  let adminLocalStream = null;
-  let viewerPeer = null;
-  let viewerCall = null;
-  let currentFacingMode = 'environment';
-  let activeCalls = [];
-  let broadcastPeerId = null;
-  let isBroadcasting = false;
+  // ==================== NTU TV & MEDIA PLAYER COORDINATION ====================
+  let ntuTVOriginalSrc = 'https://unrelished-commissively-reginia.ngrok-free.dev/';
+  let ntuTVIframe = document.getElementById('ntuIframe');
+  let ntuTVActive = false;
 
-  const VIDEO_CONSTRAINTS = {
-    video: {
-      facingMode: { ideal: 'environment' },
-      width: { ideal: 1280, min: 640 },
-      height: { ideal: 720, min: 480 }
-    },
-    audio: true
-  };
-
-  async function isAdminUser() {
-    if (!currentUser) return false;
-    try {
-      const doc = await db.collection('users').doc(currentUser.uid).get();
-      return doc.exists && doc.data().isAdmin === true;
-    } catch (err) {
-      console.error('Admin check error:', err);
-      return false;
+  function startNtuTV() {
+    if (!ntuTVIframe) ntuTVIframe = document.getElementById('ntuIframe');
+    if (ntuTVIframe) {
+      ntuTVIframe.src = ntuTVOriginalSrc;
+      ntuTVActive = true;
+      if (mediaPlayerModal.style.display === 'flex') {
+        closeMediaPlayer();
+      }
+      loadNtuTvComments();
+      loadNtuTvLikes();
     }
   }
 
-  window.startBroadcast = async function() {
-    if (!currentUser) return alert('You must be logged in.');
-    const admin = await isAdminUser();
-    if (!admin) return alert('Admin privileges required.');
-
-    if (isBroadcasting) {
-      console.log('Already broadcasting');
-      return;
+  function stopNtuTV() {
+    if (!ntuTVIframe) ntuTVIframe = document.getElementById('ntuIframe');
+    if (ntuTVIframe && ntuTVIframe.src !== '') {
+      ntuTVIframe.src = '';
+      ntuTVActive = false;
     }
-
-    try {
-      if (adminLocalStream) {
-        adminLocalStream.getTracks().forEach(track => track.stop());
-      }
-
-      adminLocalStream = await navigator.mediaDevices.getUserMedia(VIDEO_CONSTRAINTS);
-      
-      const localVideo = document.getElementById('adminLocalVideo');
-      localVideo.srcObject = adminLocalStream;
-      localVideo.muted = true;
-      localVideo.setAttribute('playsinline', 'true');
-      
-      try {
-        await localVideo.play();
-      } catch (e) {
-        console.log('Autoplay prevented, waiting for interaction:', e);
-      }
-
-      broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
-      
-      adminPeer = new Peer(broadcastPeerId, {
-        host: '0.peerjs.com',
-        port: 443,
-        path: '/',
-        secure: true,
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' }
-          ]
-        },
-        debug: 2
-      });
-
-      adminPeer.on('open', (id) => {
-        console.log('Broadcast peer ready:', id);
-        isBroadcasting = true;
-        
-        db.collection('broadcast').doc('active').set({
-          active: true,
-          peerId: id,
-          startedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          adminUid: currentUser.uid,
-          facingMode: currentFacingMode
-        }).catch(console.error);
-        
-        updateBroadcastUI(true, id);
-      });
-
-      adminPeer.on('call', (call) => {
-        console.log('Incoming viewer call:', call.peer);
-        
-        call.answer(adminLocalStream);
-        activeCalls.push(call);
-        
-        call.on('stream', (remoteStream) => {
-          console.log('Received stream from viewer (unexpected)');
-        });
-        
-        call.on('close', () => {
-          console.log('Viewer disconnected:', call.peer);
-          activeCalls = activeCalls.filter(c => c !== call);
-        });
-        
-        call.on('error', (err) => {
-          console.error('Call error with', call.peer, ':', err);
-          activeCalls = activeCalls.filter(c => c !== call);
-        });
-      });
-
-      adminPeer.on('error', (err) => {
-        console.error('Peer error:', err);
-        if (err.type === 'unavailable-id') {
-          alert('Broadcast ID already in use. Please try again.');
-        } else {
-          alert('Broadcast error: ' + err.message);
-        }
-        stopBroadcast();
-      });
-
-      adminPeer.on('disconnected', () => {
-        console.log('Peer disconnected, attempting reconnect...');
-        adminPeer.reconnect();
-      });
-
-    } catch (err) {
-      console.error('Broadcast start error:', err);
-      if (err.name === 'NotAllowedError') {
-        alert('Camera permission denied. Please allow camera access and try again.');
-      } else if (err.name === 'NotFoundError') {
-        alert('No camera found. Please ensure your device has a camera.');
-      } else if (err.name === 'OverconstrainedError') {
-        alert('Camera constraints not met. Trying with default settings...');
-        tryFallbackCamera();
-      } else {
-        alert('Could not start broadcast: ' + err.message);
-      }
-      stopBroadcast();
-    }
-  };
-
-  async function tryFallbackCamera() {
-    try {
-      adminLocalStream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: true 
-      });
-      
-      const localVideo = document.getElementById('adminLocalVideo');
-      localVideo.srcObject = adminLocalStream;
-      localVideo.play().catch(console.error);
-      
-      broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
-      adminPeer = new Peer(broadcastPeerId, {
-        secure: true,
-        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-      });
-      
-      // Re-attach handlers (simplified for brevity – same as above)
-      // ... (omitted for space, but in full code you'd repeat the event handlers)
-    } catch (err) {
-      alert('Fallback camera also failed: ' + err.message);
-    }
+    if (unsubscribeNtuTvComments) unsubscribeNtuTvComments();
+    if (unsubscribeNtuTvLikes) unsubscribeNtuTvLikes();
   }
-
-  window.stopBroadcast = async function() {
-    console.log('Stopping broadcast...');
-    
-    activeCalls.forEach(call => {
-      try { call.close(); } catch(e) {}
-    });
-    activeCalls = [];
-
-    if (adminPeer) {
-      try {
-        adminPeer.destroy();
-      } catch(e) {}
-      adminPeer = null;
-    }
-
-    if (adminLocalStream) {
-      adminLocalStream.getTracks().forEach(track => {
-        track.stop();
-        console.log('Stopped track:', track.kind);
-      });
-      adminLocalStream = null;
-    }
-
-    try {
-      await db.collection('broadcast').doc('active').set({ 
-        active: false,
-        stoppedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-    } catch(e) {
-      console.error('Error updating broadcast status:', e);
-    }
-
-    document.getElementById('adminLocalVideo').srcObject = null;
-    isBroadcasting = false;
-    broadcastPeerId = null;
-    updateBroadcastUI(false);
-  };
-
-  function updateBroadcastUI(isLive, peerId = '') {
-    const statusEl = document.getElementById('broadcastStatus');
-    const startBtn = document.getElementById('startBroadcastBtn');
-    const switchBtn = document.getElementById('switchCamBtn');
-    const stopBtn = document.getElementById('stopBroadcastBtn');
-
-    if (isLive) {
-      statusEl.style.display = 'block';
-      statusEl.className = 'broadcast-status live';
-      statusEl.innerHTML = `🔴 LIVE<br><small>Peer ID: ${peerId}</small>`;
-      startBtn.disabled = true;
-      switchBtn.disabled = false;
-      stopBtn.disabled = false;
-    } else {
-      statusEl.style.display = 'none';
-      statusEl.className = 'broadcast-status';
-      statusEl.innerText = '';
-      startBtn.disabled = false;
-      switchBtn.disabled = true;
-      stopBtn.disabled = true;
-    }
-  }
-
-  window.switchCamera = async function() {
-    if (!isBroadcasting || !adminLocalStream) {
-      console.log('Cannot switch: not broadcasting');
-      return;
-    }
-
-    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-    console.log('Switching to:', currentFacingMode);
-
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: { exact: currentFacingMode },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: true
-      });
-
-      const newVideoTrack = newStream.getVideoTracks()[0];
-      const newAudioTrack = newStream.getAudioTracks()[0];
-
-      if (!newVideoTrack) {
-        throw new Error('No video track in new stream');
-      }
-
-      const replacePromises = activeCalls.map(async (call) => {
-        try {
-          const senders = call.peerConnection.getSenders();
-          
-          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-          if (videoSender) {
-            await videoSender.replaceTrack(newVideoTrack);
-            console.log('Replaced video track for', call.peer);
-          }
-
-          if (newAudioTrack) {
-            const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
-            if (audioSender) {
-              await audioSender.replaceTrack(newAudioTrack);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to replace track for', call.peer, ':', err);
-        }
-      });
-
-      await Promise.all(replacePromises);
-
-      const oldVideoTrack = adminLocalStream.getVideoTracks()[0];
-      const oldAudioTrack = adminLocalStream.getAudioTracks()[0];
-      
-      if (oldVideoTrack) {
-        adminLocalStream.removeTrack(oldVideoTrack);
-        oldVideoTrack.stop();
-      }
-      if (oldAudioTrack) {
-        adminLocalStream.removeTrack(oldAudioTrack);
-        oldAudioTrack.stop();
-      }
-      
-      adminLocalStream.addTrack(newVideoTrack);
-      if (newAudioTrack) {
-        adminLocalStream.addTrack(newAudioTrack);
-      }
-
-      const localVideo = document.getElementById('adminLocalVideo');
-      localVideo.srcObject = adminLocalStream;
-      
-      db.collection('broadcast').doc('active').update({
-        facingMode: currentFacingMode
-      }).catch(console.error);
-
-      console.log('Camera switch successful');
-
-    } catch (err) {
-      console.error('Camera switch failed:', err);
-      if (err.name === 'OverconstrainedError') {
-        alert(`Cannot switch to ${currentFacingMode} camera. It may not be available.`);
-        currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-      } else {
-        alert('Failed to switch camera: ' + err.message);
-      }
-    }
-  };
-
-  // ==================== VIEWER CONNECTION ====================
-  let viewerPeers = {};
-
-  function connectToBroadcast(peerId) {
-    if (!peerId) return;
-    
-    console.log('Connecting to broadcast:', peerId);
-    
-    if (viewerCall) {
-      try { viewerCall.close(); } catch(e) {}
-      viewerCall = null;
-    }
-    if (viewerPeer) {
-      try { viewerPeer.destroy(); } catch(e) {}
-      viewerPeer = null;
-    }
-
-    viewerPeer = new Peer({
-      secure: true,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      }
-    });
-
-    viewerPeer.on('open', () => {
-      console.log('Viewer peer ready, calling broadcaster...');
-      
-      const call = viewerPeer.call(peerId, null);
-      viewerCall = call;
-
-      if (!call) {
-        console.error('Failed to create call');
-        showEmbedFallback();
-        return;
-      }
-
-      call.on('stream', (remoteStream) => {
-        console.log('Received broadcast stream');
-        
-        const liveVideo = document.getElementById('liveWebRTCVideo');
-        if (liveVideo) {
-          liveVideo.srcObject = remoteStream;
-          liveVideo.setAttribute('playsinline', 'true');
-          liveVideo.play().catch(e => {
-            console.log('Autoplay prevented, user interaction needed');
-            liveVideo.controls = true;
-          });
-        }
-        
-        const miniVideo = document.getElementById('miniLiveWebRTCVideo');
-        if (miniVideo) {
-          miniVideo.srcObject = remoteStream;
-          miniVideo.setAttribute('playsinline', 'true');
-          miniVideo.play().catch(console.error);
-        }
-      });
-
-      call.on('close', () => {
-        console.log('Broadcast ended (call closed)');
-        showEmbedFallback();
-      });
-
-      call.on('error', (err) => {
-        console.error('Viewer call error:', err);
-        showEmbedFallback();
-      });
-
-      setTimeout(() => {
-        const liveVideo = document.getElementById('liveWebRTCVideo');
-        if (!liveVideo || !liveVideo.srcObject) {
-          console.log('Connection timeout, no stream received');
-          showEmbedFallback();
-        }
-      }, 10000);
-    });
-
-    viewerPeer.on('error', (err) => {
-      console.error('Viewer peer error:', err);
-      showEmbedFallback();
-    });
-  }
-
-  function showEmbedFallback() {
-    console.log('Showing fallback/offline state');
-    document.getElementById('liveWebRTCContainer').style.display = 'none';
-    document.getElementById('liveArea').style.display = 'block';
-    document.getElementById('miniLiveWebRTCContainer').style.display = 'none';
-    document.getElementById('miniLiveArea').style.display = 'block';
-    
-    const liveVideo = document.getElementById('liveWebRTCVideo');
-    const miniVideo = document.getElementById('miniLiveWebRTCVideo');
-    if (liveVideo) liveVideo.srcObject = null;
-    if (miniVideo) miniVideo.srcObject = null;
-  }
-
-  let broadcastUnsubscribe = null;
-  let lastPeerId = null;
-
-  function setupBroadcastListener() {
-    if (broadcastUnsubscribe) {
-      broadcastUnsubscribe();
-    }
-
-    broadcastUnsubscribe = db.collection('broadcast').doc('active').onSnapshot((doc) => {
-      if (!doc.exists) {
-        showEmbedFallback();
-        return;
-      }
-
-      const data = doc.data();
-      const isActive = data.active === true;
-      const peerId = data.peerId;
-
-      if (isActive && peerId && peerId !== lastPeerId) {
-        lastPeerId = peerId;
-        connectToBroadcast(peerId);
-        document.getElementById('liveArea').style.display = 'none';
-        document.getElementById('liveWebRTCContainer').style.display = 'block';
-        document.getElementById('miniLiveArea').style.display = 'none';
-        document.getElementById('miniLiveWebRTCContainer').style.display = 'flex';
-      } else if (!isActive) {
-        lastPeerId = null;
-        showEmbedFallback();
-        if (viewerCall) {
-          try { viewerCall.close(); } catch(e) {}
-          viewerCall = null;
-        }
-      }
-    }, (err) => {
-      console.error('Broadcast listener error:', err);
-      showEmbedFallback();
-    });
-  }
-
-  setupBroadcastListener();
 
   // ==================== SIDEBAR TOGGLE & CONTENT SWITCHING ====================
   const sidebar = document.getElementById('sidebar');
@@ -3973,34 +3520,6 @@
     overlay.classList.remove('active');
     updateHeaderMarqueeVisibility();
   });
-
-  // ==================== NTU TV AUTO START/STOP & COORDINATION WITH MEDIA PLAYER ====================
-  let ntuTVOriginalSrc = 'https://unrelished-commissively-reginia.ngrok-free.dev/';
-  let ntuTVIframe = document.getElementById('ntuIframe');
-  let ntuTVActive = false;
-
-  function startNtuTV() {
-    if (!ntuTVIframe) ntuTVIframe = document.getElementById('ntuIframe');
-    if (ntuTVIframe) {
-      ntuTVIframe.src = ntuTVOriginalSrc;
-      ntuTVActive = true;
-      if (mediaPlayerModal.style.display === 'flex') {
-        closeMediaPlayer();
-      }
-      loadNtuTvComments();
-      loadNtuTvLikes();
-    }
-  }
-
-  function stopNtuTV() {
-    if (!ntuTVIframe) ntuTVIframe = document.getElementById('ntuIframe');
-    if (ntuTVIframe && ntuTVIframe.src !== '') {
-      ntuTVIframe.src = '';
-      ntuTVActive = false;
-    }
-    if (unsubscribeNtuTvComments) unsubscribeNtuTvComments();
-    if (unsubscribeNtuTvLikes) unsubscribeNtuTvLikes();
-  }
 
   // ==================== CONTENT SWITCHING ====================
   window.showContent = function(targetId) {
