@@ -943,14 +943,25 @@
       });
     }).catch(showError);
 
-    db.collectionGroup('replies').orderBy('created','desc').limit(50).get().then(snap => {
-      const cont = document.getElementById('moderateReplies');
-      cont.innerHTML = '';
-      snap.forEach(doc => {
-        const r = doc.data();
-        cont.innerHTML += `<div class="moderation-item"><div class="moderation-meta">↩️ Reply | ${escapeHTML(r.name)} | ${new Date(r.created).toLocaleString()}</div><div>${escapeHTML(r.text)}</div><button class="delete-btn" onclick="deleteItem('${doc.ref.path}')">Delete</button></div>`;
-      });
-    }).catch(showError);
+   db.collectionGroup('replies')
+  .orderBy('created', 'asc')
+  .limitToLast(50)
+  .get()
+  .then(snap => {
+    const cont = document.getElementById('moderateReplies');
+    cont.innerHTML = '';
+    const docs = [];
+    snap.forEach(doc => docs.push(doc));
+    docs.reverse().forEach(doc => {
+      const r = doc.data();
+      cont.innerHTML += `<div class="moderation-item">
+        <div class="moderation-meta">↩️ Reply | ${escapeHTML(r.name)} | ${new Date(r.created).toLocaleString()}</div>
+        <div>${escapeHTML(r.text)}</div>
+        <button class="delete-btn" onclick="deleteItem('${doc.ref.path}')">Delete</button>
+      </div>`;
+    });
+  })
+  .catch(showError);
   }
 
   // ---------- TABS ----------
