@@ -9,7 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js"></script>
+  <!-- Optional: messaging removed to avoid 404 errors -->
 
   <!-- YouTube IFrame Player API -->
   <script src="https://www.youtube.com/iframe_api"></script>
@@ -1617,7 +1617,7 @@
   let currentUser = null;
   let currentUserIsAdmin = false;
 
-  // Unread messages tracking
+  // Unread messages tracking – per-room listeners (no indexes required)
   let unreadRoomsListener = null;
   let roomUnreadListeners = {};
   let roomUnreadCounts = {};
@@ -2194,30 +2194,7 @@
     auth.signOut().catch(showError);
   };
 
-  let messaging = null;
-  if (firebase.messaging.isSupported()) {
-    messaging = firebase.messaging();
-  }
-  async function setupNotifications() {
-    if (!messaging || !currentUser) return;
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') return;
-      const vapidKey = 'BIHlrUCxwT4_GZMFu2D0MVz5n0Grhx-iGMpOskT0T012wEQZewobWTiZklX2Vs3xwj1YKmTHwtec8y5fH2dsjcA';
-      const token = await messaging.getToken({ vapidKey });
-      if (token) {
-        await db.collection('users').doc(currentUser.uid).update({ fcmToken: token, fcmTokenLastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
-      }
-      messaging.onTokenRefresh(() => {
-        messaging.getToken({ vapidKey }).then(refreshedToken => {
-          db.collection('users').doc(currentUser.uid).update({ fcmToken: refreshedToken, fcmTokenLastUpdated: firebase.firestore.FieldValue.serverTimestamp() }).catch(showError);
-        }).catch(showError);
-      });
-      messaging.onMessage((payload) => {
-        alert(`💬 ${payload.notification?.title || 'New message'}\n${payload.notification?.body || ''}`);
-      });
-    } catch (err) { console.error('Notification error:', err); }
-  }
+  // Firebase Messaging is optional – removed to avoid 404 errors
 
   let currentContent = 'home';
 
@@ -2333,7 +2310,6 @@
         `;
         setupUnreadListeners();
         updateProfilePanel(userData);
-        setupNotifications();
         updateHeaderMarqueeVisibility();
 
         const adminLinkLi = document.getElementById('adminSidebarLink');
