@@ -52,7 +52,26 @@
       position: sticky;
       top: 10px;
       z-index: 1000;
-      transition: opacity 0.2s;
+      transition: transform 0.3s ease, opacity 0.2s;
+    }
+
+    header.hidden {
+      transform: translateY(-150%);
+    }
+
+    .marquee {
+      width: 100%;
+      overflow: hidden;
+      background: #0d312b;
+      padding: 8px 0;
+      margin-bottom: 20px;
+      border-radius: 60px;
+      border: 1px solid #3a887b;
+      transition: transform 0.3s ease, opacity 0.2s;
+    }
+
+    .marquee.hidden {
+      transform: translateY(-150%);
     }
 
     .header-left {
@@ -491,13 +510,14 @@
       margin-top: 8px;
     }
 
-    /* Message actions (edit/delete) */
+    /* Message actions – now only delete */
     .message-actions {
       position: absolute;
       top: 12px;
       right: 12px;
       display: flex;
       gap: 6px;
+      z-index: 10;
     }
     .message-actions button {
       background: transparent;
@@ -507,6 +527,7 @@
       min-height: auto;
       font-size: 0.8rem;
       box-shadow: none;
+      cursor: pointer;
     }
     .message-actions button:hover {
       background: #2dab95;
@@ -638,7 +659,6 @@
       display: flex;
       align-items: flex-start;
       gap: 8px;
-      position: relative;
     }
     .chat-message.sent {
       background: #1f8f7c;
@@ -650,19 +670,6 @@
       background: #2b5a51;
       color: white;
       margin-right: auto;
-    }
-    .chat-message .message-actions {
-      position: static;
-      margin-left: 8px;
-      display: inline-flex;
-      gap: 4px;
-    }
-    .chat-message .message-actions button {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      padding: 2px 6px;
-      font-size: 0.7rem;
     }
 
     .chat-input-area {
@@ -693,17 +700,7 @@
     .inbox-item-name { font-weight: 600; color: #64ffda; }
     .inbox-item-preview { font-size: 0.85rem; color: #b0ddd4; }
 
-    /* Marquee */
-    .marquee {
-      width: 100%;
-      overflow: hidden;
-      background: #0d312b;
-      padding: 8px 0;
-      margin-bottom: 20px;
-      border-radius: 60px;
-      border: 1px solid #3a887b;
-      transition: opacity 0.2s;
-    }
+    /* Marquee – top one already styled above */
     .marquee h6 {
       display: inline-block;
       margin: 0;
@@ -1332,7 +1329,7 @@
 </div>
 
 <!-- Header -->
-<header>
+<header id="mainHeader">
   <div class="header-left">
     <div class="logo" id="sidebarToggle">
       <i class="fas fa-bars"></i>
@@ -1343,7 +1340,7 @@
 </header>
 
 <!-- Top marquee -->
-<div class="marquee">
+<div class="marquee" id="topMarquee">
   <h6 id="topMarqueeText">⚡ Powered by Zuby's World IT solutions. For all your business solutions, contact us via: fintech.zubysworld@gmail.com</h6>
 </div>
 
@@ -1686,19 +1683,6 @@
   </div>
 </div>
 
-<!-- Edit Message Modal (new) -->
-<div id="editMessageModal" class="modal" style="display:none;">
-  <div class="modal-content">
-    <span class="close" onclick="closeEditMessageModal()">&times;</span>
-    <h3><i class="fa-regular fa-pen-to-square"></i> Edit Message</h3>
-    <textarea id="editMessageText" rows="4" placeholder="Edit your message..."></textarea>
-    <div style="display: flex; gap: 10px; margin-top: 16px;">
-      <button onclick="saveEditMessage()">Save</button>
-      <button class="secondary" onclick="closeEditMessageModal()">Cancel</button>
-    </div>
-  </div>
-</div>
-
 <!-- Fixed bottom marquee -->
 <div class="bottom-marquee">
   <div class="marquee-content" id="bottomMarqueeText">⚡ Loading messages...</div>
@@ -1721,7 +1705,7 @@
   let currentUser = null;
   let currentUserIsAdmin = false;
 
-  // Unread messages tracking – per‑room listeners (handles missing read field)
+  // Unread messages tracking
   let unreadRoomsListener = null;
   let roomUnreadListeners = {};
   let roomUnreadCounts = {};
@@ -1806,11 +1790,12 @@
   });
 
   // ==================== NTU TV COMMENTS & LIKES ====================
-  const ntuTvId = 'ntuTV'; // fixed document ID
+  const ntuTvId = 'ntuTV';
   let unsubscribeNtuTvComments = null;
   let unsubscribeNtuTvLikes = null;
 
   function loadNtuTvComments() {
+    if (unsubscribeNtuTvComments) unsubscribeNtuTvComments();
     const commentsRef = db.collection('mediaComments').doc(ntuTvId).collection('comments').orderBy('created', 'asc');
     unsubscribeNtuTvComments = commentsRef.onSnapshot(snapshot => {
       const container = document.getElementById('ntuTvCommentsSection');
@@ -1822,8 +1807,7 @@
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
         const actions = (currentUser && c.userId === currentUser.uid) 
           ? `<div class="message-actions">
-               <button onclick="editMessage('mediaComments/ntuTV/comments/${doc.id}', ${JSON.stringify(c.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('mediaComments/ntuTV/comments/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+               <button onclick="deleteMessage('mediaComments/ntuTV/comments', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
              </div>`
           : '';
         html += `
@@ -1841,6 +1825,7 @@
   }
 
   function loadNtuTvLikes() {
+    if (unsubscribeNtuTvLikes) unsubscribeNtuTvLikes();
     const likesRef = db.collection('mediaComments').doc(ntuTvId).collection('reactions');
     unsubscribeNtuTvLikes = likesRef.onSnapshot(snapshot => {
       let count = 0;
@@ -1908,18 +1893,16 @@
   const mediaCommentInput = document.getElementById('mediaCommentInput');
 
   let currentMediaUrl = null;
-  let currentMediaId = null; // base64 encoded URL for Firestore doc
+  let currentMediaId = null;
   let unsubscribeMediaComments = null;
   let unsubscribeMediaLikes = null;
   let currentYouTubePlayer = null;
   let currentNativeMedia = null;
 
-  // Helper to encode URL as a safe document ID (base64 without special chars)
   function encodeMediaId(url) {
     return btoa(url).replace(/[/+=]/g, '_');
   }
 
-  // Close media player and stop playback
   window.closeMediaPlayer = function() {
     if (unsubscribeMediaComments) {
       unsubscribeMediaComments();
@@ -1945,18 +1928,13 @@
     currentMediaId = null;
   };
 
-  // Open media player with a given URL
   function openMediaPlayer(url) {
-    // If Ntu TV is active, stop it
     if (ntuTVActive) stopNtuTV();
-
-    // Close any existing media
     closeMediaPlayer();
 
     currentMediaUrl = url;
     currentMediaId = encodeMediaId(url);
 
-    // Determine type and create appropriate player
     const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) {
       const videoId = ytMatch[1];
@@ -1965,13 +1943,10 @@
       iframe.allow = 'autoplay; encrypted-media';
       iframe.allowFullscreen = true;
       mediaPlayerContainer.appendChild(iframe);
-      // We can't easily control YouTube iframe, but modal close will handle it.
     } else {
-      // Check for Google Drive links
       const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
       if (driveMatch) {
         const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
-        // Use the preview URL for Drive videos
         const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
         const iframe = document.createElement('iframe');
         iframe.src = embedUrl;
@@ -1979,7 +1954,6 @@
         iframe.allowFullscreen = true;
         mediaPlayerContainer.appendChild(iframe);
       } else {
-        // Try to create video or audio element for direct media files
         const isAudio = url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i);
         const isVideo = url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i);
         if (isAudio || isVideo) {
@@ -1992,7 +1966,6 @@
           mediaPlayerContainer.appendChild(element);
           currentNativeMedia = element;
         } else {
-          // Assume it's an image – display it
           const img = document.createElement('img');
           img.src = url;
           img.style.maxWidth = '100%';
@@ -2004,15 +1977,13 @@
     }
 
     mediaPlayerModal.style.display = 'flex';
-
-    // Load comments and likes
     loadMediaComments();
     loadMediaLikes();
   }
 
-  // Load comments for current media
   function loadMediaComments() {
     if (!currentMediaId) return;
+    if (unsubscribeMediaComments) unsubscribeMediaComments();
     const commentsRef = db.collection('mediaComments').doc(currentMediaId).collection('comments').orderBy('created', 'asc');
     unsubscribeMediaComments = commentsRef.onSnapshot(snapshot => {
       let html = '';
@@ -2023,8 +1994,7 @@
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
         const actions = (currentUser && c.userId === currentUser.uid) 
           ? `<div class="message-actions">
-               <button onclick="editMessage('mediaComments/${currentMediaId}/comments/${doc.id}', ${JSON.stringify(c.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('mediaComments/${currentMediaId}/comments/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+               <button onclick="deleteMessage('mediaComments/${currentMediaId}/comments', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
              </div>`
           : '';
         html += `
@@ -2041,9 +2011,9 @@
     }, showError);
   }
 
-  // Load likes for current media
   function loadMediaLikes() {
     if (!currentMediaId) return;
+    if (unsubscribeMediaLikes) unsubscribeMediaLikes();
     const likesRef = db.collection('mediaComments').doc(currentMediaId).collection('reactions');
     unsubscribeMediaLikes = likesRef.onSnapshot(snapshot => {
       let count = 0;
@@ -2065,7 +2035,6 @@
     }, showError);
   }
 
-  // Toggle like on current media
   window.toggleMediaLike = async function() {
     if (!currentUser) return alert('Please log in to like.');
     if (!currentMediaId) return;
@@ -2081,7 +2050,6 @@
     }
   };
 
-  // Post a comment on current media
   window.postMediaComment = function() {
     const text = mediaCommentInput.value.trim();
     if (!text || !currentUser || !currentMediaId) return;
@@ -2103,7 +2071,6 @@
       .catch(showError);
   };
 
-  // Attach click handlers to all media previews
   function attachMediaPreviewClick(container) {
     if (!container) container = document;
     container.querySelectorAll('.media-preview').forEach(preview => {
@@ -2115,7 +2082,7 @@
     });
   }
 
-  // ==================== PARSE CONTENT (updated to show media previews) ====================
+  // ==================== PARSE CONTENT ====================
   function parseContent(text) {
     if (!text) return '';
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -2160,15 +2127,12 @@
     const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
     if (driveMatch) {
       const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
-      // Try to get a thumbnail from Drive (if image)
       if (url.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)(\?.*)?$/i) || url.includes('uc?id=')) {
-        // Image preview
         return {
           type: 'preview',
           html: `<div class="media-preview" data-url="${url}"><img src="https://drive.google.com/uc?id=${fileId}" alt="Drive image"><div class="play-icon"><i class="fas fa-search-plus"></i></div></div>`
         };
       } else {
-        // Video file – use generic preview
         return {
           type: 'preview',
           html: `<div class="media-preview" data-url="${url}"><div style="width:200px;height:120px;background:#0a2420;display:flex;align-items:center;justify-content:center"><i class="fas fa-video" style="font-size:3rem;color:#2dab95;"></i></div><div class="play-icon"><i class="fas fa-play"></i></div></div>`
@@ -2224,7 +2188,6 @@
     } catch (e) { return ''; }
   }
 
-  // Reactions for posts (unchanged)
   function addReactionUI(targetType, targetId, container) {
     const reactDiv = document.createElement('div');
     reactDiv.className = 'reaction-bar';
@@ -2415,28 +2378,23 @@
     if (!currentUser) return;
     cleanupUnreadListeners();
 
-    // Listen to all rooms the user is in
     unreadRoomsListener = db.collection('privateChatRooms')
       .where('participants', 'array-contains', currentUser.uid)
       .onSnapshot(snapshot => {
         snapshot.docChanges().forEach(change => {
           const roomId = change.doc.id;
           if (change.type === 'added' || change.type === 'modified') {
-            // Remove old listener if exists
             if (roomUnreadListeners[roomId]) {
               roomUnreadListeners[roomId]();
               delete roomUnreadListeners[roomId];
             }
-            // Set up new listener for this room – get all messages from others, then filter in memory
             const roomRef = db.collection('privateChatRooms').doc(roomId);
             const unsubscribe = roomRef.collection('messages')
-              .where('from', '!=', currentUser.uid) // get all messages from other user
+              .where('from', '!=', currentUser.uid)
               .onSnapshot(msgSnapshot => {
-                // Count messages where read is not true (including missing read field)
                 let unreadCount = 0;
                 msgSnapshot.forEach(doc => {
                   const msg = doc.data();
-                  // If read field is missing or explicitly false, it's unread
                   if (!msg.read || msg.read === false) {
                     unreadCount++;
                   }
@@ -2445,12 +2403,10 @@
                 updateUnreadBadge();
               }, error => console.error('Unread listener error:', error));
             roomUnreadListeners[roomId] = unsubscribe;
-            // Initialize count to 0 until listener fires
             if (!(roomId in roomUnreadCounts)) {
               roomUnreadCounts[roomId] = 0;
             }
           } else if (change.type === 'removed') {
-            // Room removed, remove listener and its count
             if (roomUnreadListeners[roomId]) {
               roomUnreadListeners[roomId]();
               delete roomUnreadListeners[roomId];
@@ -2463,6 +2419,248 @@
   }
 
   // ==================== AUTH STATE ====================
+  // We'll store unsubscribe functions for all main listeners
+  let unsubscribeFeed = null;
+  let unsubscribeChat = null;
+  let unsubscribeGoodwill = null;
+  let unsubscribeEvents = null;
+  let unsubscribeProjectBoard = null;
+
+  function setupAllListeners() {
+    // Clean up existing listeners
+    if (unsubscribeFeed) unsubscribeFeed();
+    if (unsubscribeChat) unsubscribeChat();
+    if (unsubscribeGoodwill) unsubscribeGoodwill();
+    if (unsubscribeEvents) unsubscribeEvents();
+    if (unsubscribeProjectBoard) unsubscribeProjectBoard();
+
+    // Feed
+    unsubscribeFeed = db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
+      const feedArea = document.getElementById("feedArea");
+      if (feedArea) {
+        feedArea.innerHTML = "";
+        s.forEach(doc => {
+          const p = doc.data();
+          const feedId = doc.id;
+          const feedDiv = document.createElement('div');
+          feedDiv.className = "feed-item";
+          feedDiv.id = `feed-${feedId}`;
+          let imageHtml = '';
+          if (p.image) {
+            imageHtml = `<div>${parseContent(p.image)}</div>`;
+          }
+          const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
+          const actions = (currentUser && p.userId === currentUser.uid) 
+            ? `<div class="message-actions">
+                 <button onclick="deleteMessage('feed', '${feedId}')"><i class="fa-regular fa-trash-can"></i></button>
+               </div>`
+            : '';
+          feedDiv.innerHTML = `
+            ${actions}
+            ${userBadge}
+            <div>${parseContent(p.text)}</div>
+            ${imageHtml}
+            <div class="timestamp">${formatTimestamp(p.created)}</div>
+            <div id="feedReplies${feedId}" class="replies"></div>
+            <input id="replyFeed${feedId}" placeholder="Reply...">
+            <button onclick="replyFeed('${feedId}')">Reply</button>
+          `;
+          feedArea.appendChild(feedDiv);
+          addReactionUI('feed', feedId, feedDiv);
+          loadReplies("feed", feedId, "feedReplies");
+        });
+        attachMediaPreviewClick(feedArea);
+      }
+
+      const miniFeedFull = document.getElementById("miniFeedFullArea");
+      if (miniFeedFull) {
+        miniFeedFull.innerHTML = "";
+        s.forEach(doc => {
+          const p = doc.data();
+          const feedId = doc.id;
+          const feedDiv = document.createElement('div');
+          feedDiv.className = "mini-feed-item";
+          feedDiv.id = `mini-feed-${feedId}`;
+          const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
+          feedDiv.innerHTML = `
+            ${userBadge}
+            <div>${parseContent(p.text)}</div>
+            ${p.image ? `<div>${parseContent(p.image)}</div>` : ''}
+            <div class="timestamp">${formatRelativeTime(p.created)}</div>
+          `;
+          miniFeedFull.appendChild(feedDiv);
+        });
+        attachMediaPreviewClick(miniFeedFull);
+      }
+    }, showError);
+
+    // Chat
+    unsubscribeChat = db.collection("chat").orderBy("created").onSnapshot(s => {
+      const chatArea = document.getElementById("chatArea");
+      if (chatArea) {
+        chatArea.innerHTML = "";
+        s.forEach(doc => {
+          const m = doc.data();
+          const chatId = doc.id;
+          const chatDiv = document.createElement('div');
+          chatDiv.className = "chat-item";
+          const userBadge = userBadgeHTML(m.name || '?', m.kindred || '?', m.userId || '', m.avatar);
+          const actions = (currentUser && m.userId === currentUser.uid) 
+            ? `<div class="message-actions">
+                 <button onclick="deleteMessage('chat', '${chatId}')"><i class="fa-regular fa-trash-can"></i></button>
+               </div>`
+            : '';
+          chatDiv.innerHTML = `
+            ${actions}
+            ${userBadge}
+            <span>: ${parseContent(m.text)}</span>
+            <div class="timestamp">${formatTimestamp(m.created)}</div>
+            <div id="chatReplies${chatId}" class="replies"></div>
+            <input id="chatReplyInput${chatId}" placeholder="Reply...">
+            <button onclick="replyChat('${chatId}')">Reply</button>
+          `;
+          chatArea.appendChild(chatDiv);
+          addReactionUI('chat', chatId, chatDiv);
+          loadChatReplies(chatId);
+        });
+        attachMediaPreviewClick(chatArea);
+      }
+    }, showError);
+
+    // Goodwill
+    unsubscribeGoodwill = db.collection("goodwill").orderBy("created", "desc").onSnapshot(s => {
+      const goodwillArea = document.getElementById("goodwillArea");
+      if (goodwillArea) {
+        goodwillArea.innerHTML = "";
+        s.forEach(doc => {
+          const g = doc.data();
+          const goodwillId = doc.id;
+          const goodwillDiv = document.createElement('div');
+          goodwillDiv.className = "goodwill-item";
+          const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
+          const actions = (currentUser && g.userId === currentUser.uid) 
+            ? `<div class="message-actions">
+                 <button onclick="deleteMessage('goodwill', '${goodwillId}')"><i class="fa-regular fa-trash-can"></i></button>
+               </div>`
+            : '';
+          goodwillDiv.innerHTML = `
+            ${actions}
+            ${userBadge}
+            <div>${parseContent(g.text)}</div>
+            <div class="timestamp">${formatTimestamp(g.created)}</div>
+            <div id="goodwillReplies${goodwillId}" class="replies"></div>
+            <input id="goodwillReplyInput${goodwillId}" placeholder="Reply...">
+            <button onclick="replyGoodwill('${goodwillId}')">Reply</button>
+          `;
+          goodwillArea.appendChild(goodwillDiv);
+          addReactionUI('goodwill', goodwillId, goodwillDiv);
+          loadGoodwillReplies(goodwillId);
+        });
+        attachMediaPreviewClick(goodwillArea);
+      }
+
+      const miniGoodwillFull = document.getElementById("miniGoodwillFullArea");
+      if (miniGoodwillFull) {
+        miniGoodwillFull.innerHTML = "";
+        s.forEach(doc => {
+          const g = doc.data();
+          const goodwillDiv = document.createElement('div');
+          goodwillDiv.className = "mini-goodwill-item";
+          const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
+          goodwillDiv.innerHTML = `
+            ${userBadge}
+            <div>${parseContent(g.text)}</div>
+            <div class="timestamp">${formatRelativeTime(g.created)}</div>
+          `;
+          miniGoodwillFull.appendChild(goodwillDiv);
+        });
+        attachMediaPreviewClick(miniGoodwillFull);
+      }
+    }, showError);
+
+    // Events
+    unsubscribeEvents = db.collection("events").orderBy("created", "desc").onSnapshot(s => {
+      const eventArea = document.getElementById("eventArea");
+      if (eventArea) {
+        eventArea.innerHTML = "";
+        s.forEach(doc => {
+          const e = doc.data();
+          const eventId = doc.id;
+          let mediaHtml = '';
+          if (e.image) mediaHtml += `<div>${parseContent(e.image)}</div>`;
+          if (e.video) mediaHtml += `<div>${parseContent(e.video)}</div>`;
+          if (e.audio) mediaHtml += `<div>${parseContent(e.audio)}</div>`;
+
+          const eventDiv = document.createElement('div');
+          eventDiv.className = "event-item";
+          eventDiv.id = `event-${eventId}`;
+          eventDiv.innerHTML = `
+            <h4>${e.title || 'Untitled'}</h4>
+            <p>${e.description ? parseContent(e.description) : ''}</p>
+            <p><small>${e.date || ''}</small></p>
+            ${mediaHtml}
+            <div id="eventComments${eventId}" class="replies"></div>
+            <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
+            <button onclick="commentEvent('${eventId}')">Comment</button>
+          `;
+          eventArea.appendChild(eventDiv);
+          loadEventComments(eventId);
+        });
+        attachMediaPreviewClick(eventArea);
+      }
+
+      const miniEventFull = document.getElementById("miniEventFullArea");
+      if (miniEventFull) {
+        miniEventFull.innerHTML = "";
+        let eventIndex = 0;
+        s.forEach(doc => {
+          const e = doc.data();
+          const eventDiv = document.createElement('div');
+          if (eventIndex === 0) {
+            eventDiv.className = "event-item";
+            let mediaHtml = '';
+            if (e.image)  mediaHtml += `<div>${parseContent(e.image)}</div>`;
+            if (e.video)  mediaHtml += `<div>${parseContent(e.video)}</div>`;
+            if (e.audio)  mediaHtml += `<div>${parseContent(e.audio)}</div>`;
+            eventDiv.innerHTML = `
+              <h4>${e.title || 'Untitled'}</h4>
+              <p>${e.description ? parseContent(e.description) : ''}</p>
+              <p><small>${e.date || ''}</small></p>
+              ${mediaHtml}
+            `;
+          } else {
+            eventDiv.className = "mini-event-item";
+            let mediaHtml = '';
+            if (e.image) {
+              mediaHtml += `<div>${parseContent(e.image)}</div>`;
+            }
+            const descPreview = e.description 
+              ? (e.description.length > 60 ? e.description.substring(0,60) + '…' : e.description)
+              : '';
+            eventDiv.innerHTML = `
+              <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
+              <p style="font-size:0.85rem;">${descPreview}</p>
+              <p><small>${e.date || ''}</small></p>
+              ${mediaHtml}
+            `;
+          }
+          miniEventFull.appendChild(eventDiv);
+          eventIndex++;
+        });
+        attachMediaPreviewClick(miniEventFull);
+      }
+    }, showError);
+
+    // Project Board
+    unsubscribeProjectBoard = db.collection('projectBoard').orderBy('created', 'desc').onSnapshot(snapshot => {
+      const tasks = [];
+      snapshot.forEach(doc => {
+        tasks.push({ id: doc.id, ...doc.data() });
+      });
+      renderBoard(tasks);
+    }, showError);
+  }
+
   auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -2501,9 +2699,15 @@
           }
         }
 
-        // Show/hide add task button based on admin status
         const addTaskBtn = document.getElementById('addTaskBtn');
         if (addTaskBtn) addTaskBtn.style.display = currentUserIsAdmin ? 'flex' : 'none';
+
+        // Re‑attach all main listeners with the new currentUser
+        setupAllListeners();
+
+        // Ntu TV listeners (they depend on currentUser)
+        loadNtuTvComments();
+        loadNtuTvLikes();
 
       }).catch(showError);
     } else {
@@ -2525,6 +2729,13 @@
 
       const addTaskBtn = document.getElementById('addTaskBtn');
       if (addTaskBtn) addTaskBtn.style.display = 'none';
+
+      // Re‑attach listeners (will now show no delete buttons because currentUser is null)
+      setupAllListeners();
+
+      // Ntu TV listeners
+      loadNtuTvComments();
+      loadNtuTvLikes();
     }
   });
 
@@ -2661,91 +2872,7 @@
     }
   };
 
-  // ==================== FULL FEED ====================
-  db.collection("feed").orderBy("created", "desc").onSnapshot(s => {
-    // Update full feed area (with replies and reactions)
-    const feedArea = document.getElementById("feedArea");
-    if (feedArea) {
-      feedArea.innerHTML = "";
-      s.forEach(doc => {
-        const p = doc.data();
-        const feedId = doc.id;
-        const feedDiv = document.createElement('div');
-        feedDiv.className = "feed-item";
-        feedDiv.id = `feed-${feedId}`;
-        let imageHtml = '';
-        if (p.image) {
-          imageHtml = `<div>${parseContent(p.image)}</div>`;
-        }
-        const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
-        const actions = (currentUser && p.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="editMessage('feed/${feedId}', ${JSON.stringify(p.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('feed/${feedId}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
-        feedDiv.innerHTML = `
-          ${actions}
-          ${userBadge}
-          <div>${parseContent(p.text)}</div>
-          ${imageHtml}
-          <div class="timestamp">${formatTimestamp(p.created)}</div>
-          <div id="feedReplies${feedId}" class="replies"></div>
-          <input id="replyFeed${feedId}" placeholder="Reply...">
-          <button onclick="replyFeed('${feedId}')">Reply</button>
-        `;
-        feedArea.appendChild(feedDiv);
-        addReactionUI('feed', feedId, feedDiv);
-        loadReplies("feed", feedId, "feedReplies");
-      });
-      // Attach click handlers to media previews
-      attachMediaPreviewClick(feedArea);
-    }
-
-    // Update mini feed full area (simplified, no replies)
-    const miniFeedFull = document.getElementById("miniFeedFullArea");
-    if (miniFeedFull) {
-      miniFeedFull.innerHTML = "";
-      s.forEach(doc => {
-        const p = doc.data();
-        const feedId = doc.id;
-        const feedDiv = document.createElement('div');
-        feedDiv.className = "mini-feed-item";
-        feedDiv.id = `mini-feed-${feedId}`;
-        const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
-        feedDiv.innerHTML = `
-          ${userBadge}
-          <div>${parseContent(p.text)}</div>
-          ${p.image ? `<div>${parseContent(p.image)}</div>` : ''}
-          <div class="timestamp">${formatRelativeTime(p.created)}</div>
-        `;
-        miniFeedFull.appendChild(feedDiv);
-        // No reactions or replies in mini view
-      });
-      attachMediaPreviewClick(miniFeedFull);
-    }
-  }, showError);
-
-  window.postFeed = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("feedInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("feed").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          avatar: userData.avatar || null,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
-  };
-
+  // ==================== REPLY FUNCTIONS ====================
   window.replyFeed = function (id) {
     if (!currentUser) return alert("Login required");
     const input = document.getElementById("replyFeed" + id);
@@ -2765,89 +2892,6 @@
       .then(() => { input.value = ""; })
       .catch(showError);
   };
-
-  function loadReplies(collection, id, containerPrefix) {
-    db.collection(collection).doc(id).collection("replies").orderBy("created").onSnapshot(s => {
-      const box = document.getElementById(containerPrefix + id);
-      if (!box) return;
-      box.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
-        const actions = (currentUser && r.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="editMessage('${collection}/${id}/replies/${doc.id}', ${JSON.stringify(r.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('${collection}/${id}/replies/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
-        replyDiv.innerHTML = `
-          ${actions}
-          ${userBadge}
-          <div>${parseContent(r.text)}</div>
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        box.appendChild(replyDiv);
-        addReactionUI(`${collection}/${id}/replies`, doc.id, replyDiv);
-      });
-      attachMediaPreviewClick(box);
-    }, showError);
-  }
-
-  // ==================== FULL CHAT ====================
-  window.sendChat = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("chatInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("chat").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          avatar: userData.avatar || null,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
-  };
-
-  db.collection("chat").orderBy("created").onSnapshot(s => {
-    const chatArea = document.getElementById("chatArea");
-    if (chatArea) {
-      chatArea.innerHTML = "";
-      s.forEach(doc => {
-        const m = doc.data();
-        const chatId = doc.id;
-        const chatDiv = document.createElement('div');
-        chatDiv.className = "chat-item";
-        const userBadge = userBadgeHTML(m.name || '?', m.kindred || '?', m.userId || '', m.avatar);
-        const actions = (currentUser && m.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="editMessage('chat/${chatId}', ${JSON.stringify(m.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('chat/${chatId}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
-        chatDiv.innerHTML = `
-          ${actions}
-          ${userBadge}
-          <span>: ${parseContent(m.text)}</span>
-          <div class="timestamp">${formatTimestamp(m.created)}</div>
-          <div id="chatReplies${chatId}" class="replies"></div>
-          <input id="chatReplyInput${chatId}" placeholder="Reply...">
-          <button onclick="replyChat('${chatId}')">Reply</button>
-        `;
-        chatArea.appendChild(chatDiv);
-        addReactionUI('chat', chatId, chatDiv);
-        loadChatReplies(chatId);
-      });
-      attachMediaPreviewClick(chatArea);
-    }
-  }, showError);
 
   window.replyChat = function (chatId) {
     if (!currentUser) return alert("Login required");
@@ -2869,110 +2913,6 @@
       .catch(showError);
   };
 
-  function loadChatReplies(chatId) {
-    db.collection("chat").doc(chatId).collection("replies").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("chatReplies" + chatId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
-        const actions = (currentUser && r.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="editMessage('chat/${chatId}/replies/${doc.id}', ${JSON.stringify(r.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('chat/${chatId}/replies/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
-        replyDiv.innerHTML = `
-          ${actions}
-          ${userBadge}
-          <span>: ${parseContent(r.text)}</span>
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        container.appendChild(replyDiv);
-        addReactionUI(`chat/${chatId}/replies`, doc.id, replyDiv);
-      });
-      attachMediaPreviewClick(container);
-    }, showError);
-  }
-
-  // ==================== FULL GOODWILL ====================
-  window.postGoodwill = function () {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("goodwillInput");
-    if (!input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("goodwill").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          avatar: userData.avatar || null,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
-  };
-
-  db.collection("goodwill").orderBy("created", "desc").onSnapshot(s => {
-    // Full goodwill area
-    const goodwillArea = document.getElementById("goodwillArea");
-    if (goodwillArea) {
-      goodwillArea.innerHTML = "";
-      s.forEach(doc => {
-        const g = doc.data();
-        const goodwillId = doc.id;
-        const goodwillDiv = document.createElement('div');
-        goodwillDiv.className = "goodwill-item";
-        const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
-        const actions = (currentUser && g.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="editMessage('goodwill/${goodwillId}', ${JSON.stringify(g.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('goodwill/${goodwillId}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
-        goodwillDiv.innerHTML = `
-          ${actions}
-          ${userBadge}
-          <div>${parseContent(g.text)}</div>
-          <div class="timestamp">${formatTimestamp(g.created)}</div>
-          <div id="goodwillReplies${goodwillId}" class="replies"></div>
-          <input id="goodwillReplyInput${goodwillId}" placeholder="Reply...">
-          <button onclick="replyGoodwill('${goodwillId}')">Reply</button>
-        `;
-        goodwillArea.appendChild(goodwillDiv);
-        addReactionUI('goodwill', goodwillId, goodwillDiv);
-        loadGoodwillReplies(goodwillId);
-      });
-      attachMediaPreviewClick(goodwillArea);
-    }
-
-    // Mini goodwill full area
-    const miniGoodwillFull = document.getElementById("miniGoodwillFullArea");
-    if (miniGoodwillFull) {
-      miniGoodwillFull.innerHTML = "";
-      s.forEach(doc => {
-        const g = doc.data();
-        const goodwillDiv = document.createElement('div');
-        goodwillDiv.className = "mini-goodwill-item";
-        const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
-        goodwillDiv.innerHTML = `
-          ${userBadge}
-          <div>${parseContent(g.text)}</div>
-          <div class="timestamp">${formatRelativeTime(g.created)}</div>
-        `;
-        miniGoodwillFull.appendChild(goodwillDiv);
-        // No replies in mini view
-      });
-      attachMediaPreviewClick(miniGoodwillFull);
-    }
-  }, showError);
-
   window.replyGoodwill = function (goodwillId) {
     if (!currentUser) return alert("Login required");
     const input = document.getElementById("goodwillReplyInput" + goodwillId);
@@ -2992,120 +2932,6 @@
       .then(() => { input.value = ""; })
       .catch(showError);
   };
-
-  function loadGoodwillReplies(goodwillId) {
-    db.collection("goodwill").doc(goodwillId).collection("replies").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("goodwillReplies" + goodwillId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
-        const actions = (currentUser && r.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="editMessage('goodwill/${goodwillId}/replies/${doc.id}', ${JSON.stringify(r.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('goodwill/${goodwillId}/replies/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
-        replyDiv.innerHTML = `
-          ${actions}
-          ${userBadge}
-          <div>${parseContent(r.text)}</div>
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        container.appendChild(replyDiv);
-        addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
-      });
-      attachMediaPreviewClick(container);
-    }, showError);
-  }
-
-  // ==================== FULL EVENTS ====================
-  db.collection("events").orderBy("created", "desc").onSnapshot(s => {
-    // Full events area
-    const eventArea = document.getElementById("eventArea");
-    if (eventArea) {
-      eventArea.innerHTML = "";
-      s.forEach(doc => {
-        const e = doc.data();
-        const eventId = doc.id;
-        let mediaHtml = '';
-        if (e.image) mediaHtml += `<div>${parseContent(e.image)}</div>`;
-        if (e.video) mediaHtml += `<div>${parseContent(e.video)}</div>`;
-        if (e.audio) mediaHtml += `<div>${parseContent(e.audio)}</div>`;
-
-        const eventDiv = document.createElement('div');
-        eventDiv.className = "event-item";
-        eventDiv.id = `event-${eventId}`;
-        // Events themselves are not editable by users (admin only). No actions added.
-        eventDiv.innerHTML = `
-          <h4>${e.title || 'Untitled'}</h4>
-          <p>${e.description ? parseContent(e.description) : ''}</p>
-          <p><small>${e.date || ''}</small></p>
-          ${mediaHtml}
-          <div id="eventComments${eventId}" class="replies"></div>
-          <input id="eventCommentInput${eventId}" placeholder="Comment on this event...">
-          <button onclick="commentEvent('${eventId}')">Comment</button>
-        `;
-        eventArea.appendChild(eventDiv);
-        loadEventComments(eventId);
-      });
-      attachMediaPreviewClick(eventArea);
-    }
-
-    // Mini events full area – first event full, others preview
-    const miniEventFull = document.getElementById("miniEventFullArea");
-    if (miniEventFull) {
-      miniEventFull.innerHTML = "";
-      let eventIndex = 0;
-      s.forEach(doc => {
-        const e = doc.data();
-        const eventDiv = document.createElement('div');
-        
-        if (eventIndex === 0) {
-          // --- First event: FULL display (with all media previews) ---
-          eventDiv.className = "event-item"; // reuse full event style
-          
-          let mediaHtml = '';
-          if (e.image)  mediaHtml += `<div>${parseContent(e.image)}</div>`;
-          if (e.video)  mediaHtml += `<div>${parseContent(e.video)}</div>`;
-          if (e.audio)  mediaHtml += `<div>${parseContent(e.audio)}</div>`;
-          
-          eventDiv.innerHTML = `
-            <h4>${e.title || 'Untitled'}</h4>
-            <p>${e.description ? parseContent(e.description) : ''}</p>
-            <p><small>${e.date || ''}</small></p>
-            ${mediaHtml}
-          `;
-        } else {
-          // --- Other events: preview (truncated, small image) ---
-          eventDiv.className = "mini-event-item";
-          
-          let mediaHtml = '';
-          if (e.image) {
-            mediaHtml += `<div>${parseContent(e.image)}</div>`;
-          }
-          
-          const descPreview = e.description 
-            ? (e.description.length > 60 ? e.description.substring(0,60) + '…' : e.description)
-            : '';
-          
-          eventDiv.innerHTML = `
-            <h4 style="font-size:1rem; margin:0;">${e.title || 'Untitled'}</h4>
-            <p style="font-size:0.85rem;">${descPreview}</p>
-            <p><small>${e.date || ''}</small></p>
-            ${mediaHtml}
-          `;
-        }
-        
-        miniEventFull.appendChild(eventDiv);
-        eventIndex++;
-      });
-      attachMediaPreviewClick(miniEventFull);
-    }
-  }, showError);
 
   window.commentEvent = function(eventId) {
     if (!currentUser) return alert("Login required");
@@ -3127,40 +2953,6 @@
       .catch(showError);
   };
 
-  function loadEventComments(eventId) {
-    db.collection("events").doc(eventId).collection("comments").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("eventComments" + eventId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const c = doc.data();
-        const commentId = doc.id;
-        const commentDiv = document.createElement('div');
-        commentDiv.className = "replyBox";
-        const userBadge = userBadgeHTML(c.name || '?', c.kindred || '?', c.userId || '', c.avatar);
-        const actions = (currentUser && c.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="editMessage('events/${eventId}/comments/${commentId}', ${JSON.stringify(c.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('events/${eventId}/comments/${commentId}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
-        commentDiv.innerHTML = `
-          ${actions}
-          ${userBadge}
-          <div>${parseContent(c.text)}</div>
-          <div class="timestamp">${formatTimestamp(c.created)}</div>
-          <div id="eventCommentReplies${commentId}"></div>
-          <input id="eventCommentReplyInput${commentId}" placeholder="Reply...">
-          <button onclick="replyEventComment('${eventId}', '${commentId}')">Reply</button>
-        `;
-        container.appendChild(commentDiv);
-        addReactionUI(`events/${eventId}/comments`, commentId, commentDiv);
-        loadEventCommentReplies(eventId, commentId);
-      });
-      attachMediaPreviewClick(container);
-    }, showError);
-  }
-
   window.replyEventComment = function(eventId, commentId) {
     if (!currentUser) return alert("Login required");
     const input = document.getElementById("eventCommentReplyInput" + commentId);
@@ -3181,6 +2973,124 @@
       .catch(showError);
   };
 
+  // ==================== LOAD REPLIES FUNCTIONS ====================
+  function loadReplies(collection, id, containerPrefix) {
+    db.collection(collection).doc(id).collection("replies").orderBy("created").onSnapshot(s => {
+      const box = document.getElementById(containerPrefix + id);
+      if (!box) return;
+      box.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
+        const actions = (currentUser && r.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="deleteMessage('${collection}/${id}/replies', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
+        replyDiv.innerHTML = `
+          ${actions}
+          ${userBadge}
+          <div>${parseContent(r.text)}</div>
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        box.appendChild(replyDiv);
+        addReactionUI(`${collection}/${id}/replies`, doc.id, replyDiv);
+      });
+      attachMediaPreviewClick(box);
+    }, showError);
+  }
+
+  function loadChatReplies(chatId) {
+    db.collection("chat").doc(chatId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("chatReplies" + chatId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
+        const actions = (currentUser && r.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="deleteMessage('chat/${chatId}/replies', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
+        replyDiv.innerHTML = `
+          ${actions}
+          ${userBadge}
+          <span>: ${parseContent(r.text)}</span>
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`chat/${chatId}/replies`, doc.id, replyDiv);
+      });
+      attachMediaPreviewClick(container);
+    }, showError);
+  }
+
+  function loadGoodwillReplies(goodwillId) {
+    db.collection("goodwill").doc(goodwillId).collection("replies").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("goodwillReplies" + goodwillId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const r = doc.data();
+        const replyDiv = document.createElement('div');
+        replyDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
+        const actions = (currentUser && r.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="deleteMessage('goodwill/${goodwillId}/replies', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
+        replyDiv.innerHTML = `
+          ${actions}
+          ${userBadge}
+          <div>${parseContent(r.text)}</div>
+          <div class="timestamp">${formatTimestamp(r.created)}</div>
+        `;
+        container.appendChild(replyDiv);
+        addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
+      });
+      attachMediaPreviewClick(container);
+    }, showError);
+  }
+
+  function loadEventComments(eventId) {
+    db.collection("events").doc(eventId).collection("comments").orderBy("created").onSnapshot(s => {
+      const container = document.getElementById("eventComments" + eventId);
+      if (!container) return;
+      container.innerHTML = "";
+      s.forEach(doc => {
+        const c = doc.data();
+        const commentId = doc.id;
+        const commentDiv = document.createElement('div');
+        commentDiv.className = "replyBox";
+        const userBadge = userBadgeHTML(c.name || '?', c.kindred || '?', c.userId || '', c.avatar);
+        const actions = (currentUser && c.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="deleteMessage('events/${eventId}/comments', '${commentId}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
+        commentDiv.innerHTML = `
+          ${actions}
+          ${userBadge}
+          <div>${parseContent(c.text)}</div>
+          <div class="timestamp">${formatTimestamp(c.created)}</div>
+          <div id="eventCommentReplies${commentId}"></div>
+          <input id="eventCommentReplyInput${commentId}" placeholder="Reply...">
+          <button onclick="replyEventComment('${eventId}', '${commentId}')">Reply</button>
+        `;
+        container.appendChild(commentDiv);
+        addReactionUI(`events/${eventId}/comments`, commentId, commentDiv);
+        loadEventCommentReplies(eventId, commentId);
+      });
+      attachMediaPreviewClick(container);
+    }, showError);
+  }
+
   function loadEventCommentReplies(eventId, commentId) {
     db.collection("events").doc(eventId).collection("comments").doc(commentId).collection("replies").orderBy("created").onSnapshot(s => {
       const container = document.getElementById("eventCommentReplies" + commentId);
@@ -3193,8 +3103,7 @@
         const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
         const actions = (currentUser && r.userId === currentUser.uid) 
           ? `<div class="message-actions">
-               <button onclick="editMessage('events/${eventId}/comments/${commentId}/replies/${doc.id}', ${JSON.stringify(r.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('events/${eventId}/comments/${commentId}/replies/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+               <button onclick="deleteMessage('events/${eventId}/comments/${commentId}/replies', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
              </div>`
           : '';
         replyDiv.innerHTML = `
@@ -3238,7 +3147,6 @@
       });
     }
 
-    // Mark all messages from other user as read
     const unreadQuery = roomRef.collection('messages')
       .where('from', '==', otherUserId)
       .where('read', '==', false);
@@ -3269,24 +3177,16 @@
         const avatarHtml = msg.avatar 
           ? `<img class="avatar avatar-sm" src="${msg.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
-        const actions = (currentUser && msg.from === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="editMessage('privateChatRooms/${activeChatRoomId}/messages/${doc.id}', ${JSON.stringify(msg.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('privateChatRooms/${activeChatRoomId}/messages/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
         div.innerHTML = `
           ${avatarHtml}
           <div class="message-content">
             <div>${parseContent(msg.text)}</div>
             <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
           </div>
-          ${actions}
         `;
         container.appendChild(div);
       });
       container.scrollTop = container.scrollHeight;
-      attachMediaPreviewClick(container);
     }, showError);
   };
 
@@ -3298,12 +3198,11 @@
     db.collection('users').doc(currentUser.uid).get().then(userDoc => {
       const userData = userDoc.data() || {};
       const roomRef = db.collection('privateChatRooms').doc(activeChatRoomId);
-      // Get the other participant
       const otherUid = activeChatOtherUserId;
       roomRef.collection('messages').add({
         from: currentUser.uid,
         to: otherUid,
-        recipient: otherUid,         // 👈 critical for unread queries
+        recipient: otherUid,
         text: text,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         read: false,
@@ -3360,7 +3259,6 @@
           const userDoc = await db.collection('users').doc(otherUid).get();
           const otherUser = userDoc.data() || { name: 'Unknown' };
 
-          // Query unread count using recipient field
           const unreadSnapshot = await db.collection('privateChatRooms').doc(doc.id)
             .collection('messages')
             .where('recipient', '==', currentUser.uid)
@@ -3470,19 +3368,6 @@
   };
 
   // ==================== PROJECT BOARD (TASKS) ====================
-  let unsubscribeTasks = null;
-
-  function loadProjectBoard() {
-    if (unsubscribeTasks) unsubscribeTasks();
-    unsubscribeTasks = db.collection('projectBoard').orderBy('created', 'desc').onSnapshot(snapshot => {
-      const tasks = [];
-      snapshot.forEach(doc => {
-        tasks.push({ id: doc.id, ...doc.data() });
-      });
-      renderBoard(tasks);
-    }, showError);
-  }
-
   function renderBoard(tasks) {
     const container = document.getElementById('projectBoardContainer');
     if (!container) return;
@@ -3502,15 +3387,11 @@
     }
     container.innerHTML = html;
 
-    // Attach reaction listeners and comment handlers after rendering
     tasks.forEach(task => {
       const card = document.getElementById(`task-${task.id}`);
       if (card) {
-        // Load reactions for this task
         loadTaskReactions(task.id, card);
-        // Load comments for this task
         loadTaskComments(task.id, card);
-        // Attach comment post handler
         const commentInput = card.querySelector('.task-comment-input');
         const commentBtn = card.querySelector('.task-comment-btn');
         if (commentBtn) {
@@ -3570,7 +3451,6 @@
           likeBtn.classList.remove('liked');
           likeBtn.innerHTML = `<i class="fa-regular fa-thumbs-up"></i> <span class="reaction-count" id="like-count-${taskId}">${count}</span>`;
         }
-        // Attach click event
         likeBtn.onclick = () => toggleTaskLike(taskId);
       }
     }, showError);
@@ -3589,8 +3469,7 @@
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
         const actions = (currentUser && c.userId === currentUser.uid) 
           ? `<div class="message-actions">
-               <button onclick="editMessage('projectBoard/${taskId}/comments/${doc.id}', ${JSON.stringify(c.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
-               <button onclick="deleteMessage('projectBoard/${taskId}/comments/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+               <button onclick="deleteMessage('projectBoard/${taskId}/comments', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
              </div>`
           : '';
         html += `
@@ -3642,8 +3521,7 @@
       .catch(showError);
   }
 
-  // Task CRUD (admin only)
-  let currentTaskId = null; // for editing
+  let currentTaskId = null;
 
   window.showAddTaskModal = function() {
     document.getElementById('taskModalTitle').textContent = 'Add Task';
@@ -3856,8 +3734,7 @@
         config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
       });
       
-      // Re-attach handlers (simplified for brevity – same as above)
-      // ... (omitted for space, but in full code you'd repeat the event handlers)
+      // Re-attach handlers (simplified for brevity)
     } catch (err) {
       alert('Fallback camera also failed: ' + err.message);
     }
@@ -4162,7 +4039,7 @@
     sidebar.classList.toggle('open');
     overlay.classList.toggle('active');
     updateHeaderMarqueeVisibility();
-    updateFloatingButtonVisibility(); // hide/show based on sidebar state
+    updateFloatingButtonVisibility();
   }
 
   toggleBtn.addEventListener('click', function(e) {
@@ -4182,7 +4059,7 @@
     updateFloatingButtonVisibility();
   });
 
-  // ==================== NTU TV AUTO START/STOP & COORDINATION WITH MEDIA PLAYER ====================
+  // ==================== NTU TV AUTO START/STOP ====================
   let ntuTVOriginalSrc = 'https://unrelished-commissively-reginia.ngrok-free.dev/';
   let ntuTVIframe = document.getElementById('ntuIframe');
   let ntuTVActive = false;
@@ -4192,11 +4069,9 @@
     if (ntuTVIframe) {
       ntuTVIframe.src = ntuTVOriginalSrc;
       ntuTVActive = true;
-      // Close media player if open
       if (mediaPlayerModal.style.display === 'flex') {
         closeMediaPlayer();
       }
-      // Load Ntu TV comments & likes
       loadNtuTvComments();
       loadNtuTvLikes();
     }
@@ -4208,12 +4083,11 @@
       ntuTVIframe.src = '';
       ntuTVActive = false;
     }
-    // Unsubscribe from Ntu TV comment/like listeners (optional)
     if (unsubscribeNtuTvComments) unsubscribeNtuTvComments();
     if (unsubscribeNtuTvLikes) unsubscribeNtuTvLikes();
   }
 
-  // ==================== CONTENT SWITCHING (modified to handle Ntu TV and Project Board) ====================
+  // ==================== CONTENT SWITCHING ====================
   window.showContent = function(targetId) {
     if (targetId === 'admin') {
       if (!currentUserIsAdmin) {
@@ -4243,20 +4117,17 @@
     }
     updateHeaderMarqueeVisibility();
 
-    // Ntu TV auto start/stop
     if (targetId === 'ntuTV') {
       startNtuTV();
     } else {
       stopNtuTV();
     }
 
-    // Load project board data when that panel is shown
     if (targetId === 'projectBoard') {
-      loadProjectBoard();
+      // Project board listener is already active via setupAllListeners
     }
   };
 
-  // Ntu TV helper
   window.showNtuTV = function() {
     showContent('ntuTV');
   };
@@ -4397,14 +4268,12 @@
       if (event.target.id === 'linkModal') closeLinkModal();
       if (event.target.id === 'mediaPlayerModal') closeMediaPlayer();
       if (event.target.id === 'taskModal') closeTaskModal();
-      if (event.target.id === 'editMessageModal') closeEditMessageModal();
     }
   };
 
   // ==================== EXPAND ON CARD CLICK ====================
   document.querySelectorAll('.mini-card[data-expand]').forEach(card => {
     card.addEventListener('click', function(e) {
-      // Prevent expansion if clicking on a button, input, link, user badge, or media preview
       if (e.target.closest('button') ||
           e.target.closest('input') ||
           e.target.closest('a') ||
@@ -4417,34 +4286,47 @@
     });
   });
 
-  // ==================== EDIT / DELETE MESSAGE FUNCTIONS (fixed) ====================
-  let currentEditDocRef = null;
-
-  window.editMessage = function(fullPath, currentText) {
-    // fullPath is like "feed/abc123" or "events/eventId/comments/commentId"
-    const docRef = db.doc(fullPath);
-    currentEditDocRef = docRef;
-    document.getElementById('editMessageText').value = currentText;
-    document.getElementById('editMessageModal').style.display = 'flex';
-  };
-
-  window.deleteMessage = function(fullPath) {
+  // ==================== DELETE MESSAGE FUNCTION ====================
+  window.deleteMessage = function(collectionPath, docId) {
     if (!confirm('Are you sure you want to delete this message?')) return;
-    db.doc(fullPath).delete().catch(showError);
+    db.collection(collectionPath).doc(docId).delete().catch(showError);
   };
 
-  window.saveEditMessage = function() {
-    const newText = document.getElementById('editMessageText').value.trim();
-    if (!newText || !currentEditDocRef) return;
-    currentEditDocRef.update({ text: newText })
-      .then(() => closeEditMessageModal())
-      .catch(showError);
-  };
+  // ==================== SCROLL HIDE/SHOW HEADER (only on home) ====================
+  let lastScrollY = window.scrollY;
+  let headerHidden = false;
+  const headerEl = document.getElementById('mainHeader');
+  const marqueeEl = document.getElementById('topMarquee');
+  const SCROLL_THRESHOLD = 10;
 
-  window.closeEditMessageModal = function() {
-    document.getElementById('editMessageModal').style.display = 'none';
-    currentEditDocRef = null;
-  };
+  window.addEventListener('scroll', () => {
+    // Only apply on home screen when sidebar is closed
+    if (currentContent !== 'home' || sidebar.classList.contains('open')) {
+      // Ensure header is shown when not on home
+      headerEl.classList.remove('hidden');
+      marqueeEl.classList.remove('hidden');
+      headerHidden = false;
+      return;
+    }
+
+    const currentScrollY = window.scrollY;
+    const delta = currentScrollY - lastScrollY;
+
+    if (Math.abs(delta) > SCROLL_THRESHOLD) {
+      if (delta > 0 && !headerHidden) {
+        // scrolling down → hide
+        headerEl.classList.add('hidden');
+        marqueeEl.classList.add('hidden');
+        headerHidden = true;
+      } else if (delta < 0 && headerHidden) {
+        // scrolling up → show
+        headerEl.classList.remove('hidden');
+        marqueeEl.classList.remove('hidden');
+        headerHidden = false;
+      }
+    }
+    lastScrollY = currentScrollY;
+  });
 
   // Service worker registration
   if (typeof navigator.serviceWorker !== 'undefined') {
