@@ -475,6 +475,7 @@
       margin: 18px 0;
       border-left: 5px solid #2dab95;
       box-shadow: 0 10px 15px -5px rgba(0,0,0,0.5);
+      position: relative;
     }
 
     .replyBox {
@@ -488,6 +489,28 @@
       font-size: 0.7rem;
       color: #9bc5bc;
       margin-top: 8px;
+    }
+
+    /* Message actions (edit/delete) */
+    .message-actions {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 6px;
+    }
+    .message-actions button {
+      background: transparent;
+      border: 1px solid #2dab95;
+      color: #b5ffe8;
+      padding: 4px 10px;
+      min-height: auto;
+      font-size: 0.8rem;
+      box-shadow: none;
+    }
+    .message-actions button:hover {
+      background: #2dab95;
+      color: white;
     }
 
     /* Media preview styles */
@@ -615,6 +638,7 @@
       display: flex;
       align-items: flex-start;
       gap: 8px;
+      position: relative;
     }
     .chat-message.sent {
       background: #1f8f7c;
@@ -626,6 +650,19 @@
       background: #2b5a51;
       color: white;
       margin-right: auto;
+    }
+    .chat-message .message-actions {
+      position: static;
+      margin-left: 8px;
+      display: inline-flex;
+      gap: 4px;
+    }
+    .chat-message .message-actions button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 2px 6px;
+      font-size: 0.7rem;
     }
 
     .chat-input-area {
@@ -1000,6 +1037,7 @@
       padding: 12px;
       margin-bottom: 10px;
       border-left: 3px solid #2dab95;
+      position: relative;
     }
     .ntutv-comment .user-badge {
       margin-bottom: 4px;
@@ -1058,6 +1096,7 @@
       padding: 12px;
       margin-bottom: 10px;
       border-left: 3px solid #2dab95;
+      position: relative;
     }
     .media-comment .user-badge {
       margin-bottom: 4px;
@@ -1189,6 +1228,7 @@
       border-radius: 16px;
       padding: 10px;
       margin-bottom: 8px;
+      position: relative;
     }
     .task-card .comment .user-badge {
       margin-bottom: 2px;
@@ -1646,6 +1686,19 @@
   </div>
 </div>
 
+<!-- Edit Message Modal (new) -->
+<div id="editMessageModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeEditMessageModal()">&times;</span>
+    <h3><i class="fa-regular fa-pen-to-square"></i> Edit Message</h3>
+    <textarea id="editMessageText" rows="4" placeholder="Edit your message..."></textarea>
+    <div style="display: flex; gap: 10px; margin-top: 16px;">
+      <button onclick="saveEditMessage()">Save</button>
+      <button class="secondary" onclick="closeEditMessageModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Fixed bottom marquee -->
 <div class="bottom-marquee">
   <div class="marquee-content" id="bottomMarqueeText">⚡ Loading messages...</div>
@@ -1767,15 +1820,23 @@
         const avatarHtml = c.avatar 
           ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+        const actions = (currentUser && c.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('mediaComments/ntuTV/comments/${doc.id}', ${JSON.stringify(c.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('mediaComments/ntuTV/comments/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         html += `
           <div class="ntutv-comment">
+            ${actions}
             <span class="user-badge" onclick="showProfile('${c.userId}')">${avatarHtml}<span>${escapeHtml(c.name)} (${escapeHtml(c.kindred || '')})</span></span>
-            <div class="comment-text">${escapeHtml(c.text)}</div>
+            <div class="comment-text">${parseContent(c.text)}</div>
             <div class="timestamp">${formatTimestamp(c.created)}</div>
           </div>
         `;
       });
       container.innerHTML = html || '<p style="text-align:center;">No comments yet.</p>';
+      attachMediaPreviewClick(container);
     }, showError);
   }
 
@@ -1960,15 +2021,23 @@
         const avatarHtml = c.avatar 
           ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+        const actions = (currentUser && c.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('mediaComments/${currentMediaId}/comments/${doc.id}', ${JSON.stringify(c.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('mediaComments/${currentMediaId}/comments/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         html += `
           <div class="media-comment">
+            ${actions}
             <span class="user-badge" onclick="showProfile('${c.userId}')">${avatarHtml}<span>${escapeHtml(c.name)} (${escapeHtml(c.kindred || '')})</span></span>
-            <div class="comment-text">${escapeHtml(c.text)}</div>
+            <div class="comment-text">${parseContent(c.text)}</div>
             <div class="timestamp">${formatTimestamp(c.created)}</div>
           </div>
         `;
       });
       mediaCommentsSection.innerHTML = html || '<p style="text-align:center;">No comments yet.</p>';
+      attachMediaPreviewClick(mediaCommentsSection);
     }, showError);
   }
 
@@ -2609,7 +2678,14 @@
           imageHtml = `<div>${parseContent(p.image)}</div>`;
         }
         const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
+        const actions = (currentUser && p.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('feed/${feedId}', ${JSON.stringify(p.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('feed/${feedId}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         feedDiv.innerHTML = `
+          ${actions}
           ${userBadge}
           <div>${parseContent(p.text)}</div>
           ${imageHtml}
@@ -2700,7 +2776,14 @@
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
         const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
+        const actions = (currentUser && r.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('${collection}/${id}/replies/${doc.id}', ${JSON.stringify(r.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('${collection}/${id}/replies/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         replyDiv.innerHTML = `
+          ${actions}
           ${userBadge}
           <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
@@ -2743,7 +2826,14 @@
         const chatDiv = document.createElement('div');
         chatDiv.className = "chat-item";
         const userBadge = userBadgeHTML(m.name || '?', m.kindred || '?', m.userId || '', m.avatar);
+        const actions = (currentUser && m.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('chat/${chatId}', ${JSON.stringify(m.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('chat/${chatId}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         chatDiv.innerHTML = `
+          ${actions}
           ${userBadge}
           <span>: ${parseContent(m.text)}</span>
           <div class="timestamp">${formatTimestamp(m.created)}</div>
@@ -2789,7 +2879,14 @@
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
         const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
+        const actions = (currentUser && r.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('chat/${chatId}/replies/${doc.id}', ${JSON.stringify(r.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('chat/${chatId}/replies/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         replyDiv.innerHTML = `
+          ${actions}
           ${userBadge}
           <span>: ${parseContent(r.text)}</span>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
@@ -2833,7 +2930,14 @@
         const goodwillDiv = document.createElement('div');
         goodwillDiv.className = "goodwill-item";
         const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
+        const actions = (currentUser && g.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('goodwill/${goodwillId}', ${JSON.stringify(g.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('goodwill/${goodwillId}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         goodwillDiv.innerHTML = `
+          ${actions}
           ${userBadge}
           <div>${parseContent(g.text)}</div>
           <div class="timestamp">${formatTimestamp(g.created)}</div>
@@ -2899,7 +3003,14 @@
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
         const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
+        const actions = (currentUser && r.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('goodwill/${goodwillId}/replies/${doc.id}', ${JSON.stringify(r.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('goodwill/${goodwillId}/replies/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         replyDiv.innerHTML = `
+          ${actions}
           ${userBadge}
           <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
@@ -2928,6 +3039,7 @@
         const eventDiv = document.createElement('div');
         eventDiv.className = "event-item";
         eventDiv.id = `event-${eventId}`;
+        // Events themselves are not editable by users (admin only). No actions added.
         eventDiv.innerHTML = `
           <h4>${e.title || 'Untitled'}</h4>
           <p>${e.description ? parseContent(e.description) : ''}</p>
@@ -3026,7 +3138,14 @@
         const commentDiv = document.createElement('div');
         commentDiv.className = "replyBox";
         const userBadge = userBadgeHTML(c.name || '?', c.kindred || '?', c.userId || '', c.avatar);
+        const actions = (currentUser && c.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('events/${eventId}/comments/${commentId}', ${JSON.stringify(c.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('events/${eventId}/comments/${commentId}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         commentDiv.innerHTML = `
+          ${actions}
           ${userBadge}
           <div>${parseContent(c.text)}</div>
           <div class="timestamp">${formatTimestamp(c.created)}</div>
@@ -3072,7 +3191,14 @@
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
         const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
+        const actions = (currentUser && r.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('events/${eventId}/comments/${commentId}/replies/${doc.id}', ${JSON.stringify(r.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('events/${eventId}/comments/${commentId}/replies/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         replyDiv.innerHTML = `
+          ${actions}
           ${userBadge}
           <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
@@ -3143,16 +3269,24 @@
         const avatarHtml = msg.avatar 
           ? `<img class="avatar avatar-sm" src="${msg.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+        const actions = (currentUser && msg.from === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('privateChatRooms/${activeChatRoomId}/messages/${doc.id}', ${JSON.stringify(msg.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('privateChatRooms/${activeChatRoomId}/messages/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         div.innerHTML = `
           ${avatarHtml}
           <div class="message-content">
             <div>${parseContent(msg.text)}</div>
             <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
           </div>
+          ${actions}
         `;
         container.appendChild(div);
       });
       container.scrollTop = container.scrollHeight;
+      attachMediaPreviewClick(container);
     }, showError);
   };
 
@@ -3453,8 +3587,15 @@
         const avatarHtml = c.avatar 
           ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+        const actions = (currentUser && c.userId === currentUser.uid) 
+          ? `<div class="message-actions">
+               <button onclick="editMessage('projectBoard/${taskId}/comments/${doc.id}', ${JSON.stringify(c.text)})"><i class="fa-regular fa-pen-to-square"></i></button>
+               <button onclick="deleteMessage('projectBoard/${taskId}/comments/${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
+             </div>`
+          : '';
         html += `
           <div class="comment">
+            ${actions}
             <span class="user-badge" onclick="showProfile('${c.userId}')">${avatarHtml}<span>${escapeHtml(c.name)} (${escapeHtml(c.kindred || '')})</span></span>
             <div class="comment-text">${escapeHtml(c.text)}</div>
             <div class="timestamp">${formatTimestamp(c.created)}</div>
@@ -3462,6 +3603,7 @@
         `;
       });
       commentsDiv.innerHTML = html || '<p style="text-align:center;">No comments yet.</p>';
+      attachMediaPreviewClick(commentsDiv);
     }, showError);
   }
 
@@ -4255,6 +4397,7 @@
       if (event.target.id === 'linkModal') closeLinkModal();
       if (event.target.id === 'mediaPlayerModal') closeMediaPlayer();
       if (event.target.id === 'taskModal') closeTaskModal();
+      if (event.target.id === 'editMessageModal') closeEditMessageModal();
     }
   };
 
@@ -4273,6 +4416,35 @@
       showContent(target);
     });
   });
+
+  // ==================== EDIT / DELETE MESSAGE FUNCTIONS (fixed) ====================
+  let currentEditDocRef = null;
+
+  window.editMessage = function(fullPath, currentText) {
+    // fullPath is like "feed/abc123" or "events/eventId/comments/commentId"
+    const docRef = db.doc(fullPath);
+    currentEditDocRef = docRef;
+    document.getElementById('editMessageText').value = currentText;
+    document.getElementById('editMessageModal').style.display = 'flex';
+  };
+
+  window.deleteMessage = function(fullPath) {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+    db.doc(fullPath).delete().catch(showError);
+  };
+
+  window.saveEditMessage = function() {
+    const newText = document.getElementById('editMessageText').value.trim();
+    if (!newText || !currentEditDocRef) return;
+    currentEditDocRef.update({ text: newText })
+      .then(() => closeEditMessageModal())
+      .catch(showError);
+  };
+
+  window.closeEditMessageModal = function() {
+    document.getElementById('editMessageModal').style.display = 'none';
+    currentEditDocRef = null;
+  };
 
   // Service worker registration
   if (typeof navigator.serviceWorker !== 'undefined') {
