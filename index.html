@@ -126,44 +126,6 @@
       gap: 6px;
     }
 
-    /* Unread badge next to online indicator */
-    .online-unread-badge {
-      background-color: #ff6b4a;
-      color: white;
-      font-size: 0.7rem;
-      font-weight: 600;
-      min-width: 18px;
-      height: 18px;
-      border-radius: 18px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      border: 1px solid #fff2;
-      margin-left: 4px;
-    }
-
-    /* Unread badge on envelope */
-    .unread-badge-count {
-      position: absolute;
-      top: -5px;
-      right: -8px;
-      background-color: #ff6b4a;
-      color: white;
-      font-size: 0.7rem;
-      font-weight: 600;
-      min-width: 18px;
-      height: 18px;
-      border-radius: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      border: 1px solid #fff2;
-    }
-
     /* ===== FLOATING SIDEBAR TOGGLE (right side) ===== */
     .floating-toggle {
       position: fixed;
@@ -247,6 +209,11 @@
     }
     .sidebar-menu li.admin-link.visible {
       display: list-item;
+    }
+
+    /* Inbox link in sidebar */
+    .sidebar-menu li.inbox-link a i {
+      color: #ffd966;
     }
 
     /* Overlay for mobile */
@@ -1355,6 +1322,8 @@
     <li><a href="#" data-content="ntuTV"><i class="fas fa-tv"></i> Ntu TV</a></li>
     <!-- Project Board link -->
     <li><a href="#" data-content="projectBoard"><i class="fas fa-project-diagram"></i> Project Board</a></li>
+    <!-- Inbox link (now in sidebar) -->
+    <li class="inbox-link"><a href="#" onclick="showInbox(); return false;"><i class="fa-regular fa-envelope"></i> Inbox</a></li>
     <!-- Admin link – hidden by default -->
     <li class="admin-link" id="adminSidebarLink"><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
     <li><a href="#" id="ntuElectricityLink"><i class="fas fa-bolt"></i> Ntu Electricity</a></li>
@@ -2350,25 +2319,7 @@
 
   function updateUnreadBadge() {
     const total = Object.values(roomUnreadCounts).reduce((a, b) => a + b, 0);
-    const onlineBadge = document.getElementById('onlineUnreadBadge');
-    const inboxBadge = document.getElementById('inboxUnreadBadge');
     const floatingBadge = document.getElementById('floatingMessageBadge');
-    if (onlineBadge) {
-      if (total > 0) {
-        onlineBadge.style.display = 'inline-flex';
-        onlineBadge.textContent = total > 99 ? '99+' : total;
-      } else {
-        onlineBadge.style.display = 'none';
-      }
-    }
-    if (inboxBadge) {
-      if (total > 0) {
-        inboxBadge.style.display = 'flex';
-        inboxBadge.textContent = total > 99 ? '99+' : total;
-      } else {
-        inboxBadge.style.display = 'none';
-      }
-    }
     if (floatingBadge) {
       if (total > 0) {
         floatingBadge.style.display = 'flex';
@@ -2451,18 +2402,8 @@
         const userData = doc.data() || {};
         currentUserIsAdmin = userData.isAdmin === true;
         navArea.innerHTML = `
-          <span class="onlineDot">
-            ● Online
-            <span id="onlineUnreadBadge" class="online-unread-badge" style="display: none;">0</span>
-          </span>
+          <span class="onlineDot">● Online</span>
           <button onclick="showNtuTV()"><i class="fas fa-tv"></i> Ntu TV</button>
-          <button onclick="showInbox()" id="inboxButton" style="position: relative;">
-            <span style="position: relative; display: inline-block;">
-              <i class="fa-regular fa-envelope"></i>
-              <span id="inboxUnreadBadge" class="unread-badge-count" style="display: none;">0</span>
-            </span>
-            Inbox
-          </button>
           <button onclick="logout()">Logout</button>
         `;
         setupUnreadListeners();
