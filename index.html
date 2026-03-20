@@ -547,6 +547,11 @@
       top: 8px;
       right: 8px;
       z-index: 20;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .chat-message:hover .message-options {
+      opacity: 1;
     }
     .chat-message .options-btn {
       background: transparent;
@@ -3421,7 +3426,7 @@
 
         const canDelete = currentUser && msg.from === currentUser.uid;
 
-        // Build message bubble
+        // Build message bubble with options button inside
         const messageBubble = `
           <div class="message-bubble">
             <div class="message-text">${parseContent(msg.text)}</div>
@@ -3437,17 +3442,10 @@
         `;
 
         // Assemble the row: avatar + bubble
-        if (isSent) {
-          div.innerHTML = `
-            <div class="avatar-wrapper">${avatarHtml}</div>
-            ${messageBubble}
-          `;
-        } else {
-          div.innerHTML = `
-            <div class="avatar-wrapper">${avatarHtml}</div>
-            ${messageBubble}
-          `;
-        }
+        div.innerHTML = `
+          <div class="avatar-wrapper">${avatarHtml}</div>
+          ${messageBubble}
+        `;
         container.appendChild(div);
       });
       container.scrollTop = container.scrollHeight;
