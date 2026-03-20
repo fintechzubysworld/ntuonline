@@ -487,7 +487,7 @@
     }
 
     /* ===== POST / COMMENT STYLES (shared) ===== */
-    .feed-item, .chat-item, .goodwill-item, .event-item, .project-task, .chat-message {
+    .feed-item, .chat-item, .goodwill-item, .event-item, .project-task {
       background: #0f2d27;
       border-radius: 24px;
       padding: 18px;
@@ -497,49 +497,80 @@
       position: relative;
     }
 
-    .replyBox {
-      margin-left: 16px;
-      padding-left: 16px;
-      border-left: 3px solid #2a6b5f;
-      margin-top: 12px;
+    /* Enhanced chat message styling for private chats */
+    .chat-message {
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .chat-message.sent {
+      flex-direction: row-reverse;
+    }
+    .chat-message.received {
+      flex-direction: row;
+    }
+    .chat-message .avatar-wrapper {
+      flex-shrink: 0;
+    }
+    .chat-message .message-bubble {
+      max-width: 70%;
+      background: #2b5a51;
+      border-radius: 22px;
+      padding: 10px 14px;
+      padding-right: 36px;  /* make room for options button */
       position: relative;
+      word-wrap: break-word;
     }
-
-    .timestamp {
+    .chat-message.sent .message-bubble {
+      background: #1f8f7c;
+      color: white;
+    }
+    .chat-message.received .message-bubble {
+      background: #2b5a51;
+      color: white;
+    }
+    .chat-message .message-text {
+      font-size: 1rem;
+      font-weight: 500;
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+    .chat-message .message-time {
       font-size: 0.7rem;
-      color: #9bc5bc;
-      margin-top: 8px;
+      color: #b0ddd4;
+      text-align: right;
+      margin-top: 4px;
     }
-
-    /* Options menu (three dots) */
-    .message-options {
+    .chat-message .message-options {
       position: absolute;
-      top: 12px;
-      right: 12px;
+      top: 8px;
+      right: 8px;
       z-index: 20;
     }
-
-    .options-btn {
+    .chat-message .options-btn {
       background: transparent;
-      border: 1px solid #2dab95;
-      color: #b5ffe8;
-      width: 32px;
-      height: 32px;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #e0f0ec;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 0.8rem;
       padding: 0;
       min-height: auto;
       box-shadow: none;
+      transition: background 0.2s;
     }
-    .options-btn:hover {
-      background: #2dab95;
-      color: white;
+    .chat-message .options-btn:hover {
+      background: rgba(45, 171, 149, 0.6);
+      border-color: #2dab95;
     }
 
+    /* Options dropdown – general */
     .options-dropdown {
       display: none;
       position: absolute;
@@ -575,6 +606,20 @@
     }
     .options-dropdown button i {
       width: 18px;
+    }
+
+    .replyBox {
+      margin-left: 16px;
+      padding-left: 16px;
+      border-left: 3px solid #2a6b5f;
+      margin-top: 12px;
+      position: relative;
+    }
+
+    .timestamp {
+      font-size: 0.7rem;
+      color: #9bc5bc;
+      margin-top: 8px;
     }
 
     /* Media preview styles */
@@ -692,27 +737,6 @@
       padding: 12px;
       background: #10332e;
       border-radius: 28px;
-    }
-    .chat-message {
-      margin-bottom: 10px;
-      padding: 8px 14px;
-      border-radius: 22px;
-      max-width: 80%;
-      word-wrap: break-word;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    .chat-message.sent {
-      background: #1f8f7c;
-      color: white;
-      margin-left: auto;
-      flex-direction: row-reverse;
-    }
-    .chat-message.received {
-      background: #2b5a51;
-      color: white;
-      margin-right: auto;
     }
 
     .chat-input-area {
@@ -883,6 +907,7 @@
       .feed-scroll-container { height: 300px; }
       .avatar-grid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); }
       .avatar-option { width: 50px; height: 50px; }
+      .chat-message .message-bubble { max-width: 85%; }
     }
 
     .unread-badge {
@@ -2636,7 +2661,7 @@
       }
     }, showError);
 
-    // Chat
+    // Chat (community)
     unsubscribeChat = db.collection("chat").orderBy("created").onSnapshot(s => {
       const chatArea = document.getElementById("chatArea");
       if (chatArea) {
@@ -2664,7 +2689,7 @@
               </div>
             </div>
             ${userBadge}
-            <span>: ${parseContent(m.text)}</span>
+            <div>${parseContent(m.text)}</div>
             <div class="timestamp">${formatTimestamp(m.created)}</div>
             <div id="chatReplies${chatId}" class="replies"></div>
             <input id="chatReplyInput${chatId}" placeholder="Reply...">
@@ -3198,7 +3223,7 @@
             </div>
           </div>
           ${userBadge}
-          <span>: ${parseContent(r.text)}</span>
+          <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
         `;
         container.appendChild(replyDiv);
@@ -3379,32 +3404,50 @@
         const msg = doc.data();
         const msgId = doc.id;
         const timestampMs = msg.timestamp?.toDate ? msg.timestamp.toDate().getTime() : (msg.timestamp ? new Date(msg.timestamp).getTime() : null);
+        const isSent = msg.from === currentUser.uid;
         const div = document.createElement('div');
-        div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
+        div.className = `chat-message ${isSent ? 'sent' : 'received'}`;
         div.dataset.messageId = msgId;
         div.dataset.userId = msg.from;
         div.dataset.timestamp = timestampMs;
         div.dataset.name = msg.name || 'Unknown';
         div.dataset.kindred = '';
         div.dataset.collection = `privateChatRooms/${roomId}/messages`;
+
+        // Avatar HTML
         const avatarHtml = msg.avatar 
           ? `<img class="avatar avatar-sm" src="${msg.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+
         const canDelete = currentUser && msg.from === currentUser.uid;
-        div.innerHTML = `
-          <div class="message-options">
-            <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-            <div class="options-dropdown">
-              ${canDelete ? '<button onclick="deleteMessage(\'privateChatRooms/' + roomId + '/messages\', \'' + msgId + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
-              <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+
+        // Build message bubble
+        const messageBubble = `
+          <div class="message-bubble">
+            <div class="message-text">${parseContent(msg.text)}</div>
+            <div class="message-time">${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+            <div class="message-options">
+              <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="options-dropdown">
+                ${canDelete ? '<button onclick="deleteMessage(\'privateChatRooms/' + roomId + '/messages\', \'' + msgId + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+                <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+              </div>
             </div>
           </div>
-          ${avatarHtml}
-          <div class="message-content">
-            <div>${parseContent(msg.text)}</div>
-            <small>${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString() : ''}</small>
-          </div>
         `;
+
+        // Assemble the row: avatar + bubble
+        if (isSent) {
+          div.innerHTML = `
+            <div class="avatar-wrapper">${avatarHtml}</div>
+            ${messageBubble}
+          `;
+        } else {
+          div.innerHTML = `
+            <div class="avatar-wrapper">${avatarHtml}</div>
+            ${messageBubble}
+          `;
+        }
         container.appendChild(div);
       });
       container.scrollTop = container.scrollHeight;
