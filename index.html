@@ -281,20 +281,14 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ===== DASHBOARD GRID FOR HOME – 3 COLUMNS ===== */
+    /* ===== DASHBOARD GRID FOR HOME – 2 COLUMNS (Events & Feed) ===== */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 20px;
     }
 
-    @media (max-width: 800px) {
-      .dashboard-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 500px) {
+    @media (max-width: 600px) {
       .dashboard-grid {
         grid-template-columns: 1fr;
       }
@@ -369,13 +363,13 @@
       border-radius: 10px;
     }
 
-    /* Hide old mini preview areas – they are replaced by full containers */
-    #miniFeedArea, #miniEventArea, #miniGoodwillArea {
+    /* Hide old mini preview areas */
+    #miniFeedArea, #miniEventArea {
       display: none !important;
     }
 
-    /* Mini feed items inside full containers – simplified (no reply box) */
-    .mini-feed-item, .mini-event-item, .mini-goodwill-item {
+    /* Mini feed/event items inside full containers */
+    .mini-feed-item, .mini-event-item {
       background: #0f2d27;
       border-radius: 18px;
       padding: 12px;
@@ -487,7 +481,7 @@
     }
 
     /* ===== POST / COMMENT STYLES (shared) ===== */
-    .feed-item, .chat-item, .goodwill-item, .event-item, .project-task {
+    .feed-item, .chat-item, .event-item, .project-task {
       background: #0f2d27;
       border-radius: 24px;
       padding: 18px;
@@ -518,7 +512,7 @@
       background: #2b5a51;
       border-radius: 22px;
       padding: 10px 14px;
-      padding-right: 36px;  /* make room for options button */
+      padding-right: 36px;
       position: relative;
       word-wrap: break-word;
     }
@@ -1141,6 +1135,9 @@
       background: #000;
       border-radius: 16px;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #mediaPlayerContainer iframe,
     #mediaPlayerContainer video,
@@ -1152,6 +1149,11 @@
     #mediaPlayerContainer audio {
       height: 60px;
       margin-top: 20px;
+    }
+    .media-loading {
+      color: #b5ffe8;
+      text-align: center;
+      padding: 20px;
     }
     .media-comments-section {
       margin-top: 20px;
@@ -1421,20 +1423,14 @@
 <nav class="sidebar" id="sidebar">
   <ul class="sidebar-menu">
     <li><a href="#" data-content="home"><i class="fas fa-home"></i> Home</a></li>
-    <!-- Livestream removed -->
     <li><a href="#" data-content="events"><i class="fas fa-calendar-alt"></i> Events</a></li>
     <li><a href="#" data-content="feeds"><i class="fas fa-rss"></i> Feeds</a></li>
-    <li><a href="#" data-content="goodwill"><i class="fas fa-hand-holding-heart"></i> Goodwill Messages</a></li>
     <li><a href="#" data-content="community"><i class="fas fa-users"></i> Community Chats</a></li>
     <li><a href="#" data-content="private"><i class="fas fa-lock"></i> Private Chats</a></li>
     <li><a href="#" data-content="profile"><i class="fas fa-user"></i> Profile</a></li>
-    <!-- Ntu TV link -->
     <li><a href="#" data-content="ntuTV"><i class="fas fa-tv"></i> Ntu TV</a></li>
-    <!-- Project Board link -->
     <li><a href="#" data-content="projectBoard"><i class="fas fa-project-diagram"></i> Project Board</a></li>
-    <!-- Inbox link (now in sidebar) -->
     <li class="inbox-link"><a href="#" onclick="showInbox(); return false;"><i class="fa-regular fa-envelope"></i> Inbox</a></li>
-    <!-- Admin link – hidden by default -->
     <li class="admin-link" id="adminSidebarLink"><a href="#" data-content="admin"><i class="fas fa-cog"></i> Admin</a></li>
     <li><a href="#" id="ntuElectricityLink"><i class="fas fa-bolt"></i> Ntu Electricity</a></li>
   </ul>
@@ -1445,7 +1441,7 @@
 
 <!-- Main content -->
 <main id="mainContent">
-  <!-- HOME panel – 3‑column grid with Events, Feeds, Goodwill -->
+  <!-- HOME panel – 2‑column grid with Events, Feeds -->
   <div id="home" class="content active">
     <div class="dashboard-grid">
       <!-- Mini Events – full events list -->
@@ -1463,15 +1459,6 @@
         <div id="miniFeedFullArea" class="mini-full-scroll" style="max-height:280px;"></div>
         <div class="view-all">
           <button onclick="showContent('feeds'); event.stopPropagation();">View all</button>
-        </div>
-      </div>
-
-      <!-- Mini Goodwill – full goodwill messages -->
-      <div class="mini-card" data-expand="goodwill">
-        <h4><i class="fa-regular fa-handshake"></i> Goodwill</h4>
-        <div id="miniGoodwillFullArea" class="mini-full-scroll" style="max-height:280px;"></div>
-        <div class="view-all">
-          <button onclick="showContent('goodwill'); event.stopPropagation();">View all</button>
         </div>
       </div>
     </div>
@@ -1494,16 +1481,6 @@
     <div class="card">
       <h3><i class="fa-regular fa-calendar"></i> Events</h3>
       <div id="eventArea"></div>
-    </div>
-  </div>
-
-  <!-- GOODWILL full panel -->
-  <div id="goodwill" class="content">
-    <div class="card">
-      <h3><i class="fa-regular fa-handshake"></i> Goodwill Messages</h3>
-      <textarea id="goodwillInput" placeholder="Write a goodwill message..."></textarea>
-      <button onclick="postGoodwill()"><i class="fa-regular fa-heart"></i> Post</button>
-      <div id="goodwillArea"></div>
     </div>
   </div>
 
@@ -1536,7 +1513,7 @@
     </div>
   </div>
 
-  <!-- Ntu TV panel (with allow="autoplay") + comments/reactions -->
+  <!-- Ntu TV panel -->
   <div id="ntuTV" class="content">
     <div class="card">
       <h3><i class="fa-regular fa-tv"></i> Ntu TV</h3>
@@ -1548,7 +1525,6 @@
           <button onclick="toggleTvFullscreen()"><i class="fa-regular fa-expand"></i> Toggle Fullscreen</button>
         </div>
       </div>
-      <!-- Reactions & Comments for Ntu TV -->
       <div class="ntutv-reaction-bar">
         <button class="ntutv-reaction-btn" id="ntuTvLikeBtn" onclick="toggleNtuTvLike()">
           <i class="fa-regular fa-thumbs-up"></i> <span id="ntuTvLikeCount">0</span>
@@ -1567,7 +1543,6 @@
     <div class="card">
       <h3><i class="fa-regular fa-project-diagram"></i> Project Board</h3>
       <div class="project-board-container" id="projectBoardContainer"></div>
-      <!-- Add Task button (visible only to admin) -->
       <button class="add-task-btn" id="addTaskBtn" onclick="showAddTaskModal()" style="display:none;">➕</button>
     </div>
   </div>
@@ -1578,7 +1553,6 @@
       <h3><i class="fa-regular fa-gear"></i> Admin Panel</h3>
       <p style="margin-bottom: 15px;">Manage live stream source or start a direct camera broadcast.</p>
 
-      <!-- Existing live stream source (kept untouched) -->
       <div style="background: #0f2d27; border-radius: 24px; padding: 20px; margin-bottom: 20px;">
         <h4 style="color:#64e3cf; margin-bottom:15px;">Set External Live Stream</h4>
         <select id="livePlatformSelect">
@@ -1591,7 +1565,6 @@
         <div id="adminMessage" style="margin-top:15px;"></div>
       </div>
 
-      <!-- Video Studio -->
       <div style="background: #0f2d27; border-radius: 24px; padding: 20px;">
         <h4 style="color:#64e3cf; margin-bottom:15px;"><i class="fa-regular fa-camera"></i> Video Studio</h4>
         <video id="adminLocalVideo" autoplay muted playsinline style="width:100%; max-height:200px; background:#000; border-radius:16px; margin-bottom:10px;"></video>
@@ -1721,7 +1694,6 @@
   </div>
 </div>
 
-<!-- Media Player Modal with Comments and Reactions -->
 <div id="mediaPlayerModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeMediaPlayer()">&times;</span>
@@ -1739,7 +1711,6 @@
   </div>
 </div>
 
-<!-- Task Modal (for adding/editing tasks) -->
 <div id="taskModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeTaskModal()">&times;</span>
@@ -1756,7 +1727,6 @@
   </div>
 </div>
 
-<!-- Info Modal (for message details) – simplified -->
 <div id="infoModal" class="modal" style="display:none;">
   <div class="modal-content">
     <span class="close" onclick="closeInfoModal()">&times;</span>
@@ -1874,12 +1844,10 @@
   // ==================== OPTIONS DROPDOWN ====================
   function toggleOptions(btn) {
     const dropdown = btn.nextElementSibling;
-    // Close all other dropdowns
     document.querySelectorAll('.options-dropdown.show').forEach(d => {
       if (d !== dropdown) d.classList.remove('show');
     });
     dropdown.classList.toggle('show');
-    // Click outside to close
     setTimeout(() => {
       const closeHandler = (e) => {
         if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
@@ -1989,7 +1957,7 @@
       .catch(showError);
   };
 
-  // ==================== CENTRAL MEDIA PLAYER WITH COMMENTS ====================
+  // ==================== CENTRAL MEDIA PLAYER ====================
   const mediaPlayerModal = document.getElementById('mediaPlayerModal');
   const mediaPlayerContainer = document.getElementById('mediaPlayerContainer');
   const mediaCommentsSection = document.getElementById('mediaCommentsSection');
@@ -2040,6 +2008,8 @@
     currentMediaUrl = url;
     currentMediaId = encodeMediaId(url);
 
+    mediaPlayerContainer.innerHTML = '<div class="media-loading"><i class="fas fa-spinner fa-pulse"></i> Loading media...</div>';
+
     const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (ytMatch) {
       const videoId = ytMatch[1];
@@ -2047,40 +2017,55 @@
       iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
       iframe.allow = 'autoplay; encrypted-media';
       iframe.allowFullscreen = true;
+      mediaPlayerContainer.innerHTML = '';
       mediaPlayerContainer.appendChild(iframe);
-    } else {
-      const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
-      if (driveMatch) {
-        const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
-        const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-        const iframe = document.createElement('iframe');
-        iframe.src = embedUrl;
-        iframe.allow = 'autoplay';
-        iframe.allowFullscreen = true;
-        mediaPlayerContainer.appendChild(iframe);
-      } else {
-        const isAudio = url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i);
-        const isVideo = url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i);
-        if (isAudio || isVideo) {
-          const element = document.createElement(isAudio ? 'audio' : 'video');
-          element.controls = true;
-          element.autoplay = true;
-          element.style.width = '100%';
-          element.style.height = isAudio ? '60px' : '100%';
-          element.src = url;
-          mediaPlayerContainer.appendChild(element);
-          currentNativeMedia = element;
-        } else {
-          const img = document.createElement('img');
-          img.src = url;
-          img.style.maxWidth = '100%';
-          img.style.maxHeight = '100%';
-          img.style.objectFit = 'contain';
-          mediaPlayerContainer.appendChild(img);
-        }
-      }
+      mediaPlayerModal.style.display = 'flex';
+      loadMediaComments();
+      loadMediaLikes();
+      return;
     }
 
+    const driveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([^\/?#]+)|open\?id=([^&#]+)|uc\?id=([^&#]+))/);
+    if (driveMatch) {
+      const fileId = driveMatch[1] || driveMatch[2] || driveMatch[3];
+      const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+      const iframe = document.createElement('iframe');
+      iframe.src = embedUrl;
+      iframe.allow = 'autoplay';
+      iframe.allowFullscreen = true;
+      mediaPlayerContainer.innerHTML = '';
+      mediaPlayerContainer.appendChild(iframe);
+      mediaPlayerModal.style.display = 'flex';
+      loadMediaComments();
+      loadMediaLikes();
+      return;
+    }
+
+    const isAudio = url.match(/\.(mp3|wav|ogg|m4a|flac|aac)(\?.*)?$/i);
+    const isVideo = url.match(/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)(\?.*)?$/i);
+    if (isAudio || isVideo) {
+      const element = document.createElement(isAudio ? 'audio' : 'video');
+      element.controls = true;
+      element.autoplay = true;
+      element.style.width = '100%';
+      element.style.height = isAudio ? '60px' : '100%';
+      element.src = url;
+      mediaPlayerContainer.innerHTML = '';
+      mediaPlayerContainer.appendChild(element);
+      currentNativeMedia = element;
+      mediaPlayerModal.style.display = 'flex';
+      loadMediaComments();
+      loadMediaLikes();
+      return;
+    }
+
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '100%';
+    img.style.objectFit = 'contain';
+    mediaPlayerContainer.innerHTML = '';
+    mediaPlayerContainer.appendChild(img);
     mediaPlayerModal.style.display = 'flex';
     loadMediaComments();
     loadMediaLikes();
@@ -2296,7 +2281,6 @@
     } catch (e) { return ''; }
   }
 
-  // Helper: format date as "Month Day, Year - h:mmam/pm" (no seconds)
   function formatMessageInfoDate(date) {
     if (!date || isNaN(date.getTime())) return 'Unknown';
     const optionsDate = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -2536,16 +2520,15 @@
       }, error => console.error('Rooms listener error:', error));
   }
 
-  // ==================== INFO MODAL (simplified) ====================
+  // ==================== INFO MODAL ====================
   window.showMessageInfo = async function(btn) {
     const msgDiv = btn.closest('[data-message-id]');
     if (!msgDiv) return;
     const msgId = msgDiv.dataset.messageId;
-    const timestampRaw = msgDiv.dataset.timestamp; // should be milliseconds number as string
+    const timestampRaw = msgDiv.dataset.timestamp;
     const collection = msgDiv.dataset.collection;
     const userId = msgDiv.dataset.userId;
 
-    // Parse timestamp
     let sentFormatted = 'Unknown';
     if (timestampRaw && timestampRaw !== 'null') {
       const ms = parseInt(timestampRaw, 10);
@@ -2557,7 +2540,6 @@
       }
     }
 
-    // Determine read status: only for messages the current user sent in private chats
     let readStatusHtml = '';
     if (currentUser && userId === currentUser.uid && collection && collection.includes('privateChatRooms/')) {
       const parts = collection.split('/');
@@ -2581,19 +2563,15 @@
     document.getElementById('infoModal').style.display = 'none';
   };
 
-  // ==================== AUTH STATE ====================
-  // We'll store unsubscribe functions for all main listeners
+  // ==================== MAIN LISTENERS ====================
   let unsubscribeFeed = null;
   let unsubscribeChat = null;
-  let unsubscribeGoodwill = null;
   let unsubscribeEvents = null;
   let unsubscribeProjectBoard = null;
 
   function setupAllListeners() {
-    // Clean up existing listeners
     if (unsubscribeFeed) unsubscribeFeed();
     if (unsubscribeChat) unsubscribeChat();
-    if (unsubscribeGoodwill) unsubscribeGoodwill();
     if (unsubscribeEvents) unsubscribeEvents();
     if (unsubscribeProjectBoard) unsubscribeProjectBoard();
 
@@ -2666,7 +2644,7 @@
       }
     }, showError);
 
-    // Chat (community)
+    // Community Chat
     unsubscribeChat = db.collection("chat").orderBy("created").onSnapshot(s => {
       const chatArea = document.getElementById("chatArea");
       if (chatArea) {
@@ -2705,66 +2683,6 @@
           loadChatReplies(chatId);
         });
         attachMediaPreviewClick(chatArea);
-      }
-    }, showError);
-
-    // Goodwill
-    unsubscribeGoodwill = db.collection("goodwill").orderBy("created", "desc").onSnapshot(s => {
-      const goodwillArea = document.getElementById("goodwillArea");
-      if (goodwillArea) {
-        goodwillArea.innerHTML = "";
-        s.forEach(doc => {
-          const g = doc.data();
-          const goodwillId = doc.id;
-          const timestampMs = g.created?.toDate ? g.created.toDate().getTime() : (g.created ? new Date(g.created).getTime() : null);
-          const goodwillDiv = document.createElement('div');
-          goodwillDiv.className = "goodwill-item";
-          goodwillDiv.dataset.messageId = goodwillId;
-          goodwillDiv.dataset.userId = g.userId || '';
-          goodwillDiv.dataset.timestamp = timestampMs;
-          goodwillDiv.dataset.name = g.name || '';
-          goodwillDiv.dataset.kindred = g.kindred || '';
-          goodwillDiv.dataset.collection = 'goodwill';
-          const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
-          const canDelete = currentUser && g.userId === currentUser.uid;
-          goodwillDiv.innerHTML = `
-            <div class="message-options">
-              <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-              <div class="options-dropdown">
-                ${canDelete ? '<button onclick="deleteMessage(\'goodwill\', \'' + goodwillId + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
-                <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
-              </div>
-            </div>
-            ${userBadge}
-            <div>${parseContent(g.text)}</div>
-            <div class="timestamp">${formatTimestamp(g.created)}</div>
-            <div id="goodwillReplies${goodwillId}" class="replies"></div>
-            <input id="goodwillReplyInput${goodwillId}" placeholder="Reply...">
-            <button onclick="replyGoodwill('${goodwillId}')">Reply</button>
-          `;
-          goodwillArea.appendChild(goodwillDiv);
-          addReactionUI('goodwill', goodwillId, goodwillDiv);
-          loadGoodwillReplies(goodwillId);
-        });
-        attachMediaPreviewClick(goodwillArea);
-      }
-
-      const miniGoodwillFull = document.getElementById("miniGoodwillFullArea");
-      if (miniGoodwillFull) {
-        miniGoodwillFull.innerHTML = "";
-        s.forEach(doc => {
-          const g = doc.data();
-          const goodwillDiv = document.createElement('div');
-          goodwillDiv.className = "mini-goodwill-item";
-          const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
-          goodwillDiv.innerHTML = `
-            ${userBadge}
-            <div>${parseContent(g.text)}</div>
-            <div class="timestamp">${formatRelativeTime(g.created)}</div>
-          `;
-          miniGoodwillFull.appendChild(goodwillDiv);
-        });
-        attachMediaPreviewClick(miniGoodwillFull);
       }
     }, showError);
 
@@ -2892,10 +2810,8 @@
         const addTaskBtn = document.getElementById('addTaskBtn');
         if (addTaskBtn) addTaskBtn.style.display = currentUserIsAdmin ? 'flex' : 'none';
 
-        // Re‑attach all main listeners with the new currentUser
         setupAllListeners();
 
-        // Ntu TV listeners (they depend on currentUser)
         loadNtuTvComments();
         loadNtuTvLikes();
 
@@ -2920,10 +2836,8 @@
       const addTaskBtn = document.getElementById('addTaskBtn');
       if (addTaskBtn) addTaskBtn.style.display = 'none';
 
-      // Re‑attach listeners (will now show no delete buttons because currentUser is null)
       setupAllListeners();
 
-      // Ntu TV listeners
       loadNtuTvComments();
       loadNtuTvLikes();
     }
@@ -3062,7 +2976,47 @@
     }
   };
 
-  // ==================== REPLY FUNCTIONS ====================
+  // ==================== POST & REPLY FUNCTIONS ====================
+  window.sendChat = function() {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("chatInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("chat").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          avatar: userData.avatar || null,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
+  window.postFeed = function() {
+    if (!currentUser) return alert("Login required");
+    const input = document.getElementById("feedInput");
+    if (!input.value.trim()) return;
+    db.collection("users").doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection("feed").add({
+          text: input.value,
+          name: userData.name ?? null,
+          kindred: userData.kindred ?? null,
+          userId: currentUser.uid,
+          avatar: userData.avatar || null,
+          created: Date.now()
+        });
+      })
+      .then(() => { input.value = ""; })
+      .catch(showError);
+  };
+
   window.replyFeed = function (id) {
     if (!currentUser) return alert("Login required");
     const input = document.getElementById("replyFeed" + id);
@@ -3091,26 +3045,6 @@
       .then(u => {
         const userData = u.data() || {};
         return db.collection("chat").doc(chatId).collection("replies").add({
-          text: input.value,
-          name: userData.name ?? null,
-          kindred: userData.kindred ?? null,
-          userId: currentUser.uid,
-          avatar: userData.avatar || null,
-          created: Date.now()
-        });
-      })
-      .then(() => { input.value = ""; })
-      .catch(showError);
-  };
-
-  window.replyGoodwill = function (goodwillId) {
-    if (!currentUser) return alert("Login required");
-    const input = document.getElementById("goodwillReplyInput" + goodwillId);
-    if (!input || !input.value.trim()) return;
-    db.collection("users").doc(currentUser.uid).get()
-      .then(u => {
-        const userData = u.data() || {};
-        return db.collection("goodwill").doc(goodwillId).collection("replies").add({
           text: input.value,
           name: userData.name ?? null,
           kindred: userData.kindred ?? null,
@@ -3233,43 +3167,6 @@
         `;
         container.appendChild(replyDiv);
         addReactionUI(`chat/${chatId}/replies`, doc.id, replyDiv);
-      });
-      attachMediaPreviewClick(container);
-    }, showError);
-  }
-
-  function loadGoodwillReplies(goodwillId) {
-    db.collection("goodwill").doc(goodwillId).collection("replies").orderBy("created").onSnapshot(s => {
-      const container = document.getElementById("goodwillReplies" + goodwillId);
-      if (!container) return;
-      container.innerHTML = "";
-      s.forEach(doc => {
-        const r = doc.data();
-        const timestampMs = r.created?.toDate ? r.created.toDate().getTime() : (r.created ? new Date(r.created).getTime() : null);
-        const replyDiv = document.createElement('div');
-        replyDiv.className = "replyBox";
-        replyDiv.dataset.messageId = doc.id;
-        replyDiv.dataset.userId = r.userId || '';
-        replyDiv.dataset.timestamp = timestampMs;
-        replyDiv.dataset.name = r.name || '';
-        replyDiv.dataset.kindred = r.kindred || '';
-        replyDiv.dataset.collection = `goodwill/${goodwillId}/replies`;
-        const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
-        const canDelete = currentUser && r.userId === currentUser.uid;
-        replyDiv.innerHTML = `
-          <div class="message-options">
-            <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-            <div class="options-dropdown">
-              ${canDelete ? '<button onclick="deleteMessage(\'goodwill/' + goodwillId + '/replies\', \'' + doc.id + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
-              <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
-            </div>
-          </div>
-          ${userBadge}
-          <div>${parseContent(r.text)}</div>
-          <div class="timestamp">${formatTimestamp(r.created)}</div>
-        `;
-        container.appendChild(replyDiv);
-        addReactionUI(`goodwill/${goodwillId}/replies`, doc.id, replyDiv);
       });
       attachMediaPreviewClick(container);
     }, showError);
@@ -3419,14 +3316,12 @@
         div.dataset.kindred = '';
         div.dataset.collection = `privateChatRooms/${roomId}/messages`;
 
-        // Avatar HTML
         const avatarHtml = msg.avatar 
           ? `<img class="avatar avatar-sm" src="${msg.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
 
         const canDelete = currentUser && msg.from === currentUser.uid;
 
-        // Build message bubble with options button inside
         const messageBubble = `
           <div class="message-bubble">
             <div class="message-text">${parseContent(msg.text)}</div>
@@ -3441,7 +3336,6 @@
           </div>
         `;
 
-        // Assemble the row: avatar + bubble
         div.innerHTML = `
           <div class="avatar-wrapper">${avatarHtml}</div>
           ${messageBubble}
@@ -3629,7 +3523,7 @@
       .catch(showError);
   };
 
-  // ==================== PROJECT BOARD (TASKS) ====================
+  // ==================== PROJECT BOARD ====================
   function renderBoard(tasks) {
     const container = document.getElementById('projectBoardContainer');
     if (!container) return;
@@ -3840,7 +3734,7 @@
     document.getElementById('taskModalMessage').innerHTML = '';
   };
 
-  // ==================== VIDEO STUDIO (WebRTC broadcast) ====================
+  // ==================== VIDEO STUDIO ====================
   let adminPeer = null;
   let adminLocalStream = null;
   let viewerPeer = null;
@@ -3851,11 +3745,7 @@
   let isBroadcasting = false;
 
   const VIDEO_CONSTRAINTS = {
-    video: {
-      facingMode: { ideal: 'environment' },
-      width: { ideal: 1280, min: 640 },
-      height: { ideal: 720, min: 480 }
-    },
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280, min: 640 }, height: { ideal: 720, min: 480 } },
     audio: true
   };
 
@@ -3874,169 +3764,61 @@
     if (!currentUser) return alert('You must be logged in.');
     const admin = await isAdminUser();
     if (!admin) return alert('Admin privileges required.');
-
-    if (isBroadcasting) {
-      console.log('Already broadcasting');
-      return;
-    }
+    if (isBroadcasting) return;
 
     try {
-      if (adminLocalStream) {
-        adminLocalStream.getTracks().forEach(track => track.stop());
-      }
-
+      if (adminLocalStream) adminLocalStream.getTracks().forEach(track => track.stop());
       adminLocalStream = await navigator.mediaDevices.getUserMedia(VIDEO_CONSTRAINTS);
-      
       const localVideo = document.getElementById('adminLocalVideo');
       localVideo.srcObject = adminLocalStream;
       localVideo.muted = true;
       localVideo.setAttribute('playsinline', 'true');
-      
-      try {
-        await localVideo.play();
-      } catch (e) {
-        console.log('Autoplay prevented, waiting for interaction:', e);
-      }
+      await localVideo.play().catch(e => console.log('Autoplay prevented'));
 
       broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
-      
       adminPeer = new Peer(broadcastPeerId, {
-        host: '0.peerjs.com',
-        port: 443,
-        path: '/',
-        secure: true,
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' }
-          ]
-        },
+        host: '0.peerjs.com', port: 443, path: '/', secure: true,
+        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun2.l.google.com:19302' }] },
         debug: 2
       });
 
       adminPeer.on('open', (id) => {
-        console.log('Broadcast peer ready:', id);
         isBroadcasting = true;
-        
-        db.collection('broadcast').doc('active').set({
-          active: true,
-          peerId: id,
-          startedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          adminUid: currentUser.uid,
-          facingMode: currentFacingMode
-        }).catch(console.error);
-        
+        db.collection('broadcast').doc('active').set({ active: true, peerId: id, startedAt: firebase.firestore.FieldValue.serverTimestamp(), adminUid: currentUser.uid, facingMode: currentFacingMode }).catch(console.error);
         updateBroadcastUI(true, id);
       });
 
       adminPeer.on('call', (call) => {
-        console.log('Incoming viewer call:', call.peer);
-        
         call.answer(adminLocalStream);
         activeCalls.push(call);
-        
-        call.on('stream', (remoteStream) => {
-          console.log('Received stream from viewer (unexpected)');
-        });
-        
-        call.on('close', () => {
-          console.log('Viewer disconnected:', call.peer);
-          activeCalls = activeCalls.filter(c => c !== call);
-        });
-        
-        call.on('error', (err) => {
-          console.error('Call error with', call.peer, ':', err);
-          activeCalls = activeCalls.filter(c => c !== call);
-        });
+        call.on('close', () => { activeCalls = activeCalls.filter(c => c !== call); });
+        call.on('error', (err) => console.error('Call error:', err));
       });
 
       adminPeer.on('error', (err) => {
         console.error('Peer error:', err);
-        if (err.type === 'unavailable-id') {
-          alert('Broadcast ID already in use. Please try again.');
-        } else {
-          alert('Broadcast error: ' + err.message);
-        }
+        if (err.type === 'unavailable-id') alert('Broadcast ID already in use. Please try again.');
+        else alert('Broadcast error: ' + err.message);
         stopBroadcast();
       });
 
-      adminPeer.on('disconnected', () => {
-        console.log('Peer disconnected, attempting reconnect...');
-        adminPeer.reconnect();
-      });
-
+      adminPeer.on('disconnected', () => adminPeer.reconnect());
     } catch (err) {
       console.error('Broadcast start error:', err);
-      if (err.name === 'NotAllowedError') {
-        alert('Camera permission denied. Please allow camera access and try again.');
-      } else if (err.name === 'NotFoundError') {
-        alert('No camera found. Please ensure your device has a camera.');
-      } else if (err.name === 'OverconstrainedError') {
-        alert('Camera constraints not met. Trying with default settings...');
-        tryFallbackCamera();
-      } else {
-        alert('Could not start broadcast: ' + err.message);
-      }
+      if (err.name === 'NotAllowedError') alert('Camera permission denied. Please allow camera access and try again.');
+      else if (err.name === 'NotFoundError') alert('No camera found. Please ensure your device has a camera.');
+      else if (err.name === 'OverconstrainedError') alert('Camera constraints not met. Trying with default settings...');
+      else alert('Could not start broadcast: ' + err.message);
       stopBroadcast();
     }
   };
 
-  async function tryFallbackCamera() {
-    try {
-      adminLocalStream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: true 
-      });
-      
-      const localVideo = document.getElementById('adminLocalVideo');
-      localVideo.srcObject = adminLocalStream;
-      localVideo.play().catch(console.error);
-      
-      broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
-      adminPeer = new Peer(broadcastPeerId, {
-        secure: true,
-        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-      });
-      
-      // Re-attach handlers (simplified for brevity)
-    } catch (err) {
-      alert('Fallback camera also failed: ' + err.message);
-    }
-  }
-
   window.stopBroadcast = async function() {
-    console.log('Stopping broadcast...');
-    
-    activeCalls.forEach(call => {
-      try { call.close(); } catch(e) {}
-    });
+    activeCalls.forEach(call => { try { call.close(); } catch(e) {} });
     activeCalls = [];
-
-    if (adminPeer) {
-      try {
-        adminPeer.destroy();
-      } catch(e) {}
-      adminPeer = null;
-    }
-
-    if (adminLocalStream) {
-      adminLocalStream.getTracks().forEach(track => {
-        track.stop();
-        console.log('Stopped track:', track.kind);
-      });
-      adminLocalStream = null;
-    }
-
-    try {
-      await db.collection('broadcast').doc('active').set({ 
-        active: false,
-        stoppedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-    } catch(e) {
-      console.error('Error updating broadcast status:', e);
-    }
-
+    if (adminPeer) { try { adminPeer.destroy(); } catch(e) {} adminPeer = null; }
+    if (adminLocalStream) { adminLocalStream.getTracks().forEach(track => track.stop()); adminLocalStream = null; }
+    try { await db.collection('broadcast').doc('active').set({ active: false, stoppedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }); } catch(e) {}
     document.getElementById('adminLocalVideo').srcObject = null;
     isBroadcasting = false;
     broadcastPeerId = null;
@@ -4048,202 +3830,78 @@
     const startBtn = document.getElementById('startBroadcastBtn');
     const switchBtn = document.getElementById('switchCamBtn');
     const stopBtn = document.getElementById('stopBroadcastBtn');
-
     if (isLive) {
-      statusEl.style.display = 'block';
-      statusEl.className = 'broadcast-status live';
-      statusEl.innerHTML = `🔴 LIVE<br><small>Peer ID: ${peerId}</small>`;
-      startBtn.disabled = true;
-      switchBtn.disabled = false;
-      stopBtn.disabled = false;
+      statusEl.style.display = 'block'; statusEl.className = 'broadcast-status live'; statusEl.innerHTML = `🔴 LIVE<br><small>Peer ID: ${peerId}</small>`;
+      startBtn.disabled = true; switchBtn.disabled = false; stopBtn.disabled = false;
     } else {
-      statusEl.style.display = 'none';
-      statusEl.className = 'broadcast-status';
-      statusEl.innerText = '';
-      startBtn.disabled = false;
-      switchBtn.disabled = true;
-      stopBtn.disabled = true;
+      statusEl.style.display = 'none'; statusEl.className = 'broadcast-status'; statusEl.innerText = '';
+      startBtn.disabled = false; switchBtn.disabled = true; stopBtn.disabled = true;
     }
   }
 
   window.switchCamera = async function() {
-    if (!isBroadcasting || !adminLocalStream) {
-      console.log('Cannot switch: not broadcasting');
-      return;
-    }
-
+    if (!isBroadcasting || !adminLocalStream) return;
     currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-    console.log('Switching to:', currentFacingMode);
-
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: { exact: currentFacingMode },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: true
-      });
-
+      const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true });
       const newVideoTrack = newStream.getVideoTracks()[0];
       const newAudioTrack = newStream.getAudioTracks()[0];
+      if (!newVideoTrack) throw new Error('No video track in new stream');
 
-      if (!newVideoTrack) {
-        throw new Error('No video track in new stream');
-      }
-
-      const replacePromises = activeCalls.map(async (call) => {
-        try {
-          const senders = call.peerConnection.getSenders();
-          
-          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-          if (videoSender) {
-            await videoSender.replaceTrack(newVideoTrack);
-            console.log('Replaced video track for', call.peer);
-          }
-
-          if (newAudioTrack) {
-            const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
-            if (audioSender) {
-              await audioSender.replaceTrack(newAudioTrack);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to replace track for', call.peer, ':', err);
+      await Promise.all(activeCalls.map(async (call) => {
+        const senders = call.peerConnection.getSenders();
+        const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+        if (videoSender) await videoSender.replaceTrack(newVideoTrack);
+        if (newAudioTrack) {
+          const audioSender = senders.find(s => s.track && s.track.kind === 'audio');
+          if (audioSender) await audioSender.replaceTrack(newAudioTrack);
         }
-      });
-
-      await Promise.all(replacePromises);
+      }));
 
       const oldVideoTrack = adminLocalStream.getVideoTracks()[0];
       const oldAudioTrack = adminLocalStream.getAudioTracks()[0];
-      
-      if (oldVideoTrack) {
-        adminLocalStream.removeTrack(oldVideoTrack);
-        oldVideoTrack.stop();
-      }
-      if (oldAudioTrack) {
-        adminLocalStream.removeTrack(oldAudioTrack);
-        oldAudioTrack.stop();
-      }
-      
+      if (oldVideoTrack) { adminLocalStream.removeTrack(oldVideoTrack); oldVideoTrack.stop(); }
+      if (oldAudioTrack) { adminLocalStream.removeTrack(oldAudioTrack); oldAudioTrack.stop(); }
       adminLocalStream.addTrack(newVideoTrack);
-      if (newAudioTrack) {
-        adminLocalStream.addTrack(newAudioTrack);
-      }
-
-      const localVideo = document.getElementById('adminLocalVideo');
-      localVideo.srcObject = adminLocalStream;
-      
-      db.collection('broadcast').doc('active').update({
-        facingMode: currentFacingMode
-      }).catch(console.error);
-
-      console.log('Camera switch successful');
-
+      if (newAudioTrack) adminLocalStream.addTrack(newAudioTrack);
+      document.getElementById('adminLocalVideo').srcObject = adminLocalStream;
+      db.collection('broadcast').doc('active').update({ facingMode: currentFacingMode }).catch(console.error);
     } catch (err) {
       console.error('Camera switch failed:', err);
-      if (err.name === 'OverconstrainedError') {
-        alert(`Cannot switch to ${currentFacingMode} camera. It may not be available.`);
-        currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-      } else {
-        alert('Failed to switch camera: ' + err.message);
-      }
+      if (err.name === 'OverconstrainedError') alert(`Cannot switch to ${currentFacingMode} camera. It may not be available.`);
+      else alert('Failed to switch camera: ' + err.message);
     }
   };
 
   // ==================== VIEWER CONNECTION ====================
-  let viewerPeers = {};
-
   function connectToBroadcast(peerId) {
     if (!peerId) return;
-    
-    console.log('Connecting to broadcast:', peerId);
-    
-    if (viewerCall) {
-      try { viewerCall.close(); } catch(e) {}
-      viewerCall = null;
-    }
-    if (viewerPeer) {
-      try { viewerPeer.destroy(); } catch(e) {}
-      viewerPeer = null;
-    }
+    if (viewerCall) { try { viewerCall.close(); } catch(e) {} viewerCall = null; }
+    if (viewerPeer) { try { viewerPeer.destroy(); } catch(e) {} viewerPeer = null; }
 
-    viewerPeer = new Peer({
-      secure: true,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      }
-    });
-
+    viewerPeer = new Peer({ secure: true, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } });
     viewerPeer.on('open', () => {
-      console.log('Viewer peer ready, calling broadcaster...');
-      
       const call = viewerPeer.call(peerId, null);
       viewerCall = call;
-
-      if (!call) {
-        console.error('Failed to create call');
-        showEmbedFallback();
-        return;
-      }
-
+      if (!call) { console.error('Failed to create call'); showEmbedFallback(); return; }
       call.on('stream', (remoteStream) => {
-        console.log('Received broadcast stream');
-        
         const liveVideo = document.getElementById('liveWebRTCVideo');
-        if (liveVideo) {
-          liveVideo.srcObject = remoteStream;
-          liveVideo.setAttribute('playsinline', 'true');
-          liveVideo.play().catch(e => {
-            console.log('Autoplay prevented, user interaction needed');
-            liveVideo.controls = true;
-          });
-        }
-        
+        if (liveVideo) { liveVideo.srcObject = remoteStream; liveVideo.setAttribute('playsinline', 'true'); liveVideo.play().catch(e => { liveVideo.controls = true; }); }
         const miniVideo = document.getElementById('miniLiveWebRTCVideo');
-        if (miniVideo) {
-          miniVideo.srcObject = remoteStream;
-          miniVideo.setAttribute('playsinline', 'true');
-          miniVideo.play().catch(console.error);
-        }
+        if (miniVideo) { miniVideo.srcObject = remoteStream; miniVideo.setAttribute('playsinline', 'true'); miniVideo.play().catch(console.error); }
       });
-
-      call.on('close', () => {
-        console.log('Broadcast ended (call closed)');
-        showEmbedFallback();
-      });
-
-      call.on('error', (err) => {
-        console.error('Viewer call error:', err);
-        showEmbedFallback();
-      });
-
-      setTimeout(() => {
-        const liveVideo = document.getElementById('liveWebRTCVideo');
-        if (!liveVideo || !liveVideo.srcObject) {
-          console.log('Connection timeout, no stream received');
-          showEmbedFallback();
-        }
-      }, 10000);
+      call.on('close', () => showEmbedFallback());
+      call.on('error', () => showEmbedFallback());
+      setTimeout(() => { const liveVideo = document.getElementById('liveWebRTCVideo'); if (!liveVideo || !liveVideo.srcObject) showEmbedFallback(); }, 10000);
     });
-
-    viewerPeer.on('error', (err) => {
-      console.error('Viewer peer error:', err);
-      showEmbedFallback();
-    });
+    viewerPeer.on('error', () => showEmbedFallback());
   }
 
   function showEmbedFallback() {
-    console.log('Showing fallback/offline state');
     document.getElementById('liveWebRTCContainer').style.display = 'none';
     document.getElementById('liveArea').style.display = 'block';
     document.getElementById('miniLiveWebRTCContainer').style.display = 'none';
     document.getElementById('miniLiveArea').style.display = 'block';
-    
     const liveVideo = document.getElementById('liveWebRTCVideo');
     const miniVideo = document.getElementById('miniLiveWebRTCVideo');
     if (liveVideo) liveVideo.srcObject = null;
@@ -4252,22 +3910,13 @@
 
   let broadcastUnsubscribe = null;
   let lastPeerId = null;
-
   function setupBroadcastListener() {
-    if (broadcastUnsubscribe) {
-      broadcastUnsubscribe();
-    }
-
+    if (broadcastUnsubscribe) broadcastUnsubscribe();
     broadcastUnsubscribe = db.collection('broadcast').doc('active').onSnapshot((doc) => {
-      if (!doc.exists) {
-        showEmbedFallback();
-        return;
-      }
-
+      if (!doc.exists) { showEmbedFallback(); return; }
       const data = doc.data();
       const isActive = data.active === true;
       const peerId = data.peerId;
-
       if (isActive && peerId && peerId !== lastPeerId) {
         lastPeerId = peerId;
         connectToBroadcast(peerId);
@@ -4278,17 +3927,10 @@
       } else if (!isActive) {
         lastPeerId = null;
         showEmbedFallback();
-        if (viewerCall) {
-          try { viewerCall.close(); } catch(e) {}
-          viewerCall = null;
-        }
+        if (viewerCall) { try { viewerCall.close(); } catch(e) {} viewerCall = null; }
       }
-    }, (err) => {
-      console.error('Broadcast listener error:', err);
-      showEmbedFallback();
-    });
+    }, (err) => { console.error('Broadcast listener error:', err); showEmbedFallback(); });
   }
-
   setupBroadcastListener();
 
   // ==================== SIDEBAR TOGGLE & CONTENT SWITCHING ====================
@@ -4307,24 +3949,10 @@
     updateFloatingButtonVisibility();
   }
 
-  toggleBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleSidebar();
-  });
+  toggleBtn.addEventListener('click', function(e) { e.stopPropagation(); toggleSidebar(); });
+  floatingToggle.addEventListener('click', function(e) { e.stopPropagation(); toggleSidebar(); });
+  overlay.addEventListener('click', function() { sidebar.classList.remove('open'); overlay.classList.remove('active'); updateHeaderMarqueeVisibility(); updateFloatingButtonVisibility(); });
 
-  floatingToggle.addEventListener('click', function(e) {
-    e.stopPropagation();
-    toggleSidebar();
-  });
-
-  overlay.addEventListener('click', function() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('active');
-    updateHeaderMarqueeVisibility();
-    updateFloatingButtonVisibility();
-  });
-
-  // ==================== NTU TV AUTO START/STOP ====================
   let ntuTVOriginalSrc = 'https://unrelished-commissively-reginia.ngrok-free.dev/';
   let ntuTVIframe = document.getElementById('ntuIframe');
   let ntuTVActive = false;
@@ -4334,9 +3962,7 @@
     if (ntuTVIframe) {
       ntuTVIframe.src = ntuTVOriginalSrc;
       ntuTVActive = true;
-      if (mediaPlayerModal.style.display === 'flex') {
-        closeMediaPlayer();
-      }
+      if (mediaPlayerModal.style.display === 'flex') closeMediaPlayer();
       loadNtuTvComments();
       loadNtuTvLikes();
     }
@@ -4352,11 +3978,9 @@
     if (unsubscribeNtuTvLikes) unsubscribeNtuTvLikes();
   }
 
-  // ==================== CONTENT SWITCHING ====================
   window.showContent = function(targetId) {
     if (targetId === 'admin') {
       if (!currentUserIsAdmin) {
-        console.warn('Non-admin attempted to access admin panel');
         contentDivs.forEach(div => div.classList.remove('active'));
         document.getElementById('accessDenied').classList.add('active');
         currentContent = 'accessDenied';
@@ -4365,7 +3989,6 @@
       }
       const adminPanel = document.getElementById('admin');
       if (!adminPanel.classList.contains('admin-enabled')) {
-        console.warn('Admin panel not enabled');
         contentDivs.forEach(div => div.classList.remove('active'));
         document.getElementById('accessDenied').classList.add('active');
         currentContent = 'accessDenied';
@@ -4373,7 +3996,6 @@
         return;
       }
     }
-
     contentDivs.forEach(div => div.classList.remove('active'));
     const targetDiv = document.getElementById(targetId);
     if (targetDiv) {
@@ -4381,72 +4003,25 @@
       currentContent = targetId;
     }
     updateHeaderMarqueeVisibility();
-
-    if (targetId === 'ntuTV') {
-      startNtuTV();
-    } else {
-      stopNtuTV();
-    }
-
-    if (targetId === 'projectBoard') {
-      // Project board listener is already active via setupAllListeners
-    }
+    if (targetId === 'ntuTV') startNtuTV();
+    else stopNtuTV();
+    if (targetId === 'projectBoard') { /* already listening */ }
   };
 
-  window.showNtuTV = function() {
-    showContent('ntuTV');
-  };
-
-  window.toggleTvFullscreen = function() {
-    const iframe = document.getElementById('ntuIframe');
-    if (iframe.requestFullscreen) {
-      iframe.requestFullscreen();
-    } else if (iframe.webkitRequestFullscreen) {
-      iframe.webkitRequestFullscreen();
-    } else if (iframe.msRequestFullscreen) {
-      iframe.msRequestFullscreen();
-    }
-  };
+  window.showNtuTV = function() { showContent('ntuTV'); };
+  window.toggleTvFullscreen = function() { const iframe = document.getElementById('ntuIframe'); if (iframe.requestFullscreen) iframe.requestFullscreen(); else if (iframe.webkitRequestFullscreen) iframe.webkitRequestFullscreen(); else if (iframe.msRequestFullscreen) iframe.msRequestFullscreen(); };
 
   sidebarLinks.forEach(link => {
     link.addEventListener('click', function(e) {
       e.preventDefault();
       const targetId = this.getAttribute('data-content');
       showContent(targetId);
-      if (targetId === 'home') {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('active');
-        updateHeaderMarqueeVisibility();
-        updateFloatingButtonVisibility();
-      } else {
-        if (window.innerWidth < 992) {
-          sidebar.classList.remove('open');
-          overlay.classList.remove('active');
-          updateFloatingButtonVisibility();
-        }
-      }
+      if (targetId === 'home') { sidebar.classList.remove('open'); overlay.classList.remove('active'); updateHeaderMarqueeVisibility(); updateFloatingButtonVisibility(); }
+      else { if (window.innerWidth < 992) { sidebar.classList.remove('open'); overlay.classList.remove('active'); updateFloatingButtonVisibility(); } }
     });
   });
-
-  ntuLink.addEventListener('click', function(e) {
-    e.preventDefault();
-    showContent('electricity');
-    if (window.innerWidth < 992) {
-      sidebar.classList.remove('open');
-      overlay.classList.remove('active');
-      updateFloatingButtonVisibility();
-    }
-  });
-
-  window.addEventListener('resize', function() {
-    if (window.innerWidth >= 992) {
-      overlay.classList.remove('active');
-    } else {
-      if (sidebar.classList.contains('open')) overlay.classList.add('active');
-    }
-    updateHeaderMarqueeVisibility();
-    updateFloatingButtonVisibility();
-  });
+  ntuLink.addEventListener('click', function(e) { e.preventDefault(); showContent('electricity'); if (window.innerWidth < 992) { sidebar.classList.remove('open'); overlay.classList.remove('active'); updateFloatingButtonVisibility(); } });
+  window.addEventListener('resize', function() { if (window.innerWidth >= 992) overlay.classList.remove('active'); else if (sidebar.classList.contains('open')) overlay.classList.add('active'); updateHeaderMarqueeVisibility(); updateFloatingButtonVisibility(); });
 
   // ==================== MARQUEE SPEEDS & MESSAGES ====================
   const configDoc = db.collection("config").doc("site");
@@ -4456,7 +4031,6 @@
       let topSpeed = data.topMarqueeSpeed ? parseInt(data.topMarqueeSpeed, 10) : 22;
       if (isNaN(topSpeed) || topSpeed < 1) topSpeed = 22;
       document.querySelector('.marquee h6').style.setProperty('--top-speed', topSpeed + 's');
-
       let bottomSpeed = data.bottomMarqueeSpeed ? parseInt(data.bottomMarqueeSpeed, 10) : 360;
       if (isNaN(bottomSpeed) || bottomSpeed < 1) bottomSpeed = 360;
       document.querySelector('.bottom-marquee .marquee-content').style.setProperty('--bottom-speed', bottomSpeed + 's');
@@ -4466,70 +4040,34 @@
   const bottomMarquee = document.getElementById('bottomMarqueeText');
   let messages = ['⚡ Welcome to Ntuconnect'];
   let currentIndex = 0;
-
   configDoc.onSnapshot(doc => {
     if (doc.exists) {
       const data = doc.data();
-      if (data.bottomMessages && Array.isArray(data.bottomMessages) && data.bottomMessages.length > 0) {
-        messages = data.bottomMessages.map(m => '⚡ ' + m);
-      } else if (data.bottomMessage && typeof data.bottomMessage === 'string') {
-        messages = ['⚡ ' + data.bottomMessage];
-      } else {
-        messages = ['⚡ Welcome to Ntuconnect'];
-      }
-    } else {
-      messages = ['⚡ Welcome to Ntuconnect'];
-    }
-
+      if (data.bottomMessages && Array.isArray(data.bottomMessages) && data.bottomMessages.length > 0) messages = data.bottomMessages.map(m => '⚡ ' + m);
+      else if (data.bottomMessage && typeof data.bottomMessage === 'string') messages = ['⚡ ' + data.bottomMessage];
+      else messages = ['⚡ Welcome to Ntuconnect'];
+    } else messages = ['⚡ Welcome to Ntuconnect'];
     currentIndex = 0;
     bottomMarquee.textContent = messages[0] || '⚡ Welcome to Ntuconnect';
-
     if (window.messageRotationInterval) clearInterval(window.messageRotationInterval);
-    if (messages.length > 1) {
-      window.messageRotationInterval = setInterval(() => {
-        currentIndex = (currentIndex + 1) % messages.length;
-        bottomMarquee.textContent = messages[currentIndex];
-      }, 8000);
-    }
-  }, error => {
-    console.error("Error loading bottom messages:", error);
-    bottomMarquee.textContent = '⚡ Welcome to Ntuconnect';
-  });
+    if (messages.length > 1) window.messageRotationInterval = setInterval(() => { currentIndex = (currentIndex + 1) % messages.length; bottomMarquee.textContent = messages[currentIndex]; }, 8000);
+  }, error => { console.error("Error loading bottom messages:", error); bottomMarquee.textContent = '⚡ Welcome to Ntuconnect'; });
 
   // ==================== AUTO-SCROLL FEED ====================
   const feedScrollContainer = document.getElementById('feedScrollContainer');
   let autoScrollInterval;
   let isHoveringFeed = false;
-
   function startFeedAutoScroll() {
     if (autoScrollInterval) clearInterval(autoScrollInterval);
-    autoScrollInterval = setInterval(() => {
-      if (isHoveringFeed || !feedScrollContainer) return;
-      const container = feedScrollContainer;
-      const maxScroll = container.scrollHeight - container.clientHeight;
-      if (maxScroll <= 0) return;
-      container.scrollTop += 2;
-      if (container.scrollTop >= maxScroll) {
-        container.scrollTop = 0;
-      }
-    }, 100);
+    autoScrollInterval = setInterval(() => { if (isHoveringFeed || !feedScrollContainer) return; const container = feedScrollContainer; const maxScroll = container.scrollHeight - container.clientHeight; if (maxScroll <= 0) return; container.scrollTop += 2; if (container.scrollTop >= maxScroll) container.scrollTop = 0; }, 100);
   }
-
-  if (feedScrollContainer) {
-    feedScrollContainer.addEventListener('mouseenter', () => { isHoveringFeed = true; });
-    feedScrollContainer.addEventListener('mouseleave', () => { isHoveringFeed = false; });
-    setTimeout(startFeedAutoScroll, 2000);
-  }
+  if (feedScrollContainer) { feedScrollContainer.addEventListener('mouseenter', () => { isHoveringFeed = true; }); feedScrollContainer.addEventListener('mouseleave', () => { isHoveringFeed = false; }); setTimeout(startFeedAutoScroll, 2000); }
 
   // ==================== CLICK OUTSIDE MODAL ====================
   window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
       event.target.style.display = 'none';
-      if (event.target.id === 'chatModal' && unsubscribeRoomMessages) {
-        unsubscribeRoomMessages();
-        unsubscribeRoomMessages = null;
-        activeChatRoomId = null;
-      }
+      if (event.target.id === 'chatModal' && unsubscribeRoomMessages) { unsubscribeRoomMessages(); unsubscribeRoomMessages = null; activeChatRoomId = null; }
       if (event.target.id === 'linkModal') closeLinkModal();
       if (event.target.id === 'mediaPlayerModal') closeMediaPlayer();
       if (event.target.id === 'taskModal') closeTaskModal();
@@ -4540,13 +4078,7 @@
   // ==================== EXPAND ON CARD CLICK ====================
   document.querySelectorAll('.mini-card[data-expand]').forEach(card => {
     card.addEventListener('click', function(e) {
-      if (e.target.closest('button') ||
-          e.target.closest('input') ||
-          e.target.closest('a') ||
-          e.target.closest('.user-badge') ||
-          e.target.closest('.media-preview')) {
-        return;
-      }
+      if (e.target.closest('button') || e.target.closest('input') || e.target.closest('a') || e.target.closest('.user-badge') || e.target.closest('.media-preview')) return;
       const target = this.dataset.expand;
       showContent(target);
     });
@@ -4564,40 +4096,19 @@
   const headerEl = document.getElementById('mainHeader');
   const marqueeEl = document.getElementById('topMarquee');
   const SCROLL_THRESHOLD = 10;
-
   window.addEventListener('scroll', () => {
-    // Only apply on home screen when sidebar is closed
     if (currentContent !== 'home' || sidebar.classList.contains('open')) {
-      // Ensure header is shown when not on home
-      headerEl.classList.remove('hidden');
-      marqueeEl.classList.remove('hidden');
-      headerHidden = false;
+      headerEl.classList.remove('hidden'); marqueeEl.classList.remove('hidden'); headerHidden = false;
       return;
     }
-
     const currentScrollY = window.scrollY;
     const delta = currentScrollY - lastScrollY;
-
     if (Math.abs(delta) > SCROLL_THRESHOLD) {
-      if (delta > 0 && !headerHidden) {
-        // scrolling down → hide
-        headerEl.classList.add('hidden');
-        marqueeEl.classList.add('hidden');
-        headerHidden = true;
-      } else if (delta < 0 && headerHidden) {
-        // scrolling up → show
-        headerEl.classList.remove('hidden');
-        marqueeEl.classList.remove('hidden');
-        headerHidden = false;
-      }
+      if (delta > 0 && !headerHidden) { headerEl.classList.add('hidden'); marqueeEl.classList.add('hidden'); headerHidden = true; }
+      else if (delta < 0 && headerHidden) { headerEl.classList.remove('hidden'); marqueeEl.classList.remove('hidden'); headerHidden = false; }
     }
     lastScrollY = currentScrollY;
   });
-
-  // Service worker registration
-  if (typeof navigator.serviceWorker !== 'undefined') {
-    navigator.serviceWorker.register('sw.js');
-  }
 </script>
 </body>
 </html>
