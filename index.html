@@ -3251,7 +3251,7 @@
     }, showError);
   }
 
-  // ==================== PRIVATE CHAT ====================
+  // ==================== PRIVATE CHAT (with auto-mark-read) ====================
   let activeChatRoomId = null;
   let activeChatOtherUserId = null;
   let unsubscribeRoomMessages = null;
@@ -3279,6 +3279,7 @@
       });
     }
 
+    // Mark all existing messages from other user as read (catch up)
     const unreadQuery = roomRef.collection('messages')
       .where('from', '==', otherUserId)
       .where('read', '==', false);
@@ -3341,6 +3342,11 @@
           ${messageBubble}
         `;
         container.appendChild(div);
+
+        // If this is a received message and it's not yet read, mark it as read immediately
+        if (!isSent && !msg.read) {
+          doc.ref.update({ read: true }).catch(showError);
+        }
       });
       container.scrollTop = container.scrollHeight;
     }, showError);
