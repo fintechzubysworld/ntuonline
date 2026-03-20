@@ -293,6 +293,975 @@
 
 <div id="dashboard" style="display:none;">
 
+  <!-- ========== EXTERNAL LIVE STREAM SOURCE ========== -->
+  <div class="card">
+    <h3><i class="fa-solid fa-video"></i> External Live Stream Source</h3>
+    <p>Paste any embeddable URL (e.g., HLS stream, WebRTC embed, iframe source) to show on the community page when no camera broadcast is active.</p>
+    <input type="text" id="externalStreamUrl" placeholder="https://example.com/embed/live" value="">
+    <button onclick="saveExternalStreamUrl()">Update Live Stream URL</button>
+    <div id="externalMessage" class="message"></div>
+    <div class="small-note">
+      <i class="fa-regular fa-circle-info"></i> The camera broadcast (below) takes priority over this external URL.
+    </div>
+  </div>
+
+  <!-- ========== VIDEO STUDIO (WebRTC broadcast start/stop) ========== -->
+  <div class="card">
+    <h3><i class="fa-regular fa-camera"></i> Video Studio (Camera Broadcast)</h3>
+    <p>Start a live camera broadcast that viewers can watch on the community page.</p>
+
+    <div class="video-studio">
+      <video id="adminLocalVideo" autoplay muted playsinline style="width:100%; max-height:200px; background:#000; border-radius:16px; margin-bottom:10px;"></video>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button id="startBroadcastBtn" onclick="startBroadcast()"><i class="fa-regular fa-video"></i> Start Broadcast</button>
+        <button id="switchCamBtn" onclick="switchCamera()" disabled><i class="fa-regular fa-rotate"></i> Switch Camera</button>
+        <button id="stopBroadcastBtn" onclick="stopBroadcast()" disabled><i class="fa-regular fa-circle-stop"></i> Stop</button>
+      </div>
+      <div id="broadcastStatus" class="broadcast-status" style="display:none;"></div>
+    </div>
+
+    <!-- Monitor for active broadcast -->
+    <div id="webrtcMonitor" style="margin-top:15px; background:#173e37; border-radius:40px; padding:15px; display:flex; align-items:center; justify-content:space-between;">
+      <span id="webrtcStatusMessage"><i class="fa-regular fa-circle-dot"></i> Checking broadcast...</span>
+      <button id="stopWebRTCBtn" class="danger" onclick="stopWebRTCBroadcast()" disabled>⏹️ Stop broadcast</button>
+    </div>
+    <div class="small-note">
+      <i class="fa-regular fa-circle-info"></i> The camera broadcast uses WebRTC (PeerJS). Make sure your camera is accessible.
+    </div>
+  </div>
+
+  <!-- ========== CREATE FEED POST (with Drive image) ========== -->
+  <div class="card">
+    <h3><i class="fa-regular fa-newspaper"></i> Create Feed Post</h3>
+    <textarea id="feedText" placeholder="Post text..."></textarea>
+    <div class="input-group">
+      <input type="url" id="feedImage" placeholder="Image URL (optional)">
+      <button class="drive-btn" onclick="openGooglePicker('feedImage')">📁 Drive</button>
+    </div>
+    <div id="previewFeedImage" class="preview-area"></div>
+    <button onclick="createFeedPost()"><i class="fa-regular fa-paper-plane"></i> Publish Post</button>
+    <div id="feedMessage" class="message"></div>
+  </div>
+
+  <!-- ========== PUBLISH EVENT (with Drive video/audio) ========== -->
+  <div class="card">
+    <h3><i class="fa-regular fa-calendar-plus"></i> Publish Event</h3>
+    <input type="text" id="eventTitle" placeholder="Title" required>
+    <textarea id="eventDesc" placeholder="Description"></textarea>
+    <input type="text" id="eventDate" placeholder="Date (e.g., May 5, 2025)">
+
+    <div class="input-group">
+      <input type="url" id="eventVideo" placeholder="Video URL (optional)">
+      <button class="drive-btn" onclick="openGooglePicker('eventVideo')">📁 Drive</button>
+    </div>
+    <div id="previewEventVideo" class="preview-area"></div>
+
+    <div class="input-group">
+      <input type="url" id="eventAudio" placeholder="Audio URL (optional)">
+      <button class="drive-btn" onclick="openGooglePicker('eventAudio')">📁 Drive</button>
+    </div>
+    <div id="previewEventAudio" class="preview-area"></div>
+
+    <button onclick="publishEvent()"><i class="fa-regular fa-calendar-check"></i> Publish Event</button>
+    <div id="eventMessage" class="message"></div>
+  </div>
+
+  <!-- ========== BOTTOM MARQUEE MESSAGES ========== -->
+  <div class="card">
+    <h3><i class="fa-regular fa-message"></i> Bottom Bar Messages (rotating)</h3>
+    <textarea id="bottomMessagesInput" rows="5" placeholder="One message per line"></textarea>
+    <button onclick="saveBottomMessages()">Save Messages</button>
+    <div class="message-preview" id="bottomMessagesPreview"><strong>Preview:</strong> <ul></ul></div>
+  </div>
+
+  <!-- ========== MARQUEE SPEEDS ========== -->
+  <div class="card">
+    <h3><i class="fa-regular fa-gauge-high"></i> Marquee Scroll Speeds</h3>
+    <div style="margin:20px 0;">
+      <label style="color:#64ffda;">Top bar speed (s)</label>
+      <input type="range" id="topSpeedSlider" min="1" max="2000" value="22">
+      <input type="number" id="topSpeedInput" min="1" max="2000" value="22">
+    </div>
+    <div style="margin:20px 0;">
+      <label style="color:#64ffda;">Bottom bar speed (s)</label>
+      <input type="range" id="bottomSpeedSlider" min="1" max="2000" value="360">
+      <input type="number" id="bottomSpeedInput" min="1" max="2000" value="360">
+    </div>
+    <button onclick="saveMarqueeSpeeds()">Save Both Speeds</button>
+  </div>
+
+  <!-- ========== MANAGE ADMINS ========== -->
+  <div class="card">
+    <h3><i class="fa-solid fa-user-tie"></i> Administrators</h3>
+    <div class="table-wrapper"><table><thead><tr><th>Name</th><th>Email</th><th>Kindred</th><th>Role</th><th>Action</th></tr></thead><tbody id="userList"></tbody></table></div>
+    <div id="adminMessage" class="message"></div>
+  </div>
+
+  <!-- ========== CHANGE PASSWORD ========== -->
+  <div class="card">
+    <h3><i class="fa-solid fa-key"></i> Change Password</h3>
+    <input type="password" id="currentPass" placeholder="Current">
+    <input type="password" id="newPass" placeholder="New">
+    <input type="password" id="confirmNewPass" placeholder="Confirm">
+    <button onclick="changePassword()">Update</button>
+    <div id="passMessage" class="message"></div>
+  </div>
+
+  <!-- ========== MODERATION TABS ========== -->
+  <div class="card">
+    <h3><i class="fa-solid fa-gavel"></i> Moderate Content</h3>
+    <div class="tab-buttons">
+      <button class="tab-btn active" data-tab="feed">Feed</button>
+      <button class="tab-btn" data-tab="chat">Chat</button>
+      <button class="tab-btn" data-tab="goodwill">Goodwill</button>
+      <button class="tab-btn" data-tab="live">Live comments</button>
+      <button class="tab-btn" data-tab="replies">Replies</button>
+      <button class="tab-btn" data-tab="events">Events</button>
+    </div>
+    <div id="tab-feed" class="tab-content active"><div id="moderateFeed"></div></div>
+    <div id="tab-chat" class="tab-content"><div id="moderateChat"></div></div>
+    <div id="tab-goodwill" class="tab-content"><div id="moderateGoodwill"></div></div>
+    <div id="tab-live" class="tab-content"><div id="moderateLive"></div></div>
+    <div id="tab-replies" class="tab-content"><div id="moderateReplies"></div></div>
+    <div id="tab-events" class="tab-content"><div id="moderateEvents"></div></div>
+  </div>
+</div>
+
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDA02mVmQxC_cu2QCyq4NN8LhQIWo50V5A",
+    authDomain: "ntudioka-online-c29d8.firebaseapp.com",
+    projectId: "ntudioka-online-c29d8",
+    storageBucket: "ntudioka-online-c29d8.firebasestorage.app",
+    messagingSenderId: "1015621578149",
+    appId: "1:1015621578149:web:c755b458e505fd32928c4c",
+    measurementId: "G-JPVKYQRKEB"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const SUPER_ADMIN_EMAIL = "fintech.zubysworld@gmail.com";
+  let currentUser = null;
+
+  // WebRTC broadcast variables
+  let adminPeer = null;
+  let adminLocalStream = null;
+  let activeCalls = [];
+  let isBroadcasting = false;
+  let currentFacingMode = 'environment'; // rear camera default
+
+  const authCheck = document.getElementById('authCheck');
+  const dashboard = document.getElementById('dashboard');
+  const userEmailSpan = document.getElementById('userEmail');
+
+  function showError(err) { 
+    console.error(err);
+    alert("Error: " + err.message); 
+  }
+
+  function showMessage(elId, text, type) {
+    const div = document.getElementById(elId);
+    if (!div) return; // element might not exist
+    div.textContent = text;
+    div.className = `message ${type}`;
+    setTimeout(() => div.style.display = 'none', 5000);
+  }
+
+  function escapeHTML(str) {
+    return String(str).replace(/[&<>"]/g, function(m) {
+      if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; if (m === '"') return '&quot;';
+      return m;
+    });
+  }
+
+  // ---------- AUTH & ADMIN ----------
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      userEmailSpan.textContent = user.email;
+      db.collection('users').doc(user.uid).get()
+        .then(doc => {
+          let isAdmin = doc.exists && doc.data().isAdmin === true;
+          if (!isAdmin && user.email === SUPER_ADMIN_EMAIL) {
+            return db.collection('users').doc(user.uid).set({ isAdmin: true }, { merge: true })
+              .then(() => db.collection('users').doc(user.uid).get())
+              .then(newDoc => { isAdmin = newDoc.data().isAdmin; });
+          }
+        })
+        .then(() => db.collection('users').doc(user.uid).get())
+        .then(doc => {
+          if (doc.exists && doc.data().isAdmin === true) {
+            currentUser = user;
+            authCheck.style.display = 'none';
+            dashboard.style.display = 'block';
+            loadUsers();
+            loadAllContent();
+            loadBottomMessages();
+            loadExternalStreamUrl(); // load current URL
+            monitorWebRTCBroadcast();
+          } else {
+            authCheck.innerHTML = '<h3>Access Denied</h3><button onclick="window.location=\'ntuonline.html\'">Back</button>';
+            authCheck.style.display = 'block';
+          }
+        })
+        .catch(showError);
+    } else {
+      window.location.href = 'ntuonline.html';
+    }
+  });
+
+  window.logout = function() { auth.signOut().then(() => window.location.href='ntuonline.html').catch(showError); };
+
+  // ---------- EXTERNAL STREAM URL ----------
+  function loadExternalStreamUrl() {
+    db.collection('config').doc('site').get().then(doc => {
+      if (doc.exists && doc.data().liveStreamUrl) {
+        document.getElementById('externalStreamUrl').value = doc.data().liveStreamUrl;
+      }
+    }).catch(showError);
+  }
+
+  window.saveExternalStreamUrl = function() {
+    const url = document.getElementById('externalStreamUrl').value.trim();
+    if (!url) {
+      showMessage('externalMessage', 'Please enter a valid URL', 'error');
+      return;
+    }
+    db.collection('config').doc('site').set({ liveStreamUrl: url }, { merge: true })
+      .then(() => showMessage('externalMessage', 'Live stream URL saved successfully', 'success'))
+      .catch(err => showMessage('externalMessage', err.message, 'error'));
+  };
+
+  // ---------- WEBRTC BROADCAST (Start/Stop/Monitor) ----------
+  function monitorWebRTCBroadcast() {
+    db.collection('broadcast').doc('active').onSnapshot(doc => {
+      const msgSpan = document.getElementById('webrtcStatusMessage');
+      const stopBtn = document.getElementById('stopWebRTCBtn');
+      if (doc.exists && doc.data().active === true) {
+        const data = doc.data();
+        msgSpan.innerHTML = `<i class="fa-regular fa-circle-dot" style="color:#ff4d4d;"></i> <strong class="badge-live">LIVE</strong> · started by admin · peer ${data.peerId ? data.peerId.substring(0,8)+'…' : ''}`;
+        stopBtn.disabled = false;
+      } else {
+        msgSpan.innerHTML = '<i class="fa-regular fa-circle-dot"></i> No active camera broadcast';
+        stopBtn.disabled = true;
+      }
+    });
+  }
+
+  window.stopWebRTCBroadcast = function() {
+    if (!confirm('Stop the current camera broadcast? Viewers will lose the feed.')) return;
+    db.collection('broadcast').doc('active').set({ active: false }, { merge: true })
+      .then(() => {
+        document.getElementById('webrtcStatusMessage').innerHTML = '<i class="fa-regular fa-circle-dot"></i> Broadcast stopped';
+      })
+      .catch(err => showError(err));
+  };
+
+  // ==================== VIDEO STUDIO ====================
+  async function isAdminUser() {
+    if (!currentUser) return false;
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    return doc.exists && doc.data().isAdmin === true;
+  }
+
+  window.startBroadcast = async function() {
+    if (!currentUser) return alert('You must be logged in.');
+    const admin = await isAdminUser();
+    if (!admin) return alert('Admin privileges required.');
+    if (isBroadcasting) return;
+
+    try {
+      if (adminLocalStream) adminLocalStream.getTracks().forEach(t => t.stop());
+
+      const constraints = {
+        video: { facingMode: { ideal: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
+      };
+      adminLocalStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      const localVideo = document.getElementById('adminLocalVideo');
+      localVideo.srcObject = adminLocalStream;
+      localVideo.muted = true;
+      localVideo.setAttribute('playsinline', 'true');
+      await localVideo.play().catch(e => console.log('autoplay prevented', e));
+
+      const broadcastPeerId = `admin-${currentUser.uid}-${Date.now().toString(36)}`;
+      adminPeer = new Peer(broadcastPeerId, {
+        secure: true,
+        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+      });
+
+      adminPeer.on('open', (id) => {
+        isBroadcasting = true;
+        db.collection('broadcast').doc('active').set({
+          active: true,
+          peerId: id,
+          startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          adminUid: currentUser.uid,
+          facingMode: currentFacingMode
+        }).catch(console.error);
+        updateBroadcastUI(true, id);
+      });
+
+      adminPeer.on('call', (call) => {
+        call.answer(adminLocalStream);
+        activeCalls.push(call);
+        call.on('close', () => activeCalls = activeCalls.filter(c => c !== call));
+        call.on('error', (err) => console.error('call error', err));
+      });
+
+      adminPeer.on('error', (err) => {
+        console.error('peer error', err);
+        stopBroadcast();
+      });
+    } catch (err) {
+      console.error('startBroadcast error', err);
+      alert('Could not start broadcast: ' + err.message);
+    }
+  };
+
+  window.stopBroadcast = async function() {
+    activeCalls.forEach(c => c.close());
+    activeCalls = [];
+    if (adminPeer) { adminPeer.destroy(); adminPeer = null; }
+    if (adminLocalStream) {
+      adminLocalStream.getTracks().forEach(t => t.stop());
+      adminLocalStream = null;
+    }
+    document.getElementById('adminLocalVideo').srcObject = null;
+    isBroadcasting = false;
+    await db.collection('broadcast').doc('active').set({ active: false }, { merge: true }).catch(console.error);
+    updateBroadcastUI(false);
+  };
+
+  window.switchCamera = async function() {
+    if (!isBroadcasting || !adminLocalStream) return;
+    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
+      });
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      const newAudioTrack = newStream.getAudioTracks()[0];
+
+      await Promise.all(activeCalls.map(async (call) => {
+        const senders = call.peerConnection.getSenders();
+        const videoSender = senders.find(s => s.track?.kind === 'video');
+        if (videoSender) await videoSender.replaceTrack(newVideoTrack);
+        const audioSender = senders.find(s => s.track?.kind === 'audio');
+        if (audioSender && newAudioTrack) await audioSender.replaceTrack(newAudioTrack);
+      }));
+
+      // replace local tracks
+      const oldVideo = adminLocalStream.getVideoTracks()[0];
+      const oldAudio = adminLocalStream.getAudioTracks()[0];
+      if (oldVideo) { adminLocalStream.removeTrack(oldVideo); oldVideo.stop(); }
+      if (oldAudio) { adminLocalStream.removeTrack(oldAudio); oldAudio.stop(); }
+      adminLocalStream.addTrack(newVideoTrack);
+      if (newAudioTrack) adminLocalStream.addTrack(newAudioTrack);
+
+      document.getElementById('adminLocalVideo').srcObject = adminLocalStream;
+      db.collection('broadcast').doc('active').update({ facingMode: currentFacingMode }).catch(console.error);
+    } catch (err) {
+      console.error('switchCamera error', err);
+      alert('Camera switch failed: ' + err.message);
+      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user'; // revert
+    }
+  };
+
+  function updateBroadcastUI(isLive, peerId = '') {
+    const statusEl = document.getElementById('broadcastStatus');
+    const startBtn = document.getElementById('startBroadcastBtn');
+    const switchBtn = document.getElementById('switchCamBtn');
+    const stopBtn = document.getElementById('stopBroadcastBtn');
+
+    if (isLive) {
+      statusEl.style.display = 'block';
+      statusEl.className = 'broadcast-status live';
+      statusEl.innerHTML = `🔴 LIVE<br><small>Peer ID: ${peerId}</small>`;
+      startBtn.disabled = true;
+      switchBtn.disabled = false;
+      stopBtn.disabled = false;
+    } else {
+      statusEl.style.display = 'none';
+      startBtn.disabled = false;
+      switchBtn.disabled = true;
+      stopBtn.disabled = true;
+    }
+  }
+
+  // ---------- CREATE FEED POST ----------
+  window.createFeedPost = function() {
+    const text = document.getElementById('feedText').value.trim();
+    if (!text) return showMessage('feedMessage', 'Text required', 'error');
+    const image = document.getElementById('feedImage').value.trim() || null;
+
+    db.collection('users').doc(currentUser.uid).get()
+      .then(u => {
+        const userData = u.data() || {};
+        return db.collection('feed').add({
+          text, image,
+          name: userData.name,
+          kindred: userData.kindred,
+          userId: currentUser.uid,
+          created: Date.now()
+        });
+      })
+      .then(() => {
+        showMessage('feedMessage', 'Posted', 'success');
+        document.getElementById('feedText').value = '';
+        document.getElementById('feedImage').value = '';
+        document.getElementById('previewFeedImage').style.display = 'none';
+      })
+      .catch(err => showMessage('feedMessage', err.message, 'error'));
+  };
+
+  // ---------- PUBLISH EVENT ----------
+  window.publishEvent = function() {
+    const title = document.getElementById('eventTitle').value.trim();
+    if (!title) return showMessage('eventMessage', 'Title required', 'error');
+    const data = {
+      title, created: Date.now(),
+      description: document.getElementById('eventDesc').value.trim() || null,
+      date: document.getElementById('eventDate').value.trim() || null,
+      video: document.getElementById('eventVideo').value.trim() || null,
+      audio: document.getElementById('eventAudio').value.trim() || null
+    };
+    db.collection('events').add(data)
+      .then(() => {
+        showMessage('eventMessage', 'Event published', 'success');
+        ['eventTitle','eventDesc','eventDate','eventVideo','eventAudio'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('previewEventVideo').style.display = 'none';
+        document.getElementById('previewEventAudio').style.display = 'none';
+      })
+      .catch(err => showMessage('eventMessage', err.message, 'error'));
+  };
+
+  // ---------- BOTTOM MESSAGES ----------
+  function loadBottomMessages() {
+    const configDoc = db.collection("config").doc("site");
+    const input = document.getElementById('bottomMessagesInput');
+    const previewUl = document.querySelector('#bottomMessagesPreview ul');
+
+    configDoc.get().then(doc => {
+      let messages = [];
+      if (doc.exists && doc.data().bottomMessages) messages = doc.data().bottomMessages;
+      input.value = messages.join('\n');
+      updatePreview(messages);
+    }).catch(console.error);
+
+    input.addEventListener('input', function() {
+      const lines = this.value.split('\n').map(l => l.trim()).filter(l => l !== '');
+      updatePreview(lines);
+    });
+
+    function updatePreview(arr) {
+      previewUl.innerHTML = '';
+      if (arr.length === 0) previewUl.innerHTML = '<li><em>no messages</em></li>';
+      else arr.forEach(msg => { const li = document.createElement('li'); li.textContent = '⚡ ' + msg; previewUl.appendChild(li); });
+    }
+  }
+
+  window.saveBottomMessages = function() {
+    const raw = document.getElementById('bottomMessagesInput').value;
+    const messages = raw.split('\n').map(l => l.trim()).filter(l => l !== '');
+    if (!messages.length) return alert('Enter at least one');
+    db.collection("config").doc("site").set({ bottomMessages: messages }, { merge: true })
+      .then(() => alert('✅ Saved'))
+      .catch(err => alert(err.message));
+  };
+
+  // ---------- MARQUEE SPEEDS ----------
+  (function() {
+    const topSlider = document.getElementById('topSpeedSlider');
+    const topInput = document.getElementById('topSpeedInput');
+    const bottomSlider = document.getElementById('bottomSpeedSlider');
+    const bottomInput = document.getElementById('bottomSpeedInput');
+    const configDoc = db.collection("config").doc("site");
+
+    configDoc.get().then(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        if (data.topMarqueeSpeed) { topSlider.value = topInput.value = data.topMarqueeSpeed; }
+        if (data.bottomMarqueeSpeed) { bottomSlider.value = bottomInput.value = data.bottomMarqueeSpeed; }
+      }
+    });
+
+    topSlider.addEventListener('input', () => topInput.value = topSlider.value);
+    topInput.addEventListener('input', () => topSlider.value = topInput.value);
+    bottomSlider.addEventListener('input', () => bottomInput.value = bottomSlider.value);
+    bottomInput.addEventListener('input', () => bottomSlider.value = bottomInput.value);
+
+    window.saveMarqueeSpeeds = function() {
+      configDoc.set({
+        topMarqueeSpeed: Number(topSlider.value),
+        bottomMarqueeSpeed: Number(bottomSlider.value)
+      }, { merge: true }).then(() => alert('Speeds updated')).catch(err => alert(err.message));
+    };
+  })();
+
+  // ---------- ADMIN MANAGEMENT ----------
+  function loadUsers() {
+    db.collection('users').get().then(snapshot => {
+      const tbody = document.getElementById('userList');
+      tbody.innerHTML = '';
+      snapshot.forEach(doc => {
+        const user = doc.data(); const uid = doc.id; const isAdmin = user.isAdmin || false;
+        tbody.innerHTML += `<tr><td>${escapeHTML(user.name || '?')}</td><td>${escapeHTML(user.email || '?')}</td><td>${escapeHTML(user.kindred || '?')}</td><td><span class="${isAdmin ? 'admin-badge' : 'user-badge'}">${isAdmin ? 'ADMIN' : 'USER'}</span></td><td><button class="secondary" onclick="toggleAdmin('${uid}', ${isAdmin})">${isAdmin ? 'Revoke' : 'Make Admin'}</button></td></tr>`;
+      });
+    }).catch(showError);
+  }
+
+  window.toggleAdmin = function(uid, current) {
+    if (!confirm(`Sure?`)) return;
+    db.collection('users').doc(uid).update({ isAdmin: !current })
+      .then(() => { showMessage('adminMessage', 'Updated', 'success'); loadUsers(); })
+      .catch(err => showMessage('adminMessage', err.message, 'error'));
+  };
+
+  // ---------- PASSWORD CHANGE ----------
+  window.changePassword = function() {
+    const curr = document.getElementById('currentPass').value;
+    const newp = document.getElementById('newPass').value;
+    const conf = document.getElementById('confirmNewPass').value;
+    if (!curr || !newp || !conf) return showMessage('passMessage', 'All fields required', 'error');
+    if (newp !== conf) return showMessage('passMessage', 'Passwords mismatch', 'error');
+    if (newp.length < 6) return showMessage('passMessage', 'Too short', 'error');
+    const user = auth.currentUser;
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, curr);
+    user.reauthenticateWithCredential(cred)
+      .then(() => user.updatePassword(newp))
+      .then(() => { showMessage('passMessage', 'Password updated', 'success'); ['currentPass','newPass','confirmNewPass'].forEach(id => document.getElementById(id).value = ''); })
+      .catch(err => showMessage('passMessage', err.message, 'error'));
+  };
+
+  // ---------- DELETE ITEM ----------
+  async function deleteDocumentAndSubcollections(docRef) {
+    let batch = db.batch(); let count = 0;
+    async function collect(ref) {
+      const replies = await ref.collection('replies').get();
+      for (const r of replies.docs) { await collect(r.ref); batch.delete(r.ref); count++; if (count>=400) { await batch.commit(); batch=db.batch(); count=0; } }
+    }
+    await collect(docRef); batch.delete(docRef); await batch.commit();
+  }
+
+  window.deleteItem = function(path) {
+    if (!confirm('Permanently delete item + replies?')) return;
+    const docRef = db.doc(path);
+    deleteDocumentAndSubcollections(docRef)
+      .then(() => { alert('Deleted'); loadAllContent(); })
+      .catch(showError);
+  };
+
+  // ---------- LOAD ALL MODERATION ----------
+  function loadAllContent() {
+    const collections = ['feed','chat','goodwill','events'];
+    collections.forEach(c => {
+      db.collection(c).orderBy('created','desc').get().then(snap => {
+        const container = document.getElementById(`moderate${c.charAt(0).toUpperCase()+c.slice(1)}`);
+        if (!container) return;
+        container.innerHTML = '';
+        snap.forEach(doc => {
+          const d = doc.data();
+          container.innerHTML += `<div class="moderation-item"><div class="moderation-meta">📌 ${c} | ${escapeHTML(d.name||'')} | ${new Date(d.created).toLocaleString()}</div><div>${escapeHTML(d.text||d.title||'')}</div>${d.image?`<img src="${escapeHTML(d.image)}" style="max-width:100px">`:''}<br><button class="delete-btn" onclick="deleteItem('${c}/${doc.id}')">Delete</button></div>`;
+        });
+      }).catch(showError);
+    });
+
+    db.collection('live').doc('current').collection('comments').orderBy('created','desc').get().then(snap => {
+      const cont = document.getElementById('moderateLive');
+      cont.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        cont.innerHTML += `<div class="moderation-item"><div class="moderation-meta">💬 Live | ${escapeHTML(d.name)} | ${new Date(d.created).toLocaleString()}</div><div>${escapeHTML(d.text)}</div><button class="delete-btn" onclick="deleteItem('live/current/comments/${doc.id}')">Delete</button></div>`;
+      });
+    }).catch(showError);
+
+    // FIXED: ascending + limitToLast + reverse – uses default ascending index, no popup on error
+    db.collectionGroup('replies')
+      .orderBy('created', 'asc')
+      .limitToLast(50)
+      .get()
+      .then(snap => {
+        const cont = document.getElementById('moderateReplies');
+        cont.innerHTML = '';
+        const docs = [];
+        snap.forEach(doc => docs.push(doc));
+        docs.reverse().forEach(doc => {
+          const r = doc.data();
+          cont.innerHTML += `<div class="moderation-item">
+            <div class="moderation-meta">↩️ Reply | ${escapeHTML(r.name)} | ${new Date(r.created).toLocaleString()}</div>
+            <div>${escapeHTML(r.text)}</div>
+            <button class="delete-btn" onclick="deleteItem('${doc.ref.path}')">Delete</button>
+          </div>`;
+        });
+      })
+      .catch(err => {
+        console.error('Replies moderation error:', err);
+        // If it's an index error, show a friendly message instead of an alert
+        if (err.code === 'failed-precondition' && err.message.includes('index')) {
+          document.getElementById('moderateReplies').innerHTML = '<p class="error">Replies index not ready yet. Please wait a moment or create the index manually.</p>';
+        } else {
+          showError(err); // only alert for non-index errors
+        }
+      });
+  }
+
+  // ---------- TABS ----------
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ---------- GOOGLE DRIVE PICKER ----------
+  const API_KEY = 'AIzaSyD91nUv-It5GUtfrXyNRXWs8o1eTWiHAo';
+  const CLIENT_ID = '672649423935-e3g0m98jkikrp6p4e5iesd3mqs4tfpqi.apps.googleusercontent.com';
+  const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+  const FOLDER_ID = '1yZhnewH1Yo0J-F0W-96V_rDq517e5Y-2';
+  let pickerApiLoaded = false, oauthToken;
+
+  window.openGooglePicker = function(targetInputId) {
+    window.currentPickerTarget = targetInputId;
+    gapi.load('auth', { callback: onAuthApiLoad });
+    gapi.load('picker', { callback: onPickerApiLoad });
+  };
+
+  function onAuthApiLoad() { gapi.auth.authorize({ client_id: CLIENT_ID, scope: SCOPES, immediate: false }, handleAuthResult); }
+  function onPickerApiLoad() { pickerApiLoaded = true; createPicker(); }
+
+  function handleAuthResult(authResult) {
+    if (authResult && !authResult.error) { oauthToken = authResult.access_token; createPicker(); }
+    else alert('Auth failed: ' + (authResult?.error || 'unknown'));
+  }
+
+  function createPicker() {
+    if (pickerApiLoaded && oauthToken) {
+      const driveView = new google.picker.DocsView().setParent(FOLDER_ID).setIncludeFolders(true);
+      new google.picker.PickerBuilder().addView(driveView).setOAuthToken(oauthToken).setDeveloperKey(API_KEY).setCallback(pickerCallback).build().setVisible(true);
+    }
+  }
+
+  function pickerCallback(data) {
+    if (data.action === google.picker.Action.PICKED) {
+      const doc = data.docs[0];
+      const fileId = doc.id;
+      const isImage = doc.mimeType && doc.mimeType.startsWith('image/');
+      const mediaUrl = isImage ? `https://drive.google.com/uc?id=${fileId}` : doc.url;
+      const targetId = window.currentPickerTarget;
+      if (targetId) {
+        document.getElementById(targetId).value = mediaUrl;
+        const previewDivId = 'preview' + targetId.charAt(0).toUpperCase() + targetId.slice(1);
+        const previewDiv = document.getElementById(previewDivId);
+        if (previewDiv) {
+          previewDiv.innerHTML = isImage ? `<img src="${mediaUrl}" style="max-width:100%">` : `<a href="${mediaUrl}" target="_blank">view file</a>`;
+          previewDiv.style.display = 'block';
+        }
+      }
+    }
+  }
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aquamarine · Broadcast Admin</title>
+
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+
+  <!-- PeerJS for WebRTC -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+  <!-- Google API (Drive Picker) -->
+  <script src="https://apis.google.com/js/api.js"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    /* same styles as before – keep your existing CSS */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(145deg, #0b201c, #0f2d27);
+      color: #e0f2ee;
+      padding: 18px;
+    }
+    header {
+      background: rgba(26, 128, 114, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 1rem 2rem;
+      border-radius: 60px;
+      margin-bottom: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 15px 30px -8px rgba(0, 160, 140, 0.4);
+      border: 1px solid rgba(90, 220, 190, 0.3);
+    }
+    header h2 {
+      color: white;
+      font-weight: 500;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card {
+      background: rgba(20, 55, 48, 0.7);
+      backdrop-filter: blur(12px);
+      border-radius: 36px;
+      padding: 26px;
+      margin-bottom: 28px;
+      border: 1px solid rgba(80, 210, 180, 0.2);
+      box-shadow: 0 25px 35px -18px black;
+    }
+    h3 {
+      color: #64e3cf;
+      margin-bottom: 18px;
+      font-size: 1.5rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid #1f6f62;
+      padding-bottom: 12px;
+    }
+    input, textarea, select, button {
+      font-size: 16px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 14px 18px;
+      margin: 8px 0;
+      border-radius: 50px;
+      border: none;
+      background: #0f332d;
+      color: #f0fdfa;
+      border: 1px solid transparent;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #3bc6b2;
+      background: #15453d;
+      box-shadow: 0 0 0 3px rgba(55, 200, 180, 0.2);
+    }
+    button {
+      background: #1f8f7c;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 60px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      min-height: 48px;
+      box-shadow: 0 6px 14px rgba(20, 130, 110, 0.4);
+      transition: 0.2s;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    button:hover {
+      background: #2fa892;
+      transform: scale(1.02);
+    }
+    button.secondary { background: #2d5b52; }
+    button.secondary:hover { background: #3e786c; }
+    button.danger { background: #b54a3f; }
+    button.danger:hover { background: #c45f54; }
+    .drive-btn {
+      background: #2a4a44;
+      margin-left: 8px;
+      white-space: nowrap;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 20px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 520px;
+    }
+    th, td {
+      text-align: left;
+      padding: 14px 10px;
+      border-bottom: 1px solid #22665b;
+    }
+    th {
+      background: #0f332d;
+      color: #a0f2e0;
+      font-weight: 500;
+    }
+    .admin-badge {
+      background: #2dab95;
+      color: #0a1f1b;
+      padding: 5px 12px;
+      border-radius: 40px;
+      font-weight: 600;
+    }
+    .user-badge {
+      background: #3f6a61;
+      padding: 5px 12px;
+      border-radius: 40px;
+    }
+    .message {
+      padding: 12px;
+      border-radius: 30px;
+      margin: 12px 0;
+      display: none;
+    }
+    .success {
+      background: #2dab95;
+      color: #0b1f1b;
+      display: block;
+    }
+    .error {
+      background: #b54a3f;
+      color: white;
+      display: block;
+    }
+    .moderation-item {
+      background: #0f332d;
+      border-radius: 28px;
+      padding: 20px;
+      margin: 15px 0;
+      border-left: 6px solid #2dab95;
+      word-break: break-word;
+    }
+    .moderation-meta {
+      font-size: 0.85rem;
+      color: #b2ddd4;
+      margin-bottom: 10px;
+    }
+    .delete-btn {
+      background: #b54a3f;
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+    }
+    .delete-btn:hover { background: #c45f54; }
+    .tab-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      background: #2d5b52;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: 0.2s;
+    }
+    .tab-btn.active {
+      background: #2dab95;
+      color: #0a1f1b;
+      font-weight: 600;
+      box-shadow: 0 6px 14px rgba(45, 171, 149, 0.5);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .input-group input { flex:1; margin:0; }
+    .preview-area {
+      margin: 10px 0;
+      padding: 10px;
+      background: #0f2d27;
+      border-radius: 20px;
+      display: none;
+    }
+    .preview-area img { max-width:100%; border-radius:12px; }
+    .message-preview {
+      margin-top: 15px;
+      background: #0d312b;
+      padding: 12px;
+      border-radius: 30px;
+      color: #b5ffe8;
+    }
+    .live-status {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 30px;
+      background: #0f332d;
+      border-left: 4px solid #2dab95;
+    }
+    .badge-live {
+      background: #ff4d4d;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 30px;
+      font-weight: 600;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0% { opacity:1; } 50% { opacity:0.6; } }
+    .small-note {
+      font-size:0.85rem;
+      color:#9bc5bc;
+      margin-top:5px;
+    }
+    /* video studio extras */
+    .video-studio {
+      background: #0f2d27;
+      border-radius: 28px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .video-studio video {
+      width: 100%;
+      max-height: 200px;
+      background: #000;
+      border-radius: 16px;
+      margin-bottom: 10px;
+    }
+    .broadcast-status {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      background: #0f2d27;
+      text-align: center;
+      font-weight: 600;
+    }
+    .broadcast-status.live {
+      color: #ff6b6b;
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2><i class="fa-solid fa-water" style="color:#a2ffee;"></i>Broadcast Admin</h2>
+  <div>
+    <span id="userEmail" style="margin-right:15px; color:#d0f7f0;"></span>
+    <button onclick="logout()">Logout</button>
+    <button onclick="window.location='index.html'">← Community</button>
+  </div>
+</header>
+
+<div id="authCheck" style="display:none; text-align:center; padding:50px;"><h3>🔐 Checking authorization...</h3></div>
+
+<div id="dashboard" style="display:none;">
+
   <!-- ========== VIDEO STUDIO (WebRTC broadcast start/stop) ========== -->
   <div class="card">
     <h3><i class="fa-regular fa-camera"></i> Video Studio (Camera Broadcast)</h3>
