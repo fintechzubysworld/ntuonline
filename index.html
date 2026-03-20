@@ -487,7 +487,7 @@
     }
 
     /* ===== POST / COMMENT STYLES (shared) ===== */
-    .feed-item, .chat-item, .goodwill-item, .event-item, .project-task {
+    .feed-item, .chat-item, .goodwill-item, .event-item, .project-task, .chat-message {
       background: #0f2d27;
       border-radius: 24px;
       padding: 18px;
@@ -502,6 +502,7 @@
       padding-left: 16px;
       border-left: 3px solid #2a6b5f;
       margin-top: 12px;
+      position: relative;
     }
 
     .timestamp {
@@ -510,28 +511,70 @@
       margin-top: 8px;
     }
 
-    /* Message actions – now only delete */
-    .message-actions {
+    /* Options menu (three dots) */
+    .message-options {
       position: absolute;
       top: 12px;
       right: 12px;
-      display: flex;
-      gap: 6px;
-      z-index: 10;
+      z-index: 20;
     }
-    .message-actions button {
+
+    .options-btn {
       background: transparent;
       border: 1px solid #2dab95;
       color: #b5ffe8;
-      padding: 4px 10px;
-      min-height: auto;
-      font-size: 0.8rem;
-      box-shadow: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
+      font-size: 1rem;
+      padding: 0;
+      min-height: auto;
+      box-shadow: none;
     }
-    .message-actions button:hover {
+    .options-btn:hover {
       background: #2dab95;
       color: white;
+    }
+
+    .options-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: #1b423b;
+      border: 1px solid #2dab95;
+      border-radius: 12px;
+      min-width: 120px;
+      z-index: 30;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .options-dropdown.show {
+      display: block;
+    }
+    .options-dropdown button {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: none;
+      color: white;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 0;
+      min-height: auto;
+      box-shadow: none;
+    }
+    .options-dropdown button:hover {
+      background: #2dab95;
+    }
+    .options-dropdown button i {
+      width: 18px;
     }
 
     /* Media preview styles */
@@ -1683,6 +1726,15 @@
   </div>
 </div>
 
+<!-- Info Modal (for message details) -->
+<div id="infoModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeInfoModal()">&times;</span>
+    <h3><i class="fa-regular fa-circle-info"></i> Message Info</h3>
+    <div id="infoContent" style="margin-top: 20px;"></div>
+  </div>
+</div>
+
 <!-- Fixed bottom marquee -->
 <div class="bottom-marquee">
   <div class="marquee-content" id="bottomMarqueeText">⚡ Loading messages...</div>
@@ -1789,6 +1841,26 @@
     }
   });
 
+  // ==================== OPTIONS DROPDOWN ====================
+  function toggleOptions(btn) {
+    const dropdown = btn.nextElementSibling;
+    // Close all other dropdowns
+    document.querySelectorAll('.options-dropdown.show').forEach(d => {
+      if (d !== dropdown) d.classList.remove('show');
+    });
+    dropdown.classList.toggle('show');
+    // Click outside to close
+    setTimeout(() => {
+      const closeHandler = (e) => {
+        if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.classList.remove('show');
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      document.addEventListener('click', closeHandler);
+    }, 0);
+  }
+
   // ==================== NTU TV COMMENTS & LIKES ====================
   const ntuTvId = 'ntuTV';
   let unsubscribeNtuTvComments = null;
@@ -1805,14 +1877,16 @@
         const avatarHtml = c.avatar 
           ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
-        const actions = (currentUser && c.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="deleteMessage('mediaComments/ntuTV/comments', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
+        const canDelete = currentUser && c.userId === currentUser.uid;
         html += `
-          <div class="ntutv-comment">
-            ${actions}
+          <div class="ntutv-comment" data-message-id="${doc.id}" data-user-id="${c.userId}" data-timestamp="${c.created}" data-name="${c.name}" data-kindred="${c.kindred}">
+            <div class="message-options">
+              <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="options-dropdown">
+                ${canDelete ? '<button onclick="deleteMessage(\'mediaComments/ntuTV/comments\', \'' + doc.id + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+                <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+              </div>
+            </div>
             <span class="user-badge" onclick="showProfile('${c.userId}')">${avatarHtml}<span>${escapeHtml(c.name)} (${escapeHtml(c.kindred || '')})</span></span>
             <div class="comment-text">${parseContent(c.text)}</div>
             <div class="timestamp">${formatTimestamp(c.created)}</div>
@@ -1992,14 +2066,16 @@
         const avatarHtml = c.avatar 
           ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
-        const actions = (currentUser && c.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="deleteMessage('mediaComments/${currentMediaId}/comments', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
+        const canDelete = currentUser && c.userId === currentUser.uid;
         html += `
-          <div class="media-comment">
-            ${actions}
+          <div class="media-comment" data-message-id="${doc.id}" data-user-id="${c.userId}" data-timestamp="${c.created}" data-name="${c.name}" data-kindred="${c.kindred}">
+            <div class="message-options">
+              <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="options-dropdown">
+                ${canDelete ? '<button onclick="deleteMessage(\'mediaComments/' + currentMediaId + '/comments\', \'' + doc.id + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+                <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+              </div>
+            </div>
             <span class="user-badge" onclick="showProfile('${c.userId}')">${avatarHtml}<span>${escapeHtml(c.name)} (${escapeHtml(c.kindred || '')})</span></span>
             <div class="comment-text">${parseContent(c.text)}</div>
             <div class="timestamp">${formatTimestamp(c.created)}</div>
@@ -2418,6 +2494,36 @@
       }, error => console.error('Rooms listener error:', error));
   }
 
+  // ==================== INFO MODAL ====================
+  window.showMessageInfo = function(btn) {
+    const msgDiv = btn.closest('[data-message-id]');
+    if (!msgDiv) return;
+    const msgId = msgDiv.dataset.messageId;
+    const userId = msgDiv.dataset.userId;
+    const timestamp = msgDiv.dataset.timestamp;
+    const name = msgDiv.dataset.name || 'Unknown';
+    const kindred = msgDiv.dataset.kindred || '';
+    let readStatus = '';
+    // If it's a private message, try to get read status
+    if (msgDiv.closest('.chat-message')) {
+      // Private messages have a 'read' field – we'd need to fetch it, but for simplicity:
+      readStatus = '<p><strong>Read:</strong> Not available in preview</p>';
+    }
+    const infoHtml = `
+      <p><strong>Message ID:</strong> ${msgId}</p>
+      <p><strong>From:</strong> ${escapeHtml(name)} (${escapeHtml(kindred)})</p>
+      <p><strong>User ID:</strong> ${userId}</p>
+      <p><strong>Sent:</strong> ${timestamp ? new Date(timestamp).toLocaleString() : 'Unknown'}</p>
+      ${readStatus}
+    `;
+    document.getElementById('infoContent').innerHTML = infoHtml;
+    document.getElementById('infoModal').style.display = 'flex';
+  };
+
+  window.closeInfoModal = function() {
+    document.getElementById('infoModal').style.display = 'none';
+  };
+
   // ==================== AUTH STATE ====================
   // We'll store unsubscribe functions for all main listeners
   let unsubscribeFeed = null;
@@ -2445,18 +2551,25 @@
           const feedDiv = document.createElement('div');
           feedDiv.className = "feed-item";
           feedDiv.id = `feed-${feedId}`;
+          feedDiv.dataset.messageId = feedId;
+          feedDiv.dataset.userId = p.userId || '';
+          feedDiv.dataset.timestamp = p.created;
+          feedDiv.dataset.name = p.name || '';
+          feedDiv.dataset.kindred = p.kindred || '';
           let imageHtml = '';
           if (p.image) {
             imageHtml = `<div>${parseContent(p.image)}</div>`;
           }
           const userBadge = userBadgeHTML(p.name || '?', p.kindred || '?', p.userId || '', p.avatar);
-          const actions = (currentUser && p.userId === currentUser.uid) 
-            ? `<div class="message-actions">
-                 <button onclick="deleteMessage('feed', '${feedId}')"><i class="fa-regular fa-trash-can"></i></button>
-               </div>`
-            : '';
+          const canDelete = currentUser && p.userId === currentUser.uid;
           feedDiv.innerHTML = `
-            ${actions}
+            <div class="message-options">
+              <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="options-dropdown">
+                ${canDelete ? '<button onclick="deleteMessage(\'feed\', \'' + feedId + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+                <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+              </div>
+            </div>
             ${userBadge}
             <div>${parseContent(p.text)}</div>
             ${imageHtml}
@@ -2504,14 +2617,21 @@
           const chatId = doc.id;
           const chatDiv = document.createElement('div');
           chatDiv.className = "chat-item";
+          chatDiv.dataset.messageId = chatId;
+          chatDiv.dataset.userId = m.userId || '';
+          chatDiv.dataset.timestamp = m.created;
+          chatDiv.dataset.name = m.name || '';
+          chatDiv.dataset.kindred = m.kindred || '';
           const userBadge = userBadgeHTML(m.name || '?', m.kindred || '?', m.userId || '', m.avatar);
-          const actions = (currentUser && m.userId === currentUser.uid) 
-            ? `<div class="message-actions">
-                 <button onclick="deleteMessage('chat', '${chatId}')"><i class="fa-regular fa-trash-can"></i></button>
-               </div>`
-            : '';
+          const canDelete = currentUser && m.userId === currentUser.uid;
           chatDiv.innerHTML = `
-            ${actions}
+            <div class="message-options">
+              <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="options-dropdown">
+                ${canDelete ? '<button onclick="deleteMessage(\'chat\', \'' + chatId + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+                <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+              </div>
+            </div>
             ${userBadge}
             <span>: ${parseContent(m.text)}</span>
             <div class="timestamp">${formatTimestamp(m.created)}</div>
@@ -2537,14 +2657,21 @@
           const goodwillId = doc.id;
           const goodwillDiv = document.createElement('div');
           goodwillDiv.className = "goodwill-item";
+          goodwillDiv.dataset.messageId = goodwillId;
+          goodwillDiv.dataset.userId = g.userId || '';
+          goodwillDiv.dataset.timestamp = g.created;
+          goodwillDiv.dataset.name = g.name || '';
+          goodwillDiv.dataset.kindred = g.kindred || '';
           const userBadge = userBadgeHTML(g.name || '?', g.kindred || '?', g.userId || '', g.avatar);
-          const actions = (currentUser && g.userId === currentUser.uid) 
-            ? `<div class="message-actions">
-                 <button onclick="deleteMessage('goodwill', '${goodwillId}')"><i class="fa-regular fa-trash-can"></i></button>
-               </div>`
-            : '';
+          const canDelete = currentUser && g.userId === currentUser.uid;
           goodwillDiv.innerHTML = `
-            ${actions}
+            <div class="message-options">
+              <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="options-dropdown">
+                ${canDelete ? '<button onclick="deleteMessage(\'goodwill\', \'' + goodwillId + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+                <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+              </div>
+            </div>
             ${userBadge}
             <div>${parseContent(g.text)}</div>
             <div class="timestamp">${formatTimestamp(g.created)}</div>
@@ -2983,14 +3110,21 @@
         const r = doc.data();
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
+        replyDiv.dataset.messageId = doc.id;
+        replyDiv.dataset.userId = r.userId || '';
+        replyDiv.dataset.timestamp = r.created;
+        replyDiv.dataset.name = r.name || '';
+        replyDiv.dataset.kindred = r.kindred || '';
         const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
-        const actions = (currentUser && r.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="deleteMessage('${collection}/${id}/replies', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
+        const canDelete = currentUser && r.userId === currentUser.uid;
         replyDiv.innerHTML = `
-          ${actions}
+          <div class="message-options">
+            <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            <div class="options-dropdown">
+              ${canDelete ? '<button onclick="deleteMessage(\'' + collection + '/' + id + '/replies\', \'' + doc.id + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+              <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+            </div>
+          </div>
           ${userBadge}
           <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
@@ -3011,14 +3145,21 @@
         const r = doc.data();
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
+        replyDiv.dataset.messageId = doc.id;
+        replyDiv.dataset.userId = r.userId || '';
+        replyDiv.dataset.timestamp = r.created;
+        replyDiv.dataset.name = r.name || '';
+        replyDiv.dataset.kindred = r.kindred || '';
         const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
-        const actions = (currentUser && r.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="deleteMessage('chat/${chatId}/replies', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
+        const canDelete = currentUser && r.userId === currentUser.uid;
         replyDiv.innerHTML = `
-          ${actions}
+          <div class="message-options">
+            <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            <div class="options-dropdown">
+              ${canDelete ? '<button onclick="deleteMessage(\'chat/' + chatId + '/replies\', \'' + doc.id + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+              <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+            </div>
+          </div>
           ${userBadge}
           <span>: ${parseContent(r.text)}</span>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
@@ -3039,14 +3180,21 @@
         const r = doc.data();
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
+        replyDiv.dataset.messageId = doc.id;
+        replyDiv.dataset.userId = r.userId || '';
+        replyDiv.dataset.timestamp = r.created;
+        replyDiv.dataset.name = r.name || '';
+        replyDiv.dataset.kindred = r.kindred || '';
         const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
-        const actions = (currentUser && r.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="deleteMessage('goodwill/${goodwillId}/replies', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
+        const canDelete = currentUser && r.userId === currentUser.uid;
         replyDiv.innerHTML = `
-          ${actions}
+          <div class="message-options">
+            <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            <div class="options-dropdown">
+              ${canDelete ? '<button onclick="deleteMessage(\'goodwill/' + goodwillId + '/replies\', \'' + doc.id + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+              <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+            </div>
+          </div>
           ${userBadge}
           <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
@@ -3068,14 +3216,21 @@
         const commentId = doc.id;
         const commentDiv = document.createElement('div');
         commentDiv.className = "replyBox";
+        commentDiv.dataset.messageId = commentId;
+        commentDiv.dataset.userId = c.userId || '';
+        commentDiv.dataset.timestamp = c.created;
+        commentDiv.dataset.name = c.name || '';
+        commentDiv.dataset.kindred = c.kindred || '';
         const userBadge = userBadgeHTML(c.name || '?', c.kindred || '?', c.userId || '', c.avatar);
-        const actions = (currentUser && c.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="deleteMessage('events/${eventId}/comments', '${commentId}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
+        const canDelete = currentUser && c.userId === currentUser.uid;
         commentDiv.innerHTML = `
-          ${actions}
+          <div class="message-options">
+            <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            <div class="options-dropdown">
+              ${canDelete ? '<button onclick="deleteMessage(\'events/' + eventId + '/comments\', \'' + commentId + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+              <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+            </div>
+          </div>
           ${userBadge}
           <div>${parseContent(c.text)}</div>
           <div class="timestamp">${formatTimestamp(c.created)}</div>
@@ -3100,14 +3255,21 @@
         const r = doc.data();
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
+        replyDiv.dataset.messageId = doc.id;
+        replyDiv.dataset.userId = r.userId || '';
+        replyDiv.dataset.timestamp = r.created;
+        replyDiv.dataset.name = r.name || '';
+        replyDiv.dataset.kindred = r.kindred || '';
         const userBadge = userBadgeHTML(r.name || '?', r.kindred || '?', r.userId || '', r.avatar);
-        const actions = (currentUser && r.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="deleteMessage('events/${eventId}/comments/${commentId}/replies', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
+        const canDelete = currentUser && r.userId === currentUser.uid;
         replyDiv.innerHTML = `
-          ${actions}
+          <div class="message-options">
+            <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            <div class="options-dropdown">
+              ${canDelete ? '<button onclick="deleteMessage(\'events/' + eventId + '/comments/' + commentId + '/replies\', \'' + doc.id + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+              <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+            </div>
+          </div>
           ${userBadge}
           <div>${parseContent(r.text)}</div>
           <div class="timestamp">${formatTimestamp(r.created)}</div>
@@ -3172,12 +3334,26 @@
       container.innerHTML = '';
       snapshot.forEach(doc => {
         const msg = doc.data();
+        const msgId = doc.id;
         const div = document.createElement('div');
         div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
+        div.dataset.messageId = msgId;
+        div.dataset.userId = msg.from;
+        div.dataset.timestamp = msg.timestamp;
+        div.dataset.name = msg.name || 'Unknown';
+        // No kindred for private messages usually
         const avatarHtml = msg.avatar 
           ? `<img class="avatar avatar-sm" src="${msg.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
+        const canDelete = currentUser && msg.from === currentUser.uid; // Allow delete if sender
         div.innerHTML = `
+          <div class="message-options">
+            <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            <div class="options-dropdown">
+              ${canDelete ? '<button onclick="deleteMessage(\'privateChatRooms/' + roomId + '/messages\', \'' + msgId + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+              <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+            </div>
+          </div>
           ${avatarHtml}
           <div class="message-content">
             <div>${parseContent(msg.text)}</div>
@@ -3467,14 +3643,16 @@
         const avatarHtml = c.avatar 
           ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
-        const actions = (currentUser && c.userId === currentUser.uid) 
-          ? `<div class="message-actions">
-               <button onclick="deleteMessage('projectBoard/${taskId}/comments', '${doc.id}')"><i class="fa-regular fa-trash-can"></i></button>
-             </div>`
-          : '';
+        const canDelete = currentUser && c.userId === currentUser.uid;
         html += `
-          <div class="comment">
-            ${actions}
+          <div class="comment" data-message-id="${doc.id}" data-user-id="${c.userId}" data-timestamp="${c.created}" data-name="${c.name}" data-kindred="${c.kindred}">
+            <div class="message-options">
+              <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+              <div class="options-dropdown">
+                ${canDelete ? '<button onclick="deleteMessage(\'projectBoard/' + taskId + '/comments\', \'' + doc.id + '\')"><i class="fa-regular fa-trash-can"></i> Delete</button>' : ''}
+                <button onclick="showMessageInfo(this)"><i class="fa-regular fa-circle-info"></i> Info</button>
+              </div>
+            </div>
             <span class="user-badge" onclick="showProfile('${c.userId}')">${avatarHtml}<span>${escapeHtml(c.name)} (${escapeHtml(c.kindred || '')})</span></span>
             <div class="comment-text">${escapeHtml(c.text)}</div>
             <div class="timestamp">${formatTimestamp(c.created)}</div>
@@ -4268,6 +4446,7 @@
       if (event.target.id === 'linkModal') closeLinkModal();
       if (event.target.id === 'mediaPlayerModal') closeMediaPlayer();
       if (event.target.id === 'taskModal') closeTaskModal();
+      if (event.target.id === 'infoModal') closeInfoModal();
     }
   };
 
