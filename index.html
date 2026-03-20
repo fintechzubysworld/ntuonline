@@ -1878,8 +1878,9 @@
           ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
         const canDelete = currentUser && c.userId === currentUser.uid;
+        const timestampMs = c.created?.toDate ? c.created.toDate().getTime() : (c.created ? new Date(c.created).getTime() : null);
         html += `
-          <div class="ntutv-comment" data-message-id="${doc.id}" data-user-id="${c.userId}" data-timestamp="${c.created}" data-name="${c.name}" data-kindred="${c.kindred}" data-collection="mediaComments/ntuTV/comments">
+          <div class="ntutv-comment" data-message-id="${doc.id}" data-user-id="${c.userId}" data-timestamp="${timestampMs}" data-name="${c.name}" data-kindred="${c.kindred}" data-collection="mediaComments/ntuTV/comments">
             <div class="message-options">
               <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
               <div class="options-dropdown">
@@ -2067,8 +2068,9 @@
           ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
         const canDelete = currentUser && c.userId === currentUser.uid;
+        const timestampMs = c.created?.toDate ? c.created.toDate().getTime() : (c.created ? new Date(c.created).getTime() : null);
         html += `
-          <div class="media-comment" data-message-id="${doc.id}" data-user-id="${c.userId}" data-timestamp="${c.created}" data-name="${c.name}" data-kindred="${c.kindred}" data-collection="mediaComments/${currentMediaId}/comments">
+          <div class="media-comment" data-message-id="${doc.id}" data-user-id="${c.userId}" data-timestamp="${timestampMs}" data-name="${c.name}" data-kindred="${c.kindred}" data-collection="mediaComments/${currentMediaId}/comments">
             <div class="message-options">
               <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
               <div class="options-dropdown">
@@ -2247,7 +2249,6 @@
     try {
       let date = ts.toDate ? ts.toDate() : new Date(ts);
       if (isNaN(date.getTime())) return '';
-      // For display in the UI (feed, chat) we keep original format; info modal uses custom formatting
       return date.toLocaleString();
     } catch (e) { return ''; }
   }
@@ -2510,25 +2511,25 @@
     const msgDiv = btn.closest('[data-message-id]');
     if (!msgDiv) return;
     const msgId = msgDiv.dataset.messageId;
-    const timestampRaw = msgDiv.dataset.timestamp;
+    const timestampRaw = msgDiv.dataset.timestamp; // should be milliseconds number as string
     const collection = msgDiv.dataset.collection;
     const userId = msgDiv.dataset.userId;
 
-    // Format sent time
+    // Parse timestamp
     let sentFormatted = 'Unknown';
-    if (timestampRaw) {
-      try {
-        const date = timestampRaw.toDate ? timestampRaw.toDate() : new Date(timestampRaw);
+    if (timestampRaw && timestampRaw !== 'null') {
+      const ms = parseInt(timestampRaw, 10);
+      if (!isNaN(ms)) {
+        const date = new Date(ms);
         if (!isNaN(date.getTime())) {
           sentFormatted = formatMessageInfoDate(date);
         }
-      } catch (e) {}
+      }
     }
 
-    // Determine if we should show read status: only for messages the current user sent
+    // Determine read status: only for messages the current user sent in private chats
     let readStatusHtml = '';
     if (currentUser && userId === currentUser.uid && collection && collection.includes('privateChatRooms/')) {
-      // This is a private message sent by current user – fetch read status
       const parts = collection.split('/');
       if (parts.length >= 2) {
         const roomId = parts[1];
@@ -2537,30 +2538,11 @@
         if (msgDoc.exists) {
           const isRead = msgDoc.data().read === true;
           readStatusHtml = `<p><strong>Read:</strong> ${isRead ? 'Yes' : 'No'}</p>`;
-        }
-      }
-    } else if (currentUser && userId === currentUser.uid && collection && collection.startsWith('privateChatRooms/')) {
-      // also catch case where collection might be just 'privateChatRooms/.../messages'
-      readStatusHtml = `<p><strong>Read:</strong> Loading...</p>`;
-      // Actually we need to fetch
-      const parts = collection.split('/');
-      if (parts.length >= 2) {
-        const roomId = parts[1];
-        const msgRef = db.collection('privateChatRooms').doc(roomId).collection('messages').doc(msgId);
-        const msgDoc = await msgRef.get();
-        if (msgDoc.exists) {
-          const isRead = msgDoc.data().read === true;
-          readStatusHtml = `<p><strong>Read:</strong> ${isRead ? 'Yes' : 'No'}</p>`;
-        } else {
-          readStatusHtml = `<p><strong>Read:</strong> Not available</p>`;
         }
       }
     }
 
-    // Build content: only Sent and Read (if applicable)
-    let infoHtml = `<p><strong>Sent:</strong> ${sentFormatted}</p>`;
-    if (readStatusHtml) infoHtml += readStatusHtml;
-
+    const infoHtml = `<p><strong>Sent:</strong> ${sentFormatted}</p>${readStatusHtml}`;
     document.getElementById('infoContent').innerHTML = infoHtml;
     document.getElementById('infoModal').style.display = 'flex';
   };
@@ -2593,12 +2575,13 @@
         s.forEach(doc => {
           const p = doc.data();
           const feedId = doc.id;
+          const timestampMs = p.created?.toDate ? p.created.toDate().getTime() : (p.created ? new Date(p.created).getTime() : null);
           const feedDiv = document.createElement('div');
           feedDiv.className = "feed-item";
           feedDiv.id = `feed-${feedId}`;
           feedDiv.dataset.messageId = feedId;
           feedDiv.dataset.userId = p.userId || '';
-          feedDiv.dataset.timestamp = p.created;
+          feedDiv.dataset.timestamp = timestampMs;
           feedDiv.dataset.name = p.name || '';
           feedDiv.dataset.kindred = p.kindred || '';
           feedDiv.dataset.collection = 'feed';
@@ -2661,11 +2644,12 @@
         s.forEach(doc => {
           const m = doc.data();
           const chatId = doc.id;
+          const timestampMs = m.created?.toDate ? m.created.toDate().getTime() : (m.created ? new Date(m.created).getTime() : null);
           const chatDiv = document.createElement('div');
           chatDiv.className = "chat-item";
           chatDiv.dataset.messageId = chatId;
           chatDiv.dataset.userId = m.userId || '';
-          chatDiv.dataset.timestamp = m.created;
+          chatDiv.dataset.timestamp = timestampMs;
           chatDiv.dataset.name = m.name || '';
           chatDiv.dataset.kindred = m.kindred || '';
           chatDiv.dataset.collection = 'chat';
@@ -2702,11 +2686,12 @@
         s.forEach(doc => {
           const g = doc.data();
           const goodwillId = doc.id;
+          const timestampMs = g.created?.toDate ? g.created.toDate().getTime() : (g.created ? new Date(g.created).getTime() : null);
           const goodwillDiv = document.createElement('div');
           goodwillDiv.className = "goodwill-item";
           goodwillDiv.dataset.messageId = goodwillId;
           goodwillDiv.dataset.userId = g.userId || '';
-          goodwillDiv.dataset.timestamp = g.created;
+          goodwillDiv.dataset.timestamp = timestampMs;
           goodwillDiv.dataset.name = g.name || '';
           goodwillDiv.dataset.kindred = g.kindred || '';
           goodwillDiv.dataset.collection = 'goodwill';
@@ -3156,11 +3141,12 @@
       box.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
+        const timestampMs = r.created?.toDate ? r.created.toDate().getTime() : (r.created ? new Date(r.created).getTime() : null);
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
         replyDiv.dataset.messageId = doc.id;
         replyDiv.dataset.userId = r.userId || '';
-        replyDiv.dataset.timestamp = r.created;
+        replyDiv.dataset.timestamp = timestampMs;
         replyDiv.dataset.name = r.name || '';
         replyDiv.dataset.kindred = r.kindred || '';
         replyDiv.dataset.collection = `${collection}/${id}/replies`;
@@ -3192,11 +3178,12 @@
       container.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
+        const timestampMs = r.created?.toDate ? r.created.toDate().getTime() : (r.created ? new Date(r.created).getTime() : null);
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
         replyDiv.dataset.messageId = doc.id;
         replyDiv.dataset.userId = r.userId || '';
-        replyDiv.dataset.timestamp = r.created;
+        replyDiv.dataset.timestamp = timestampMs;
         replyDiv.dataset.name = r.name || '';
         replyDiv.dataset.kindred = r.kindred || '';
         replyDiv.dataset.collection = `chat/${chatId}/replies`;
@@ -3228,11 +3215,12 @@
       container.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
+        const timestampMs = r.created?.toDate ? r.created.toDate().getTime() : (r.created ? new Date(r.created).getTime() : null);
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
         replyDiv.dataset.messageId = doc.id;
         replyDiv.dataset.userId = r.userId || '';
-        replyDiv.dataset.timestamp = r.created;
+        replyDiv.dataset.timestamp = timestampMs;
         replyDiv.dataset.name = r.name || '';
         replyDiv.dataset.kindred = r.kindred || '';
         replyDiv.dataset.collection = `goodwill/${goodwillId}/replies`;
@@ -3265,11 +3253,12 @@
       s.forEach(doc => {
         const c = doc.data();
         const commentId = doc.id;
+        const timestampMs = c.created?.toDate ? c.created.toDate().getTime() : (c.created ? new Date(c.created).getTime() : null);
         const commentDiv = document.createElement('div');
         commentDiv.className = "replyBox";
         commentDiv.dataset.messageId = commentId;
         commentDiv.dataset.userId = c.userId || '';
-        commentDiv.dataset.timestamp = c.created;
+        commentDiv.dataset.timestamp = timestampMs;
         commentDiv.dataset.name = c.name || '';
         commentDiv.dataset.kindred = c.kindred || '';
         commentDiv.dataset.collection = `events/${eventId}/comments`;
@@ -3305,11 +3294,12 @@
       container.innerHTML = "";
       s.forEach(doc => {
         const r = doc.data();
+        const timestampMs = r.created?.toDate ? r.created.toDate().getTime() : (r.created ? new Date(r.created).getTime() : null);
         const replyDiv = document.createElement('div');
         replyDiv.className = "replyBox";
         replyDiv.dataset.messageId = doc.id;
         replyDiv.dataset.userId = r.userId || '';
-        replyDiv.dataset.timestamp = r.created;
+        replyDiv.dataset.timestamp = timestampMs;
         replyDiv.dataset.name = r.name || '';
         replyDiv.dataset.kindred = r.kindred || '';
         replyDiv.dataset.collection = `events/${eventId}/comments/${commentId}/replies`;
@@ -3388,18 +3378,19 @@
       snapshot.forEach(doc => {
         const msg = doc.data();
         const msgId = doc.id;
+        const timestampMs = msg.timestamp?.toDate ? msg.timestamp.toDate().getTime() : (msg.timestamp ? new Date(msg.timestamp).getTime() : null);
         const div = document.createElement('div');
         div.className = `chat-message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
         div.dataset.messageId = msgId;
         div.dataset.userId = msg.from;
-        div.dataset.timestamp = msg.timestamp;
+        div.dataset.timestamp = timestampMs;
         div.dataset.name = msg.name || 'Unknown';
         div.dataset.kindred = '';
         div.dataset.collection = `privateChatRooms/${roomId}/messages`;
         const avatarHtml = msg.avatar 
           ? `<img class="avatar avatar-sm" src="${msg.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
-        const canDelete = currentUser && msg.from === currentUser.uid; // Allow delete if sender
+        const canDelete = currentUser && msg.from === currentUser.uid;
         div.innerHTML = `
           <div class="message-options">
             <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
@@ -3698,8 +3689,9 @@
           ? `<img class="avatar avatar-sm" src="${c.avatar}" alt="">`
           : `<span class="avatar-placeholder avatar-placeholder-sm"><i class="fa-regular fa-user"></i></span>`;
         const canDelete = currentUser && c.userId === currentUser.uid;
+        const timestampMs = c.created?.toDate ? c.created.toDate().getTime() : (c.created ? new Date(c.created).getTime() : null);
         html += `
-          <div class="comment" data-message-id="${doc.id}" data-user-id="${c.userId}" data-timestamp="${c.created}" data-name="${c.name}" data-kindred="${c.kindred}" data-collection="projectBoard/${taskId}/comments">
+          <div class="comment" data-message-id="${doc.id}" data-user-id="${c.userId}" data-timestamp="${timestampMs}" data-name="${c.name}" data-kindred="${c.kindred}" data-collection="projectBoard/${taskId}/comments">
             <div class="message-options">
               <button class="options-btn" onclick="toggleOptions(this)"><i class="fa-solid fa-ellipsis-vertical"></i></button>
               <div class="options-dropdown">
